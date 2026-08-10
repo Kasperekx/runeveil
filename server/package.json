@@ -1,0 +1,35 @@
+{
+  "name": "mmo-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:import-sqlite": "tsx src/importSqlite.ts"
+  },
+  "dependencies": {
+    "@colyseus/core": "^0.17.46",
+    "@colyseus/schema": "^4.0.30",
+    "@colyseus/ws-transport": "^0.17.13",
+    "argon2": "^0.45.1",
+    "colyseus": "^0.17.10",
+    "cookie": "^2.0.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "js-yaml": "^5.2.3",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.20.4",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.3"
+  }
+}

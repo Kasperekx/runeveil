@@ -1,0 +1,42 @@
+# Quest definitions shared by the client journal and the authoritative server.
+quests:
+  first_hunt:
+    version: 1
+    name: Pierwsze polowanie
+    category: Łowy
+    giver: Strażnik ostępów
+    description: Dziki coraz śmielej podchodzą pod obóz. Udowodnij, że potrafisz obronić szlak.
+    giverNpcId: dark_merchant
+    autoStart: false
+    turnIn:
+      kind: npc
+      target: dark_merchant
+      label: Wróć do Kupca przy karawanie
+    objective:
+      type: kill
+      target: boar
+      quantity: 3
+      label: Pokonaj dziki
+    rewards:
+      gold: 25
+      experience: 30
+  meal_by_the_fire:
+    version: 1
+    name: Posiłek przy ognisku
+    category: Rzemiosło
+    giver: Kucharz obozowy
+    description: Po udanym polowaniu przygotuj prowiant. Palenisko czeka pośrodku obozu.
+    prerequisite: first_hunt
+    giverNpcId: dark_merchant
+    turnIn:
+      kind: station
+      target: hunting-grounds-hearth
+      label: Odbierz posiłek przy palenisku
+    objective:
+      type: craft
+      target: grilled_wild_meat
+      quantity: 2
+      label: Przygotuj pieczone mięso z dziczyzny
+    rewards:
+      gold: 35
+      experience: 45

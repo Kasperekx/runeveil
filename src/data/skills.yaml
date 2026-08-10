@@ -1,0 +1,21 @@
+# Player skills (client + server).
+# Damage for warrior cleaves: round(strength * strengthScale + weaponMin/Max * weaponScale)
+
+skills:
+  sweeping_strike:
+    name: Zamaszysty cios
+    description: "Tnie szerokim łukiem przed sobą, raniąc wszystkich wrogów w zasięgu. Wymaga wybranego celu. Siła i obrażenia broni zwiększają moc ciosu."
+    icon: assets/skills/sweeping-strike.png?v=2
+    classes:
+      - warrior
+      - knight
+    rank: 1
+    school: physical
+    schoolLabel: Fizyczna
+    requiresTarget: true
+    cooldownMs: 7000
+    range: 112
+    coneDegrees: 170
+    strengthScale: 1.25
+    weaponScale: 1.4
+    vfx: sweeping_strike

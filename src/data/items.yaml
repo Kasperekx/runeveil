@@ -1,0 +1,276 @@
+# Item catalog
+#
+# Art standard:
+# - icon: 64×64 PNG, content ≤ 32×32, transparent background
+# - worldScale: optional override; default = ITEM_WORLD_SCALE (~0.75 → ~24px on map)
+#   Creatures render at scale 1; pickups should stay clearly smaller.
+#
+# use: optional. Items without it can sit on the action bar but do nothing.
+#   heal:        hit points restored
+#   cooldownMs:  per-item cooldown applied after a successful use
+#
+# capacity: optional. Marks the item as a container (bag) granting that many
+#   inventory slots while equipped in a bag slot.
+#
+# buyPrice: vendor buy price in gold (required for shop listings).
+# sellPrice: optional; vendor pays this when the player sells. Default = floor(buyPrice * 0.35).
+
+items:
+  meat:
+    name: Mięso z dzikiej zwierzyny
+    description: |
+      Surowy kawałek mięsa z upolowanej zwierzyny.
+      Przyda się przy ognisku albo w drodze, gdy brakuje zapasów.
+      Użyj z paska akcji (1–0), by odzyskać siły.
+    icon: assets/items/meat-v2.png
+    type: consumable
+    typeLabel: Konsumowalny
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 20
+    buyPrice: 4
+    sellPrice: 1
+    use:
+      heal: 10
+      cooldownMs: 8000
+
+  grilled_wild_meat:
+    name: Pieczone mięso z dziczyzny
+    description: |
+      Ciepły posiłek przygotowany przy palenisku.
+      Przywraca więcej sił niż surowe mięso.
+    icon: assets/items/grilled-wild-meat.png
+    type: consumable
+    typeLabel: Posiłek
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 20
+    sellPrice: 3
+    use:
+      heal: 24
+      cooldownMs: 8000
+
+  hunter_stew:
+    name: Gulasz myśliwski
+    description: |
+      Syty gulasz z dziczyzny. Najlepiej smakuje po polowaniu.
+    icon: assets/items/meat-v2.png
+    type: consumable
+    typeLabel: Posiłek
+    rarity: uncommon
+    rarityLabel: Niezwykły
+    stackable: true
+    maxStack: 20
+    sellPrice: 7
+    use:
+      heal: 52
+      cooldownMs: 10000
+
+  smoked_wild_meat:
+    name: Wędzona dziczyzna
+    description: |
+      Trwały posiłek dla wędrowca; dym nadał mu głęboki smak.
+    icon: assets/items/meat-v2.png
+    type: consumable
+    typeLabel: Posiłek
+    rarity: uncommon
+    rarityLabel: Niezwykły
+    stackable: true
+    maxStack: 20
+    sellPrice: 11
+    use:
+      heal: 85
+      cooldownMs: 12000
+
+  health_potion_v2:
+    name: Mikstura leczenia
+    description: |
+      Czerwony eliksir w szklanej fiolce.
+      Przywraca odrobinę sił po walce.
+      Przeciągnij na pasek akcji i naciśnij klawisz slotu.
+    icon: assets/items/health-potion-v2.png
+    type: consumable
+    typeLabel: Konsumowalny
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 10
+    buyPrice: 25
+    sellPrice: 8
+    use:
+      heal: 35
+      cooldownMs: 12000
+
+  # Legacy id — older player saves / action bars still reference this.
+  health_potion:
+    name: Mikstura leczenia
+    description: |
+      Czerwony eliksir w szklanej fiolce.
+      Przywraca odrobinę sił po walce.
+      Przeciągnij na pasek akcji i naciśnij klawisz slotu.
+    icon: assets/items/health-potion-v2.png
+    type: consumable
+    typeLabel: Konsumowalny
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 10
+    buyPrice: 25
+    sellPrice: 8
+    use:
+      heal: 35
+      cooldownMs: 12000
+
+  backpack:
+    name: Skórzany plecak
+    description: |
+      Pojemny plecak z garbowanej skóry.
+      Główny ekwipunek jest na stałe; dodatkowe torby zakładaj w wolnych gniazdach.
+    icon: assets/items/backpack.png
+    type: container
+    typeLabel: Pojemnik
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    capacity: 8
+    buyPrice: 120
+    sellPrice: 40
+
+  small_backpack:
+    name: Mały skórzany plecak
+    description: |
+      Lekki plecak podróżny na najpotrzebniejsze rzeczy.
+      Mieści mniej od pełnowymiarowej torby, ale łatwo go zdobyć i założyć w dodatkowym gnieździe.
+    icon: assets/items/small-backpack.png
+    type: container
+    typeLabel: Pojemnik
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    capacity: 4
+    buyPrice: 40
+    sellPrice: 14
+
+  # ——— Skórzana zbroja (komplet startowy) ———
+  # slot: gniazdo ekwipunku, do którego przedmiot pasuje
+  # armor: wkład w redukcję obrażeń
+
+  leather_helm:
+    name: Skórzany hełm
+    description: |
+      Utwardzany kaptur z grubej skóry.
+      Nie zatrzyma topora, ale kły dzika już tak.
+    icon: assets/items/leather-armor/leather-helm.png
+    type: armor
+    typeLabel: Zbroja
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: head
+    armor: 4
+    maxDurability: 55
+    buyPrice: 55
+    sellPrice: 18
+
+  leather_shoulders:
+    name: Skórzane naramienniki
+    description: |
+      Nity i podwójna skóra na barkach.
+      Rozkładają ciężar plecaka i cios z góry.
+    icon: assets/items/leather-armor/leather-shoulders.png
+    type: armor
+    typeLabel: Zbroja
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: shoulders
+    armor: 5
+    maxDurability: 65
+    buyPrice: 60
+    sellPrice: 20
+
+  leather_chest:
+    name: Skórzany kirys
+    description: |
+      Garbowany napierśnik ćwiekowany żelazem.
+      Serce najemnika bije pod nim spokojniej.
+    icon: assets/items/leather-armor/leather-chest.png
+    type: armor
+    typeLabel: Zbroja
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: chest
+    armor: 9
+    maxDurability: 90
+    buyPrice: 110
+    sellPrice: 35
+
+  leather_legs:
+    name: Skórzane nogawice
+    description: |
+      Wzmacniane na udach, luźne w kolanach.
+      Można w nich biec cały dzień.
+    icon: assets/items/leather-armor/leather-legs.png
+    type: armor
+    typeLabel: Zbroja
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: legs
+    armor: 7
+    maxDurability: 75
+    buyPrice: 85
+    sellPrice: 28
+
+  leather_boots:
+    name: Skórzane buty
+    description: |
+      Wysokie, podbite ćwiekami.
+      Cicho stąpają po runie lasu.
+    icon: assets/items/leather-armor/leather-boots.png
+    type: armor
+    typeLabel: Zbroja
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: feet
+    armor: 4
+    maxDurability: 50
+    buyPrice: 45
+    sellPrice: 15
+
+  # ——— Broń ———
+  # slot: mainHand / offHand
+  # damageMin / damageMax: przedział obrażeń broni (WoW-lite)
+  # (legacy: samo `damage` → min = max = damage)
+  # attackSpeed: mnożnik tempa swingu (1 = normalnie; wyżej = szybciej)
+
+  iron_shortsword:
+    name: Żelazny krótki miecz
+    description: |
+      Wyszczerbiona klinga z pospolitego żelaza.
+      Skórzana rękojeść trzyma się jeszcze jako tako —
+      wystarczy, by przebić skórę dzika.
+    icon: assets/items/iron-shortsword.png
+    type: weapon
+    typeLabel: Broń
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: mainHand
+    damageMin: 6
+    damageMax: 10
+    maxDurability: 100
+    buyPrice: 75
+    sellPrice: 25

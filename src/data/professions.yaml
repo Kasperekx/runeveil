@@ -1,0 +1,49 @@
+# Profession catalog. Both client and server load this file, while the server
+# remains authoritative for crafting, materials and experience.
+professions:
+  cooking:
+    name: Gotowanie
+    description: Przygotowuj posiłki z łupów zdobytych podczas polowań.
+    icon: "♨"
+    maxLevel: 100
+    xp:
+      # XP required to advance from a given level. Formula: base + (level - 1) * step.
+      base: 30
+      step: 12
+    recipes:
+      grilled_wild_meat:
+        name: Pieczone mięso z dziczyzny
+        description: Soczysty kawałek mięsa opieczony nad żarem.
+        level: 1
+        xp: 12
+        craftTimeMs: 1600
+        output:
+          item: grilled_wild_meat
+          quantity: 1
+        ingredients:
+          - item: meat
+            quantity: 1
+      hunter_stew:
+        name: Gulasz myśliwski
+        description: Syty posiłek z dwóch porcji dziczyzny, gotowany powoli przy ogniu.
+        level: 10
+        xp: 22
+        craftTimeMs: 2200
+        output:
+          item: hunter_stew
+          quantity: 1
+        ingredients:
+          - item: meat
+            quantity: 2
+      smoked_wild_meat:
+        name: Wędzona dziczyzna
+        description: Trwałe, aromatyczne mięso na długą wyprawę.
+        level: 25
+        xp: 34
+        craftTimeMs: 2600
+        output:
+          item: smoked_wild_meat
+          quantity: 1
+        ingredients:
+          - item: meat
+            quantity: 3

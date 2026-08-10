@@ -1,0 +1,84 @@
+# NPC catalog (client + server shop definitions).
+#
+# Art: idle-breathing sprites live under public/assets/npcs/<folder>/
+# sprites.folder + sprites.filePrefix + frameCount build the frame paths,
+# e.g. dark-merchant-v3/merchant-idle-down-1.png .. -4.png
+#
+# shop: optional vendor list
+#   item:  item id from items.yaml
+#   stock: remaining count; omit or -1 for infinite
+#
+# dialogue: optional client-only conversation choices
+#   label:  button text
+#   text:   show this reply (then „Wróć”)
+#   action: trade | repair | close  (instead of / after text)
+
+npcs:
+  dark_merchant:
+    name: Kupiec
+    title: Wędrowny handlarz
+    sprites:
+      folder: dark-merchant-v3
+      filePrefix: merchant
+      frameCount: 4
+    animFps: 3
+    greeting: |
+      Witaj, wędrowcze. Mam towar uczciwej ceny —
+      a jeśli wolisz słowa od mieczy, też znajdzie się chwila.
+    dialogue:
+      - id: story
+        label: Opowiedz mi o sobie
+        text: |
+          Ha. Nazywają mnie tylko Kupcem, i tak ma zostać.
+          Jeżdżę szlakiem między zrujnowanymi strażnicami a polaną łowów —
+          tam, gdzie myśliwi zostawiają skóry, a głodni płacą złotem.
+          Kiedyś wiózł mnie karawan większy niż ta furka. Mgła zabrała resztę.
+          Ja ocalałem z jednym wozem, kilkoma flakonami i nawykiem nie pytać,
+          skąd ktoś bierze mięso. Handel żywi; ciekawość — rzadziej.
+      - id: trade
+        label: Pokaż towar
+        action: trade
+      - id: leave
+        label: Do widzenia
+        action: close
+    shop:
+      - item: health_potion_v2
+        stock: 12
+      - item: meat
+        stock: 20
+      - item: backpack
+        stock: 2
+      - item: small_backpack
+        stock: 4
+      - item: leather_helm
+        stock: 1
+      - item: leather_chest
+        stock: 1
+      - item: iron_shortsword
+        stock: 2
+
+  dark_blacksmith:
+    name: Kowal
+    title: Mistrz kuźni
+    sprites:
+      folder: dwarf-blacksmith
+      filePrefix: blacksmith
+      frameCount: 1
+    animFps: 1
+    greeting: |
+      Żelazo nie kłamie. Powiedz, czego szukasz —
+      ostrza, naprawy, czy tylko ciepła od kuźni.
+    repairService: true
+    dialogue:
+      - id: story
+        label: Opowiedz o kuźni
+        text: |
+          Postawiłem ten piec, gdy karawany jeszcze jeździły regularnie.
+          Teraz zostaliśmy my, kamień pod stopami i bestie na polanie.
+          Młot mam, węgiel mam. Klientów — jak Mgła pozwoli.
+      - id: repair
+        label: Napraw mój ekwipunek
+        action: repair
+      - id: leave
+        label: Do widzenia
+        action: close

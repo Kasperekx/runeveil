@@ -1,0 +1,785 @@
+{
+  "test-player-1": {
+    "playerId": "test-player-1",
+    "x": 123,
+    "y": 456,
+    "slots": [
+      {
+        "itemId": "meat",
+        "quantity": 3
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "75b2f2f9-2257-4310-8b50-d40ebf86fdb7": {
+    "playerId": "75b2f2f9-2257-4310-8b50-d40ebf86fdb7",
+    "x": 582.8036108323944,
+    "y": 491.4238017934368,
+    "slots": [
+      {
+        "itemId": "meat",
+        "quantity": 20
+      },
+      {
+        "itemId": "meat",
+        "quantity": 20
+      },
+      {
+        "itemId": "meat",
+        "quantity": 20
+      },
+      {
+        "itemId": "meat",
+        "quantity": 20
+      },
+      {
+        "itemId": "meat",
+        "quantity": 20
+      },
+      {
+        "itemId": "meat",
+        "quantity": 20
+      },
+      {
+        "itemId": "meat",
+        "quantity": 5
+      },
+      {
+        "itemId": "health_potion_v2",
+        "quantity": 1
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "debug-probe": {
+    "playerId": "debug-probe",
+    "x": 0,
+    "y": 0,
+    "slots": [
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "timeout-probe": {
+    "playerId": "timeout-probe",
+    "x": 0,
+    "y": 0,
+    "slots": [
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "race-probe": {
+    "playerId": "race-probe",
+    "x": 0,
+    "y": 0,
+    "slots": [
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "race-probe-2": {
+    "playerId": "race-probe-2",
+    "x": 0,
+    "y": 0,
+    "slots": [
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "browser-sim-1785613747470": {
+    "playerId": "browser-sim-1785613747470",
+    "x": 321,
+    "y": 654,
+    "slots": [
+      {
+        "itemId": "meat",
+        "quantity": 5
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "world-sync-probe": {
+    "playerId": "world-sync-probe",
+    "x": 820,
+    "y": 672.25,
+    "slots": [
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  },
+  "persist-world": {
+    "playerId": "persist-world",
+    "x": 820,
+    "y": 397.25,
+    "slots": [
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      },
+      {
+        "itemId": "",
+        "quantity": 0
+      }
+    ]
+  }
+}

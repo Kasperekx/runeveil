@@ -1,0 +1,72 @@
+# Creature catalog (client + server).
+# Single source of truth for combat stats, loot, and display names.
+#
+# Art: sprites live under public/assets/creatures/<folder>/
+# Paths below are folder + filePrefix for CreatureSprites.
+# Player melee damage comes from attackPower (stats + gear), not this file.
+
+combat:
+  playerMaxHp: 100
+
+creatures:
+  boar:
+    name: Dzik
+    description: |
+      Agresywny dzik z gęstego runu. Wytrzymały, wolniejszy od jelenia.
+    sprites:
+      folder: boar-v2
+      filePrefix: boar-v2
+    speed: 55
+    animFps: 8
+    hitRadius: 40
+    collisionRadius: 24
+    maxHp: 60
+    respawnMs: 4000
+    xp: 25
+    loot:
+      - item: meat
+        quantity: 1
+      - item: health_potion_v2
+        quantity: 1
+      - item: backpack
+        quantity: 1
+      - item: leather_chest
+        quantity: 1
+      - item: leather_helm
+        quantity: 1
+      - item: iron_shortsword
+        quantity: 1
+      - item: small_backpack
+        quantity: 1
+    attackDamage: 12
+    attackRange: 46
+    attackCooldownMs: 950
+    aggroRange: 200
+
+  deer:
+    name: Jeleń
+    description: |
+      Płochliwy jeleń. Szybszy, ale mniej wytrzymały niż dzik.
+    sprites:
+      folder: deer
+      filePrefix: deer
+    speed: 70
+    animFps: 8
+    hitRadius: 38
+    collisionRadius: 22
+    maxHp: 40
+    respawnMs: 4500
+    xp: 15
+    loot:
+      - item: meat
+        quantity: 1
+      - item: leather_boots
+        quantity: 1
+      - item: leather_legs
+        quantity: 1
+      - item: leather_shoulders
+        quantity: 1
+    attackDamage: 8
+    attackRange: 44
+    attackCooldownMs: 1100
+    aggroRange: 170

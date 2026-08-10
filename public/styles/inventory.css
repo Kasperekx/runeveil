@@ -1,0 +1,543 @@
+:root {
+  --bag-bg: var(--ink-0, #070b09);
+  --bag-panel: #152018;
+  --bag-panel-inner: #0c1210;
+  --bag-border: var(--brass, #b8954a);
+  --bag-border-hi: var(--brass-hi, #e6c878);
+  --bag-border-lo: var(--brass-lo, #6e5428);
+  --bag-title: var(--parchment, #e8d9b0);
+  --slot-bg: #050706;
+  --slot-border: #2a332c;
+  --slot-border-hi: #3f4f44;
+  --slot-hover: var(--brass-hi, #e6c878);
+  --slot-size: 44px;
+  --slot-gap: 3px;
+}
+
+.inventory {
+  position: absolute;
+  right: 12px;
+  /* Clears the micro menu, which owns the bottom-right corner. */
+  bottom: 56px;
+  width: calc(6 * var(--slot-size) + 5 * var(--slot-gap) + 20px);
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.inventory.is-open {
+  opacity: 1;
+}
+
+.inventory.is-dragging {
+  transition: none;
+  user-select: none;
+}
+
+.inventory[hidden] {
+  display: block !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.inventory.is-open[hidden] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.inventory__frame {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(45, 58, 48, 0.35) 0%, transparent 28%),
+    linear-gradient(180deg, #1c2820 0%, var(--bag-panel) 42%, #0a100e 100%);
+  border: 1px solid var(--bag-border-lo);
+  box-shadow:
+    0 0 0 1px rgba(184, 149, 74, 0.35),
+    0 0 0 3px rgba(7, 11, 9, 0.95),
+    inset 0 1px 0 rgba(230, 200, 120, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 10px 28px rgba(0, 0, 0, 0.65);
+  padding: 6px 5px 5px;
+}
+
+.inventory__ornament {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--brass);
+  border-style: solid;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.inventory__ornament--tl {
+  top: 3px;
+  left: 3px;
+  border-width: 1px 0 0 1px;
+}
+
+.inventory__ornament--tr {
+  top: 3px;
+  right: 3px;
+  border-width: 1px 1px 0 0;
+}
+
+.inventory__ornament--bl {
+  bottom: 3px;
+  left: 3px;
+  border-width: 0 0 1px 1px;
+}
+
+.inventory__ornament--br {
+  bottom: 3px;
+  right: 3px;
+  border-width: 0 1px 1px 0;
+}
+
+.inventory__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  margin-bottom: 4px;
+  background: linear-gradient(180deg, #2a382e 0%, #141c18 100%);
+  border: 1px solid var(--bag-border-lo);
+  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.14);
+  cursor: grab;
+}
+
+.inventory.is-dragging .inventory__header {
+  cursor: grabbing;
+}
+
+.inventory__title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bag-title);
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+
+.inventory__close {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--bag-border-lo);
+  background: linear-gradient(180deg, #3a4a3e 0%, #1a221c 100%);
+  color: var(--bag-title);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.18);
+}
+
+.inventory__close:hover {
+  border-color: var(--slot-hover);
+  color: #fff3c0;
+  background: linear-gradient(180deg, #4a3a20 0%, #2a2010 100%);
+}
+
+.inventory__close:active {
+  background: #120e0a;
+}
+
+.inventory__grid {
+  display: grid;
+  grid-template-columns: repeat(6, var(--slot-size));
+  /* Row count follows capacity: equipped bags grow/shrink the grid. */
+  grid-auto-rows: var(--slot-size);
+  gap: var(--slot-gap);
+  padding: 4px;
+  background: var(--bag-panel-inner);
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 1px var(--bag-border-lo);
+}
+
+/* ——— Bag sockets (WoW-style, under the grid) ——— */
+
+.inventory__bags {
+  display: flex;
+  justify-content: center;
+  gap: var(--slot-gap);
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--bag-panel-inner);
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 1px var(--bag-border-lo);
+}
+
+.inventory__bag-socket {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%),
+    var(--slot-bg);
+  border: 1px dashed rgba(110, 84, 40, 0.55);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8);
+  cursor: default;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.inventory__bag-socket--filled {
+  border: 1px solid var(--bag-border);
+  cursor: grab;
+}
+
+.inventory__bag-socket--main {
+  border-style: solid;
+  border-color: rgba(180, 140, 70, 0.65);
+}
+
+.inventory__bag-socket--main.inventory__bag-socket--filled {
+  cursor: default;
+}
+
+.inventory__bag-socket--dragging {
+  opacity: 0.45;
+}
+
+.inventory__bag-socket:hover {
+  border-color: var(--slot-hover);
+}
+
+.inventory__bag-socket--drag-over {
+  border: 1px solid var(--slot-hover);
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 200, 120, 0.5),
+    0 0 8px rgba(230, 200, 120, 0.4);
+}
+
+.inventory__bag-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* ——— Money strip (WoW-style, under bag sockets — not a slot) ——— */
+
+.inventory__money {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: var(--bag-panel-inner);
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 1px var(--bag-border-lo);
+}
+
+.inventory__money-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.85));
+}
+
+.inventory__money-amount {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f0d78a;
+  text-shadow: 0 1px 2px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory__slot {
+  position: relative;
+  width: var(--slot-size);
+  height: var(--slot-size);
+  border-radius: 0;
+  background:
+    linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%),
+    var(--slot-bg);
+  border: 1px solid var(--slot-border);
+  box-shadow:
+    inset 1px 1px 0 var(--slot-border-hi),
+    inset -1px -1px 0 #000,
+    inset 0 0 6px rgba(0, 0, 0, 0.8);
+  cursor: default;
+}
+
+.inventory__slot--filled {
+  background:
+    linear-gradient(145deg, rgba(230, 200, 120, 0.07), transparent 40%), #0a100c;
+  cursor: grab;
+}
+
+/* Rolled item quality: green = uncommon. The icon stays unchanged, but the
+ * frame makes valuable drops readable at a glance. */
+.inventory__slot--uncommon {
+  box-shadow:
+    inset 0 0 0 1px var(--rarity-uncommon),
+    0 0 8px color-mix(in srgb, var(--rarity-uncommon) 35%, transparent);
+}
+
+.inventory__slot--rare {
+  box-shadow: inset 0 0 0 1px var(--rarity-rare);
+}
+.inventory__slot--epic {
+  box-shadow: inset 0 0 0 1px var(--rarity-epic);
+}
+
+.inventory__cooldown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 3;
+  height: 0;
+  background: rgba(6, 10, 8, 0.74);
+  border-bottom: 1px solid rgba(230, 200, 120, 0.45);
+  pointer-events: none;
+  transition: height 100ms linear;
+}
+
+.inventory__slot--dragging {
+  opacity: 0.45;
+}
+
+.inventory__slot--drag-over {
+  border-color: var(--slot-hover) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 200, 120, 0.5),
+    0 0 0 1px rgba(230, 200, 120, 0.45) !important;
+}
+
+.inventory__icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+  padding: 3px;
+}
+
+.inventory__qty {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  z-index: 4;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.inventory__slot:hover {
+  border-color: var(--slot-hover);
+  box-shadow:
+    inset 1px 1px 0 rgba(230, 200, 120, 0.3),
+    inset -1px -1px 0 #000,
+    0 0 0 1px rgba(230, 200, 120, 0.4);
+}
+
+/* ——— Item tooltip ——— */
+
+.item-tooltip {
+  /* Absolute, not fixed: a fixed element reports no offsetParent, which the
+     HUD scale maths in uiScale.ts needs to convert pointer coordinates. */
+  position: absolute;
+  z-index: 100;
+  min-width: 180px;
+  max-width: 240px;
+  padding: 8px 10px;
+  pointer-events: none;
+  background: linear-gradient(180deg, #1a221c 0%, #0a100c 100%);
+  border: 1px solid var(--bag-border-lo);
+  box-shadow:
+    0 0 0 1px rgba(184, 149, 74, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(230, 200, 120, 0.16);
+}
+
+.item-tooltip--comparison {
+  z-index: 101;
+}
+
+.item-tooltip[hidden] {
+  display: none !important;
+}
+
+.item-tooltip__name {
+  margin: 0 0 4px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 2px #000;
+}
+
+.item-tooltip__name--poor {
+  color: var(--rarity-poor);
+}
+.item-tooltip__name--common {
+  color: var(--rarity-common);
+}
+.item-tooltip__name--uncommon {
+  color: var(--rarity-uncommon);
+}
+.item-tooltip__name--rare {
+  color: var(--rarity-rare);
+}
+.item-tooltip__name--epic {
+  color: var(--rarity-epic);
+}
+
+.item-tooltip__meta {
+  margin: 0 0 8px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--brass);
+}
+
+.item-tooltip__eyebrow {
+  margin: 0 0 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(184, 149, 74, 0.38);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+
+.item-tooltip__desc {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--parchment);
+  white-space: pre-line;
+}
+
+.item-tooltip__qty {
+  margin: 8px 0 0;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--parchment-dim);
+}
+
+.item-tooltip__stat,
+.item-tooltip__capacity {
+  margin: 0 0 4px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: #fff3c0;
+}
+
+.item-tooltip__stat--heal {
+  color: #7fc08a;
+  font-weight: 700;
+}
+
+.item-tooltip__stat--affix {
+  color: var(--rarity-uncommon);
+  font-weight: 700;
+}
+
+.item-tooltip__hint {
+  margin: 8px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(184, 149, 74, 0.28);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--parchment-dim);
+}
+
+.item-tooltip__upgrade {
+  margin: 8px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(184, 149, 74, 0.42);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.item-tooltip__upgrade--positive {
+  color: #7fc08a;
+}
+.item-tooltip__upgrade--negative {
+  color: #df7c6b;
+}
+.item-tooltip__upgrade--neutral {
+  color: var(--parchment-dim);
+}
+
+.item-tooltip__compare {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(184, 149, 74, 0.38);
+}
+
+.item-tooltip__compare-title,
+.item-tooltip__compare-empty {
+  margin: 0 0 5px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--brass-hi);
+}
+
+.item-tooltip__compare-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  margin: 0 0 3px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: #fff3c0;
+}
+
+.item-tooltip__compare-row strong {
+  font-weight: 700;
+}
+
+.item-tooltip__delta {
+  min-width: 3.4em;
+  font-style: normal;
+  text-align: right;
+}
+
+.item-tooltip__delta--positive {
+  color: #7fc08a;
+}
+.item-tooltip__delta--negative {
+  color: #df7c6b;
+}
+.item-tooltip__delta--neutral {
+  color: var(--parchment-dim);
+}
+
+.item-tooltip__stat + .item-tooltip__desc,
+.item-tooltip__capacity + .item-tooltip__desc {
+  margin-top: 8px;
+}

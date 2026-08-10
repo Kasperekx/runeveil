@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mmo
+      POSTGRES_USER: mmo
+      POSTGRES_PASSWORD: mmo
+    ports:
+      - "5432:5432"
+    volumes:
+      - mmo_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mmo -d mmo"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  mmo_postgres_data:

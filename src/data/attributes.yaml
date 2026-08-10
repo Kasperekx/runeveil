@@ -1,0 +1,30 @@
+# Primary attribute UI copy (character panel tooltips).
+# Placeholders in `effect` resolve from the active class `derived` block
+# in classes.yaml, e.g. {hpPerStamina}, {damagePerStrength}.
+# Quote any value that contains ":" — unquoted colons break YAML parsing.
+
+attributes:
+  strength:
+    label: "Siła"
+    flavor: "Mięśnie i moc ciosu — fundament wojownika frontu."
+    effect: "+{damagePerStrength} siły ataku za punkt"
+
+  agility:
+    label: "Zręczność"
+    flavor: "Szybkość, unik i precyzja ruchów w starciu."
+    effect: "Na razie bez wpływu na walkę (wkrótce: unik / celność)."
+
+  stamina:
+    label: "Wytrzymałość"
+    flavor: "Odporność ciała — więcej życia na polu walki."
+    effect: "+{hpPerStamina} maksymalnego życia za punkt"
+
+  intellect:
+    label: "Inteligencja"
+    flavor: "Siła umysłu — magia, taktyka i koncentracja."
+    effect: "Na razie bez wpływu na walkę (wkrótce: magia)."
+
+  spirit:
+    label: "Duch"
+    flavor: "Wola i regeneracja — spokój poza walką."
+    effect: "Przyspiesza regenerację życia poza walką (+0.25 HP / tick za punkt)."

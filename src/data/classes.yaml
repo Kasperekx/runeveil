@@ -1,0 +1,96 @@
+# Playable classes (client + server).
+# Default for new characters: defaultClass.
+#
+# Attributes (WoW-core): strength, agility, stamina, intellect, spirit
+# Derived (server authoritative):
+#   maxHp = baseHp + stamina * hpPerStamina
+#   attackPower (bonus) = floor(baseDamage + strength * damagePerStrength)
+#   auto-attack = uniform roll in [weaponMin + bonus, weaponMax + bonus]
+#   moveSpeed = baseMoveSpeed + (level - 1) * moveSpeedPerLevel  (px/s, Tibia-lite)
+
+defaultClass: warrior
+
+equipmentSlots:
+  - head
+  - neck
+  - shoulders
+  - back
+  - chest
+  - wrists
+  - hands
+  - waist
+  - legs
+  - feet
+  - finger1
+  - finger2
+  - trinket1
+  - trinket2
+  - mainHand
+  - offHand
+
+classes:
+  warrior:
+    name: Wojownik
+    description: |
+      Nieustępliwy wojownik pierwszej linii. Łączy potężne uderzenia
+      z mobilnością potrzebną do prowadzenia natarcia.
+    portrait: assets/ui/player-portrait.png
+    selection:
+      epithet: Ostrze pogranicza
+      role: Natarcie
+      difficulty: 1
+      armor: Ciężki pancerz
+      playstyle: Bezpośredni · ofensywny
+      rune: ᛏ
+      accent: copper
+      preview: assets/players/human-warrior-v2/warrior-idle-down-1.png
+      strengths:
+        - Silne obrażenia wręcz
+        - Szerokie ataki obszarowe
+        - Stabilna wytrzymałość
+    base:
+      strength: 16
+      agility: 10
+      stamina: 14
+      intellect: 5
+      spirit: 8
+    derived:
+      baseHp: 40
+      hpPerStamina: 5
+      baseDamage: 8
+      damagePerStrength: 0.5
+      baseMoveSpeed: 110
+      moveSpeedPerLevel: 2
+
+  knight:
+    name: Rycerz
+    description: |
+      Zaprzysiężony obrońca, który wygrywa walki cierpliwością. Znosi więcej
+      obrażeń i utrzymuje linię tam, gdzie inni muszą się wycofać.
+    portrait: assets/players/leather-knight/knight-idle-down.png
+    selection:
+      epithet: Strażnik przysięgi
+      role: Obrona
+      difficulty: 2
+      armor: Pancerz płytowy
+      playstyle: Metodyczny · wytrzymały
+      rune: ᛉ
+      accent: steel
+      preview: assets/players/leather-knight/knight-idle-down.png
+      strengths:
+        - Najwyższa pula zdrowia
+        - Mocna obrona pierwszej linii
+        - Bezpieczny początek wyprawy
+    base:
+      strength: 14
+      agility: 8
+      stamina: 18
+      intellect: 5
+      spirit: 9
+    derived:
+      baseHp: 50
+      hpPerStamina: 6
+      baseDamage: 7
+      damagePerStrength: 0.45
+      baseMoveSpeed: 105
+      moveSpeedPerLevel: 2
