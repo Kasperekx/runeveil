@@ -33,6 +33,10 @@ export class LightSystem {
   private readonly veil = new Graphics();
   private readonly lightTexture: Texture;
   private readonly staticLights: StaticLight[] = [];
+  private readonly layer: Container;
+  private readonly isInterior: boolean;
+  private readonly interiorAmbientAlpha: number;
+  private readonly interiorLightVisibility: number;
   /** Start at midnight to preview the full nighttime lighting. */
   private elapsed = 0;
   private ambientAccumulator = 0;
@@ -43,18 +47,25 @@ export class LightSystem {
     world: Container,
     map: MapDocument,
   ) {
-    const layer = new Container();
-    layer.zIndex = LIGHTING_Z;
-    layer.eventMode = "none";
-    layer.cullable = false;
+    this.isInterior = map.lighting?.mode === "interior";
+    this.interiorAmbientAlpha = clamp01(map.lighting?.ambientAlpha ?? 0.22);
+    this.interiorLightVisibility = clamp01(
+      map.lighting?.localLightVisibility ?? 1,
+    );
+    this.layer = new Container();
+    this.layer.zIndex = LIGHTING_Z;
+    this.layer.eventMode = "none";
+    this.layer.cullable = false;
 
     world.sortableChildren = true;
-    world.addChild(layer);
+    world.addChild(this.layer);
 
     this.veil.eventMode = "none";
-    this.veil.rect(0, 0, map.width, map.height).fill(AMBIENT_COLOR);
+    this.veil
+      .rect(0, 0, map.width, map.height)
+      .fill(map.lighting?.ambientColor ?? AMBIENT_COLOR);
     this.veil.blendMode = "multiply";
-    layer.addChild(this.veil);
+    this.layer.addChild(this.veil);
 
     this.lightTexture = createRadialLightTexture();
 
@@ -85,7 +96,7 @@ export class LightSystem {
         mixColor(light.color, 0xffcf72, 0.42),
         coreAlpha,
       );
-      layer.addChild(halo, core);
+      this.layer.addChild(halo, core);
 
       this.staticLights.push({
         halo,
@@ -113,6 +124,11 @@ export class LightSystem {
     return system;
   }
 
+  dispose(): void {
+    this.app.ticker.remove(this.update);
+    this.layer.destroy({ children: true });
+  }
+
   private update = (): void => {
     const deltaSeconds = Math.min(this.app.ticker.deltaMS, 100) / 1_000;
     this.elapsed += deltaSeconds;
@@ -127,6 +143,12 @@ export class LightSystem {
   };
 
   private updateAmbient(): void {
+    if (this.isInterior) {
+      this.veil.alpha = this.interiorAmbientAlpha;
+      this.localLightVisibility = this.interiorLightVisibility;
+      return;
+    }
+
     const cycle = (this.elapsed % DAY_CYCLE_SECONDS) / DAY_CYCLE_SECONDS;
     const daylight = (Math.cos((cycle - 0.5) * Math.PI * 2) + 1) / 2;
     const easedDaylight = daylight * daylight * (3 - 2 * daylight);
@@ -158,6 +180,10 @@ export class LightSystem {
       light.core.scale.set(light.coreScale * (1 + shimmer * 0.32));
     }
   }
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }
 
 function createLightSprite(

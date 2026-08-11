@@ -4,6 +4,12 @@
 # Art: sprites live under public/assets/creatures/<folder>/
 # Paths below are folder + filePrefix for CreatureSprites.
 # Player melee damage comes from attackPower (stats + gear), not this file.
+#
+# Loot table:
+# - chance: percentage 0..100; omitted means guaranteed (legacy compatibility)
+# - minQuantity/maxQuantity: inclusive quantity range after a successful roll
+# - group: entries sharing a group use one roll, so at most one of them drops
+# Ungrouped rows roll independently. A corpse is allowed to be empty.
 
 combat:
   playerMaxHp: 100
@@ -24,20 +30,27 @@ creatures:
     respawnMs: 4000
     xp: 25
     loot:
-      - item: meat
-        quantity: 1
+      - item: boar_meat
+        chance: 70
+        minQuantity: 1
+        maxQuantity: 2
       - item: health_potion_v2
-        quantity: 1
+        chance: 4
       - item: backpack
-        quantity: 1
+        chance: 0.4
+        group: rare_gear
       - item: leather_chest
-        quantity: 1
+        chance: 0.8
+        group: rare_gear
       - item: leather_helm
-        quantity: 1
+        chance: 1.2
+        group: rare_gear
       - item: iron_shortsword
-        quantity: 1
+        chance: 0.5
+        group: rare_gear
       - item: small_backpack
-        quantity: 1
+        chance: 1.2
+        group: rare_gear
     attackDamage: 12
     attackRange: 46
     attackCooldownMs: 950
@@ -58,14 +71,19 @@ creatures:
     respawnMs: 4500
     xp: 15
     loot:
-      - item: meat
-        quantity: 1
+      - item: deer_meat
+        chance: 60
+        minQuantity: 1
+        maxQuantity: 2
       - item: leather_boots
-        quantity: 1
+        chance: 2
+        group: rare_gear
       - item: leather_legs
-        quantity: 1
+        chance: 1
+        group: rare_gear
       - item: leather_shoulders
-        quantity: 1
+        chance: 1.4
+        group: rare_gear
     attackDamage: 8
     attackRange: 44
     attackCooldownMs: 1100

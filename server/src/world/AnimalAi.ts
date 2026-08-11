@@ -43,12 +43,6 @@ export interface PlayableBounds {
 /** Server-side wander / chase / attack / respawn for one animal. */
 export class AnimalAi {
   private readonly ai = new Map<string, AiState>();
-  private bounds: PlayableBounds = {
-    minX: 40,
-    maxX: 1240,
-    minY: 40,
-    maxY: 680,
-  };
 
   /**
    * Reports a landed animal hit. The AI has no room handle, so WorldRoom wires
@@ -57,10 +51,6 @@ export class AnimalAi {
   onPlayerDamaged:
     ((sessionId: string, amount: number, animalId: string) => void) | null =
     null;
-
-  setBounds(bounds: PlayableBounds): void {
-    this.bounds = bounds;
-  }
 
   register(animal: AnimalState, homeX: number, homeY: number): void {
     const dir = CARDINAL[Math.floor(Math.random() * CARDINAL.length)]!;
@@ -100,6 +90,7 @@ export class AnimalAi {
     now: number,
     blockers: readonly CircleBlocker[],
     players: Map<string, PlayerState>,
+    bounds: PlayableBounds,
   ): void {
     const kind = animal.kind as CreatureKind;
     const config = CREATURE_KINDS[kind];
@@ -119,17 +110,20 @@ export class AnimalAi {
       ? players.get(ai.targetSessionId)
       : undefined;
 
-    if (ai.targetSessionId && (!target || target.hp <= 0)) {
+    if (
+      ai.targetSessionId &&
+      (!target || target.hp <= 0 || target.mapId !== animal.mapId)
+    ) {
       ai.targetSessionId = null;
     }
 
-    if (target && target.hp > 0) {
-      this.tickCombat(animal, ai, config, dt, now, blockers, target);
+    if (target && target.hp > 0 && target.mapId === animal.mapId) {
+      this.tickCombat(animal, ai, config, dt, now, blockers, target, bounds);
       return;
     }
 
     // Wander — stay clear of trees / props (not players).
-    this.separateFromBlockers(animal, blockers);
+    this.separateFromBlockers(animal, blockers, bounds);
 
     if (ai.pauseTimer > 0) {
       ai.pauseTimer -= dt;
@@ -147,7 +141,7 @@ export class AnimalAi {
     const distance = config.speed * dt;
     const nextX = animal.x + ai.dirX * distance;
     const nextY = animal.y + ai.dirY * distance;
-    this.clampAndMove(animal, ai, nextX, nextY, bodyR, blockers);
+    this.clampAndMove(animal, ai, nextX, nextY, bodyR, blockers, bounds);
   }
 
   private tickCombat(
@@ -158,6 +152,7 @@ export class AnimalAi {
     now: number,
     blockers: readonly CircleBlocker[],
     target: PlayerState,
+    bounds: PlayableBounds,
   ): void {
     const dx = target.x - animal.x;
     const dy = target.y - animal.y;
@@ -177,9 +172,9 @@ export class AnimalAi {
       const distance = config.speed * 1.15 * dt;
       const nextX = animal.x + (dx / dist) * distance;
       const nextY = animal.y + (dy / dist) * distance;
-      this.clampAndMove(animal, ai, nextX, nextY, bodyR, blockers);
+      this.clampAndMove(animal, ai, nextX, nextY, bodyR, blockers, bounds);
     } else {
-      this.separateFromBlockers(animal, blockers);
+      this.separateFromBlockers(animal, blockers, bounds);
     }
 
     const distAfter = Math.hypot(target.x - animal.x, target.y - animal.y);
@@ -203,8 +198,9 @@ export class AnimalAi {
     nextY: number,
     bodyR: number,
     blockers: readonly CircleBlocker[],
+    bounds: PlayableBounds,
   ): void {
-    const { minX, maxX, minY, maxY } = this.bounds;
+    const { minX, maxX, minY, maxY } = bounds;
 
     if (nextX < minX || nextX > maxX) {
       ai.dirX *= -1;
@@ -274,6 +270,7 @@ export class AnimalAi {
   private separateFromBlockers(
     animal: AnimalState,
     blockers: readonly CircleBlocker[],
+    bounds: PlayableBounds,
   ): void {
     const kind = animal.kind as CreatureKind;
     const bodyR = CREATURE_COLLISION[kind] ?? 22;
@@ -297,7 +294,7 @@ export class AnimalAi {
       }
       if (!pushed) break;
     }
-    const { minX, maxX, minY, maxY } = this.bounds;
+    const { minX, maxX, minY, maxY } = bounds;
     animal.x = Math.min(maxX, Math.max(minX, animal.x));
     animal.y = Math.min(maxY, Math.max(minY, animal.y));
   }

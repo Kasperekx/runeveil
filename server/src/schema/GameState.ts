@@ -51,6 +51,8 @@ export type QuestState = SchemaType<typeof QuestState>;
 
 export const PlayerState = schema({
   playerId: { type: "string", default: "" },
+  /** Authoritative zone/map membership. */
+  mapId: { type: "string", default: "hunting_grounds" },
   name: { type: "string", default: "Wędrowiec" },
   classId: { type: "string", default: "warrior" },
   level: { type: "number", default: 1 },
@@ -106,6 +108,7 @@ export type PlayerState = SchemaType<typeof PlayerState>;
 
 export const AnimalState = schema({
   id: { type: "string", default: "" },
+  mapId: { type: "string", default: "hunting_grounds" },
   kind: { type: "string", default: "" },
   x: { type: "number", default: 0 },
   y: { type: "number", default: 0 },
@@ -124,6 +127,7 @@ export type AnimalState = SchemaType<typeof AnimalState>;
 
 export const PickupState = schema({
   id: { type: "string", default: "" },
+  mapId: { type: "string", default: "hunting_grounds" },
   itemId: { type: "string", default: "" },
   quantity: { type: "number", default: 1 },
   instanceId: { type: "string", default: "" },
@@ -139,8 +143,9 @@ export const PickupState = schema({
 export type PickupState = SchemaType<typeof PickupState>;
 
 export const GameState = schema({
-  players: { map: PlayerState },
-  animals: { map: AnimalState },
-  pickups: { map: PickupState },
+  /** View-scoped collections: clients receive entities from their map only. */
+  players: { map: PlayerState, view: true },
+  animals: { map: AnimalState, view: true },
+  pickups: { map: PickupState, view: true },
 });
 export type GameState = SchemaType<typeof GameState>;

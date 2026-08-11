@@ -36,7 +36,7 @@ export const NPC_CLICK_RADIUS = 44;
 export const NPC_TALK_RANGE = 128;
 
 /** How close the camera sits on the player (>1 = zoomed in). */
-export const CAMERA_ZOOM = 2.15;
+export const CAMERA_ZOOM = 2.65;
 
 export const INVENTORY_COLUMNS = 6;
 /** Default/offline grid size — matches starter backpack `capacity: 8`. */

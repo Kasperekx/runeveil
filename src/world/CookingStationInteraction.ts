@@ -20,7 +20,7 @@ export class CookingStationInteraction {
   constructor(
     private readonly app: Application,
     private readonly camera: Camera,
-    private readonly environment: Environment,
+    private environment: Environment,
     private readonly professions: ProfessionsPanel,
     private readonly getPlayerPosition: () => { x: number; y: number },
     private readonly toast: GameToast,
@@ -30,6 +30,12 @@ export class CookingStationInteraction {
     this.app.canvas.addEventListener("pointerdown", this.onPointerDown);
     this.updatePlayerRange();
     this.app.ticker.add(this.updatePlayerRange);
+  }
+
+  setEnvironment(environment: Environment): void {
+    this.environment = environment;
+    this.playerWasInRange = null;
+    this.updatePlayerRange();
   }
 
   /** Used by other world interactions to keep the pointer cursor consistent. */

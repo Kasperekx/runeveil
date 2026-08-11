@@ -13,7 +13,17 @@ import {
   type MapDocument,
   type MapWorldInteraction,
 } from "../maps/types";
+import { loadTiledTerrain } from "../maps/TiledMapRenderer";
 
+/** Stable id shared with the server for deplete/respawn sync. */
+export function miningNodeKey(
+  mapId: string,
+  propType: string,
+  x: number,
+  y: number,
+): string {
+  return `${mapId}:${propType}:${x}:${y}`;
+}
 const GROUND_Z = 0;
 const SHADOW_LAYER_Z = 1;
 /** Draw solid circles from the map (props + NPCs) while tuning collision. */
@@ -51,27 +61,111 @@ export class Environment {
   readonly colliders: readonly MapCircleCollider[];
   /** Clickable world props, separate from their physical collision. */
   readonly interactions: readonly MapWorldInteraction[];
+  private readonly ownedLayers: Container[] = [];
+  private readonly worldObjects: Container[] = [];
+  private readonly propSprites = new Map<
+    string,
+    { sprite: Sprite; live: Texture; depleted: Texture | null }
+  >();
+  private tickHandler: (() => void) | null = null;
+  private app: Application | null = null;
 
   private constructor(map: MapDocument) {
     this.colliders = collidersFromMap(map);
-    this.interactions = map.props.flatMap((prop) => {
+    this.interactions = map.props.flatMap((prop): MapWorldInteraction[] => {
       const interaction = map.propTypes[prop.type]?.interaction;
-      const station = map.cookingStations?.find(
-        (candidate) => candidate.id === interaction?.stationId,
-      );
-      return interaction && interaction.radius > 0
-        ? [
-            {
-              kind: interaction.kind,
-              x: prop.x,
-              y: prop.y,
-              activationRadius: Math.max(1, station?.radius ?? 96),
-              radius: interaction.radius,
-              stationId: interaction.stationId,
-            },
-          ]
-        : [];
+      if (!interaction || interaction.radius <= 0) return [];
+
+      const x = prop.x + (interaction.offsetX ?? 0);
+      const y = prop.y + (interaction.offsetY ?? 0);
+
+      if (interaction.kind === "cooking") {
+        const station = map.cookingStations?.find(
+          (candidate) => candidate.id === interaction.stationId,
+        );
+        return [
+          {
+            kind: "cooking",
+            x,
+            y,
+            activationRadius: Math.max(1, station?.radius ?? 96),
+            radius: interaction.radius,
+            stationId: interaction.stationId,
+          },
+        ];
+      }
+
+      if (interaction.kind === "mining") {
+        return [
+          {
+            kind: "mining",
+            x,
+            y,
+            activationRadius: Math.max(1, interaction.activationRadius ?? 72),
+            radius: interaction.radius,
+            nodeId: interaction.nodeId,
+            nodeKey: miningNodeKey(map.id, prop.type, prop.x, prop.y),
+          },
+        ];
+      }
+
+      return [
+        {
+          kind: "enter",
+          x,
+          y,
+          activationRadius: Math.max(1, interaction.activationRadius ?? 80),
+          radius: interaction.radius,
+          label: interaction.label?.trim() || "Wejdź",
+          targetMapId: interaction.targetMapId,
+          targetEntryId: interaction.targetEntryId,
+        },
+      ];
     });
+  }
+
+  /** Swap a gather prop between live and depleted textures when available. */
+  setPropDepleted(nodeKey: string, depleted: boolean): void {
+    const entry = this.propSprites.get(nodeKey);
+    if (!entry) return;
+    if (entry.depleted) {
+      entry.sprite.texture = depleted ? entry.depleted : entry.live;
+      entry.sprite.visible = true;
+      return;
+    }
+    entry.sprite.visible = !depleted;
+  }
+
+  /** Tear down ground, props and ambient tickers before loading another map. */
+  dispose(): void {
+    if (this.app && this.tickHandler) {
+      this.app.ticker.remove(this.tickHandler);
+    }
+    this.tickHandler = null;
+    this.app = null;
+    for (const node of this.worldObjects) {
+      node.destroy({ children: true });
+    }
+    this.worldObjects.length = 0;
+    this.propSprites.clear();
+    for (const node of this.ownedLayers) {
+      node.destroy({ children: true });
+    }
+    this.ownedLayers.length = 0;
+  }
+
+  /** Closest interactive prop under a world-space pointer, any kind. */
+  findAnyInteraction(x: number, y: number): MapWorldInteraction | null {
+    let nearest: MapWorldInteraction | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const interaction of this.interactions) {
+      const distance = Math.hypot(x - interaction.x, y - interaction.y);
+      if (distance > interaction.radius || distance >= nearestDistance)
+        continue;
+      nearest = interaction;
+      nearestDistance = distance;
+    }
+    return nearest;
   }
 
   /** Returns the closest matching world prop under a world-space pointer. */
@@ -106,31 +200,20 @@ export class Environment {
     shadowLayer.zIndex = SHADOW_LAYER_Z;
     world.addChild(shadowLayer);
 
-    const groundTex = await loadNearestTexture(map.ground.texture);
-    const tileScale = map.ground.tileScale ?? 1;
-    const ground = new TilingSprite({
-      texture: groundTex,
-      width: map.width,
-      height: map.height,
-    });
-    ground.tileScale.set(tileScale);
-    ground.roundPixels = true;
-    groundLayer.addChild(ground);
-
-    for (const patch of map.groundPatches ?? []) {
-      const patchTex = await loadNearestTexture(patch.texture);
-      const patchSprite = new TilingSprite({
-        texture: patchTex,
-        width: patch.width,
-        height: patch.height,
-      });
-      patchSprite.position.set(patch.x, patch.y);
-      patchSprite.tileScale.set(patch.tileScale ?? 1);
-      patchSprite.roundPixels = true;
-      groundLayer.addChild(patchSprite);
+    if (map.tiledMap) {
+      try {
+        groundLayer.addChild(await loadTiledTerrain(map.tiledMap));
+      } catch (error) {
+        console.error("[environment] failed to load Tiled terrain", error);
+        await renderLegacyGround(groundLayer, map);
+      }
+    } else {
+      await renderLegacyGround(groundLayer, map);
     }
 
     const env = new Environment(map);
+    env.app = app;
+    env.ownedLayers.push(groundLayer, shadowLayer);
     const animatedProps: Array<{
       sprite: Sprite;
       frames: Texture[];
@@ -159,12 +242,20 @@ export class Environment {
       const frames = def.idleAnimation
         ? await Promise.all(def.idleAnimation.frames.map(loadNearestTexture))
         : [await loadNearestTexture(def.texture)];
+      const depleted = def.depletedTexture
+        ? await loadNearestTexture(def.depletedTexture)
+        : null;
       const sprite = new Sprite(frames[0]);
       const scale = def.scale ?? 1;
       sprite.anchor.set(def.anchorX, def.anchorY);
       sprite.scale.set(scale);
       sprite.position.set(prop.x, prop.y);
       sprite.roundPixels = true;
+      env.propSprites.set(miningNodeKey(map.id, prop.type, prop.x, prop.y), {
+        sprite,
+        live: frames[0]!,
+        depleted,
+      });
 
       // Short ground clutter stays under entities; tall props Y-sort with them.
       if (def.layer === "ground") {
@@ -172,6 +263,7 @@ export class Environment {
       } else {
         sprite.zIndex = Math.round(prop.y);
         world.addChild(sprite);
+        env.worldObjects.push(sprite);
       }
 
       if (def.idleAnimation && frames.length > 1) {
@@ -189,6 +281,7 @@ export class Environment {
         effect.zIndex = Math.round(prop.y) + 1;
         effect.roundPixels = true;
         world.addChild(effect);
+        env.worldObjects.push(effect);
         ambientEffects.push(
           createCampfireEffect(
             effect,
@@ -204,7 +297,7 @@ export class Environment {
     }
 
     if (animatedProps.length > 0 || ambientEffects.length > 0) {
-      app.ticker.add(() => {
+      const tickHandler = (): void => {
         const deltaSeconds = Math.min(app.ticker.deltaMS, 100) / 1000;
         for (const animation of animatedProps) {
           animation.elapsed += deltaSeconds;
@@ -220,7 +313,9 @@ export class Environment {
           effect.elapsed += deltaSeconds;
           drawCampfireEffect(effect);
         }
-      });
+      };
+      env.tickHandler = tickHandler;
+      app.ticker.add(tickHandler);
     }
 
     if (DEBUG_COLLIDERS) {
@@ -234,9 +329,38 @@ export class Environment {
         debugLayer.stroke({ width: 1, color: 0x66ccff, alpha: 0.7 });
       }
       world.addChild(debugLayer);
+      env.worldObjects.push(debugLayer);
     }
 
     return env;
+  }
+}
+
+async function renderLegacyGround(
+  groundLayer: Container,
+  map: MapDocument,
+): Promise<void> {
+  const groundTex = await loadNearestTexture(map.ground.texture);
+  const ground = new TilingSprite({
+    texture: groundTex,
+    width: map.width,
+    height: map.height,
+  });
+  ground.tileScale.set(map.ground.tileScale ?? 1);
+  ground.roundPixels = true;
+  groundLayer.addChild(ground);
+
+  for (const patch of map.groundPatches ?? []) {
+    const patchTex = await loadNearestTexture(patch.texture);
+    const patchSprite = new TilingSprite({
+      texture: patchTex,
+      width: patch.width,
+      height: patch.height,
+    });
+    patchSprite.position.set(patch.x, patch.y);
+    patchSprite.tileScale.set(patch.tileScale ?? 1);
+    patchSprite.roundPixels = true;
+    groundLayer.addChild(patchSprite);
   }
 }
 

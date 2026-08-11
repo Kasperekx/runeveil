@@ -16,6 +16,20 @@ export interface ProfessionRecipe {
   output: { itemId: string; quantity: number };
   ingredients: ProfessionIngredient[];
 }
+
+export interface ProfessionGatherNode {
+  id: string;
+  professionId: string;
+  name: string;
+  description: string;
+  level: number;
+  xp: number;
+  gatherTimeMs: number;
+  respawnMs: number;
+  requiredTool: string;
+  output: { itemId: string; quantityMin: number; quantityMax: number };
+}
+
 export interface ProfessionDefinition {
   id: string;
   name: string;
@@ -25,6 +39,7 @@ export interface ProfessionDefinition {
   xpBase: number;
   xpStep: number;
   recipes: ProfessionRecipe[];
+  nodes: ProfessionGatherNode[];
 }
 
 interface RecipeYaml {
@@ -36,6 +51,23 @@ interface RecipeYaml {
   output?: { item?: string; quantity?: number };
   ingredients?: Array<{ item?: string; quantity?: number }>;
 }
+
+interface NodeYaml {
+  name: string;
+  description?: string;
+  level?: number;
+  xp?: number;
+  gatherTimeMs?: number;
+  respawnMs?: number;
+  requiredTool?: string;
+  output?: {
+    item?: string;
+    quantity?: number;
+    quantityMin?: number;
+    quantityMax?: number;
+  };
+}
+
 interface ProfessionYaml {
   name: string;
   description: string;
@@ -43,6 +75,7 @@ interface ProfessionYaml {
   maxLevel?: number;
   xp?: { base?: number; step?: number };
   recipes?: Record<string, RecipeYaml>;
+  nodes?: Record<string, NodeYaml>;
 }
 
 let catalog: Record<string, ProfessionDefinition> = {};
@@ -88,6 +121,38 @@ export async function loadProfessionCatalog(): Promise<void> {
           ];
         },
       );
+      const nodes = Object.entries(profession.nodes ?? {}).flatMap(
+        ([nodeId, node]) => {
+          const outputId = node.output?.item ?? "";
+          const requiredTool = node.requiredTool?.trim() ?? "";
+          if (!outputId || !requiredTool) return [];
+          const quantityMin = Math.max(
+            1,
+            number(node.output?.quantityMin ?? node.output?.quantity, 1),
+          );
+          const quantityMax = Math.max(
+            quantityMin,
+            number(
+              node.output?.quantityMax ?? node.output?.quantity,
+              quantityMin,
+            ),
+          );
+          return [
+            {
+              id: nodeId,
+              professionId: id,
+              name: node.name,
+              description: (node.description ?? "").trim(),
+              level: Math.max(1, number(node.level, 1)),
+              xp: Math.max(1, number(node.xp, 1)),
+              gatherTimeMs: Math.max(500, number(node.gatherTimeMs, 2000)),
+              respawnMs: Math.max(5000, number(node.respawnMs, 45000)),
+              requiredTool,
+              output: { itemId: outputId, quantityMin, quantityMax },
+            } satisfies ProfessionGatherNode,
+          ];
+        },
+      );
       return [
         id,
         {
@@ -99,6 +164,7 @@ export async function loadProfessionCatalog(): Promise<void> {
           xpBase: Math.max(1, number(profession.xp?.base, 30)),
           xpStep: number(profession.xp?.step, 0),
           recipes,
+          nodes,
         } satisfies ProfessionDefinition,
       ];
     }),
@@ -109,6 +175,16 @@ export function getProfession(id: string): ProfessionDefinition {
   const profession = catalog[id];
   if (!profession) throw new Error(`Unknown profession id: ${id}`);
   return profession;
+}
+
+export function getProfessionGatherNode(
+  nodeId: string,
+): ProfessionGatherNode | null {
+  for (const profession of Object.values(catalog)) {
+    const node = profession.nodes.find((entry) => entry.id === nodeId);
+    if (node) return node;
+  }
+  return null;
 }
 
 export function listProfessions(): ProfessionDefinition[] {

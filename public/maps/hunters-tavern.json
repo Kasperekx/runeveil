@@ -1,0 +1,387 @@
+{
+  "id": "hunters-tavern",
+  "width": 768,
+  "height": 512,
+  "tileSize": 64,
+  "playable": {
+    "minX": 40,
+    "maxX": 728,
+    "minY": 92,
+    "maxY": 456
+  },
+  "lighting": {
+    "mode": "interior",
+    "ambientColor": 3812405,
+    "ambientAlpha": 0.24,
+    "localLightVisibility": 1
+  },
+  "ground": {
+    "texture": "/assets/environment/tavern-wood-floor.png?v=1",
+    "tileScale": 1
+  },
+  "propTypes": {
+    "tavern-wall": {
+      "texture": "/assets/props/tavern/wall.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "layer": "ground"
+    },
+    "tavern-bar": {
+      "texture": "/assets/props/tavern/bar-counter.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.52,
+      "scale": 0.95,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": -64,
+          "y": -22,
+          "radius": 24
+        },
+        {
+          "x": -22,
+          "y": -22,
+          "radius": 24
+        },
+        {
+          "x": 22,
+          "y": -22,
+          "radius": 24
+        },
+        {
+          "x": 64,
+          "y": -20,
+          "radius": 22
+        }
+      ],
+      "shadow": {
+        "radiusX": 82,
+        "radiusY": 14,
+        "alpha": 0.35
+      }
+    },
+    "tavern-table": {
+      "texture": "/assets/props/tavern/table.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": 0,
+          "y": -20,
+          "radius": 20
+        }
+      ],
+      "shadow": {
+        "radiusX": 28,
+        "radiusY": 12,
+        "alpha": 0.32
+      }
+    },
+    "tavern-stool": {
+      "texture": "/assets/props/tavern/stool.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 0.9,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": 0,
+          "y": -13,
+          "radius": 8
+        }
+      ],
+      "shadow": {
+        "radiusX": 12,
+        "radiusY": 6,
+        "alpha": 0.28
+      }
+    },
+    "tavern-fireplace": {
+      "texture": "/assets/props/tavern/fireplace.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1.05,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": -22,
+          "y": -19,
+          "radius": 25
+        },
+        {
+          "x": 22,
+          "y": -19,
+          "radius": 25
+        }
+      ],
+      "shadow": {
+        "radiusX": 40,
+        "radiusY": 14,
+        "alpha": 0.38
+      },
+      "ambientEffect": {
+        "kind": "campfire"
+      },
+      "light": {
+        "color": 16751429,
+        "radius": 176,
+        "intensity": 0.62,
+        "flicker": true,
+        "offsetY": -45
+      }
+    },
+    "tavern-shelf": {
+      "texture": "/assets/props/tavern/shelf.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 1,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": 0,
+          "y": -18,
+          "radius": 13
+        }
+      ],
+      "shadow": {
+        "radiusX": 18,
+        "radiusY": 8,
+        "alpha": 0.25
+      }
+    },
+    "tavern-rug": {
+      "texture": "/assets/props/tavern/rug.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1.25,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "layer": "ground"
+    },
+    "tavern-candle": {
+      "texture": "/assets/props/tavern/candle.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 0.9,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "light": {
+        "color": 16761707,
+        "radius": 82,
+        "intensity": 0.34,
+        "flicker": true,
+        "offsetY": -27
+      }
+    },
+    "tavern-exit": {
+      "texture": "/assets/props/tavern/door.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1.05,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": -18,
+          "y": -20,
+          "radius": 18
+        },
+        {
+          "x": 18,
+          "y": -20,
+          "radius": 18
+        }
+      ],
+      "shadow": {
+        "radiusX": 28,
+        "radiusY": 10,
+        "alpha": 0.3
+      },
+      "interaction": {
+        "kind": "enter",
+        "radius": 36,
+        "offsetX": 0,
+        "offsetY": -46,
+        "activationRadius": 72,
+        "label": "Wyjście",
+        "targetMapId": "hunting_grounds",
+        "targetEntryId": "from-hunters-tavern"
+      }
+    }
+  },
+  "props": [
+    {
+      "type": "tavern-wall",
+      "x": 80,
+      "y": 76
+    },
+    {
+      "type": "tavern-wall",
+      "x": 240,
+      "y": 76
+    },
+    {
+      "type": "tavern-wall",
+      "x": 400,
+      "y": 76
+    },
+    {
+      "type": "tavern-wall",
+      "x": 560,
+      "y": 76
+    },
+    {
+      "type": "tavern-wall",
+      "x": 720,
+      "y": 76
+    },
+    {
+      "type": "tavern-fireplace",
+      "x": 384,
+      "y": 126
+    },
+    {
+      "type": "tavern-shelf",
+      "x": 286,
+      "y": 112
+    },
+    {
+      "type": "tavern-shelf",
+      "x": 590,
+      "y": 112
+    },
+    {
+      "type": "tavern-candle",
+      "x": 92,
+      "y": 112
+    },
+    {
+      "type": "tavern-candle",
+      "x": 676,
+      "y": 112
+    },
+    {
+      "type": "tavern-bar",
+      "x": 184,
+      "y": 226
+    },
+    {
+      "type": "tavern-stool",
+      "x": 120,
+      "y": 258
+    },
+    {
+      "type": "tavern-stool",
+      "x": 184,
+      "y": 262
+    },
+    {
+      "type": "tavern-stool",
+      "x": 248,
+      "y": 258
+    },
+    {
+      "type": "tavern-rug",
+      "x": 502,
+      "y": 278
+    },
+    {
+      "type": "tavern-table",
+      "x": 502,
+      "y": 278
+    },
+    {
+      "type": "tavern-stool",
+      "x": 452,
+      "y": 288
+    },
+    {
+      "type": "tavern-stool",
+      "x": 552,
+      "y": 288
+    },
+    {
+      "type": "tavern-stool",
+      "x": 502,
+      "y": 334
+    },
+    {
+      "type": "tavern-table",
+      "x": 606,
+      "y": 378
+    },
+    {
+      "type": "tavern-stool",
+      "x": 556,
+      "y": 390
+    },
+    {
+      "type": "tavern-stool",
+      "x": 656,
+      "y": 390
+    },
+    {
+      "type": "tavern-table",
+      "x": 206,
+      "y": 362
+    },
+    {
+      "type": "tavern-stool",
+      "x": 156,
+      "y": 374
+    },
+    {
+      "type": "tavern-stool",
+      "x": 256,
+      "y": 374
+    },
+    {
+      "type": "tavern-stool",
+      "x": 206,
+      "y": 420
+    },
+    {
+      "type": "tavern-rug",
+      "x": 384,
+      "y": 428
+    },
+    {
+      "type": "tavern-exit",
+      "x": 384,
+      "y": 492
+    }
+  ],
+  "spawns": {
+    "player": {
+      "x": 384,
+      "y": 370
+    },
+    "animals": []
+  },
+  "entryPoints": [
+    {
+      "id": "from-hunting-grounds",
+      "x": 384,
+      "y": 370
+    }
+  ],
+  "npcs": [],
+  "homes": [
+    {
+      "id": "hunters-tavern-hearth",
+      "name": "Karczma Łowców",
+      "x": 384,
+      "y": 232
+    }
+  ]
+}

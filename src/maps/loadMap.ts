@@ -9,10 +9,21 @@ export { collidersFromMap };
 
 const DEFAULT_MAP_URL = "/maps/hunting_grounds.json";
 
+const MAP_URLS: Record<string, string> = {
+  hunting_grounds: "/maps/hunting_grounds.json",
+  "hunters-tavern": "/maps/hunters-tavern.json",
+};
+
+/** Resolve a map document URL by id (outdoor hub, interiors, …). */
+export function mapUrlForId(mapId: string): string {
+  return MAP_URLS[mapId] ?? DEFAULT_MAP_URL;
+}
+
 /** Fetch and lightly validate a map document from public/. */
 export async function loadMap(
-  url = DEFAULT_MAP_URL,
+  urlOrId = DEFAULT_MAP_URL,
 ): Promise<MapDocument> {
+  const url = urlOrId.startsWith("/") ? urlOrId : mapUrlForId(urlOrId);
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to load map ${url}: ${res.status}`);

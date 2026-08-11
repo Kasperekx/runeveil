@@ -168,12 +168,16 @@ export function normalizeDurability(
   maxDurability: number | null | undefined,
 ): Pick<ItemInstanceData, "durability" | "maxDurability"> {
   const configured = getItemConfig(itemId)?.maxDurability ?? 0;
-  const max = Math.max(0, Math.floor(maxDurability ?? configured));
+  const persistedMax = Math.max(0, Math.floor(maxDurability ?? 0));
+  const max = persistedMax > 0 ? persistedMax : configured;
   if (max <= 0) return { durability: 0, maxDurability: 0 };
   // Existing rows have 0/0 after the migration; they must not become broken.
-  const current = Math.max(0, Math.min(max, Math.floor(durability ?? max)));
+  const current =
+    persistedMax > 0
+      ? Math.max(0, Math.min(max, Math.floor(durability ?? max)))
+      : max;
   return {
-    durability: maxDurability && maxDurability > 0 ? current : max,
+    durability: current,
     maxDurability: max,
   };
 }

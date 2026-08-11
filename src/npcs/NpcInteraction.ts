@@ -51,8 +51,8 @@ export class NpcInteraction {
     });
     this.dialogue.bindRepair({
       getEquipment: this.getEquipment,
-      onRepair: (npcInstanceId, slotId) =>
-        this.network.repairEquipment(npcInstanceId, slotId),
+      onRepair: (npcInstanceId, target) =>
+        this.network.repairEquipment(npcInstanceId, target),
     });
     this.app.canvas.addEventListener("pointerdown", this.onPointerDown);
     this.app.canvas.addEventListener("pointermove", this.onPointerMove);

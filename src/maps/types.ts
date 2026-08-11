@@ -9,6 +9,8 @@ export interface MapPlayableBounds {
 
 export interface MapPropType {
   texture: string;
+  /** Optional texture shown while a gatherable prop is depleted. */
+  depletedTexture?: string;
   /** Optional looped sprite animation for an otherwise static map prop. */
   idleAnimation?: {
     frames: string[];
@@ -36,13 +38,43 @@ export interface MapPropType {
    */
   layer?: "ground" | "world";
   /** Optional click target exposed by a placed prop (e.g. a cooking fire). */
-  interaction?: {
-    kind: "cooking";
-    /** World-space pointer hit radius around the prop anchor. */
-    radius: number;
-    /** Links this visual prop to a server-authoritative cooking station. */
-    stationId?: string;
-  };
+  interaction?:
+    | {
+        kind: "cooking";
+        /** World-space pointer hit radius around the interaction point. */
+        radius: number;
+        /** Links this visual prop to a server-authoritative cooking station. */
+        stationId?: string;
+        /** Hit point relative to the prop foot (door, hearth, …). */
+        offsetX?: number;
+        offsetY?: number;
+      }
+    | {
+        kind: "enter";
+        /** World-space pointer hit radius around the door hotspot. */
+        radius: number;
+        offsetX?: number;
+        offsetY?: number;
+        /** How close the player must stand to enter. */
+        activationRadius?: number;
+        /** Prompt copy, e.g. "Karczma". */
+        label?: string;
+        /** Destination map id once interiors exist. */
+        targetMapId?: string;
+        /** Named safe arrival point on the destination map. */
+        targetEntryId?: string;
+      }
+    | {
+        kind: "mining";
+        /** World-space pointer hit radius around the ore node. */
+        radius: number;
+        offsetX?: number;
+        offsetY?: number;
+        /** How close the player must stand to start mining. */
+        activationRadius?: number;
+        /** Key into professions.yaml mining.nodes. */
+        nodeId: string;
+      };
   /** Lightweight procedural visual layered above a static world prop. */
   ambientEffect?: {
     kind: "campfire";
@@ -116,12 +148,30 @@ export interface MapHome {
   y: number;
 }
 
+/** Named arrival point used by server-authoritative map transitions. */
+export interface MapEntryPoint {
+  id: string;
+  x: number;
+  y: number;
+}
+
+export interface MapLighting {
+  /** Interiors keep a fixed ambience; world maps use the day/night cycle. */
+  mode: "world" | "interior";
+  ambientColor?: number;
+  ambientAlpha?: number;
+  localLightVisibility?: number;
+}
+
 export interface MapDocument {
   id: string;
+  /** Optional Tiled source used to render authored terrain layers. */
+  tiledMap?: string;
   width: number;
   height: number;
   tileSize: number;
   playable: MapPlayableBounds;
+  lighting?: MapLighting;
   ground: MapGround;
   /** Optional overlays (e.g. stone plaza) above the base ground. */
   groundPatches?: MapGroundPatch[];
@@ -133,6 +183,7 @@ export interface MapDocument {
   cookingStations?: MapCookingStation[];
   /** Safe settlements used for resurrection. */
   homes?: MapHome[];
+  entryPoints?: MapEntryPoint[];
   spawns: {
     player: { x: number; y: number };
     animals: MapAnimalSpawn[];
@@ -145,15 +196,36 @@ export interface MapCircleCollider {
   radius: number;
 }
 
-export interface MapWorldInteraction {
-  kind: "cooking";
-  x: number;
-  y: number;
-  /** Maximum player distance required to activate the prop. */
-  activationRadius: number;
-  radius: number;
-  stationId?: string;
-}
+export type MapWorldInteraction =
+  | {
+      kind: "cooking";
+      x: number;
+      y: number;
+      /** Maximum player distance required to activate the prop. */
+      activationRadius: number;
+      radius: number;
+      stationId?: string;
+    }
+  | {
+      kind: "enter";
+      x: number;
+      y: number;
+      activationRadius: number;
+      radius: number;
+      label: string;
+      targetMapId?: string;
+      targetEntryId?: string;
+    }
+  | {
+      kind: "mining";
+      x: number;
+      y: number;
+      activationRadius: number;
+      radius: number;
+      nodeId: string;
+      /** Stable id for deplete/respawn sync: mapId:type:x:y */
+      nodeKey: string;
+    };
 
 /** Default body radius for static map NPCs (merchant, blacksmith, …). */
 export const NPC_COLLISION_RADIUS = 20;

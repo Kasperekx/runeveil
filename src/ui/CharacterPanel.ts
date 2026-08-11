@@ -288,6 +288,32 @@ export class CharacterPanel {
     }).join("");
 
     const ratio = hpRatio(data.hp, data.maxHp);
+    const durableEquipment = data.equipment.filter(
+      (slot) => slot.itemId && slot.maxDurability > 0,
+    );
+    const durabilityCurrent = durableEquipment.reduce(
+      (sum, slot) => sum + slot.durability,
+      0,
+    );
+    const durabilityMaximum = durableEquipment.reduce(
+      (sum, slot) => sum + slot.maxDurability,
+      0,
+    );
+    const durabilityPercent =
+      durabilityMaximum > 0
+        ? Math.round((durabilityCurrent / durabilityMaximum) * 100)
+        : 100;
+    const brokenCount = durableEquipment.filter(
+      (slot) => slot.durability <= 0,
+    ).length;
+    const durabilityTier =
+      brokenCount > 0
+        ? "broken"
+        : durabilityPercent <= 30
+          ? "critical"
+          : durabilityPercent <= 65
+            ? "worn"
+            : "healthy";
 
     this.derivedEl.innerHTML = `
       <div class="character-panel__vitality">
@@ -300,6 +326,13 @@ export class CharacterPanel {
       <div class="character-panel__stat-row"><span>Szybkość</span><strong>${data.moveSpeed}</strong></div>
       <div class="character-panel__stat-row"><span>Pancerz</span><strong>${data.armor}</strong></div>
       <div class="character-panel__stat-row"><span>Redukcja obrażeń</span><strong>${armorReductionLabel(data.armor)}</strong></div>
+      <div class="character-panel__gear-condition" data-tier="${durabilityTier}">
+        <div class="character-panel__gear-condition-heading">
+          <span>Stan wyposażenia</span><strong>${durabilityPercent}%</strong>
+        </div>
+        <div class="character-panel__gear-condition-track"><span style="width:${durabilityPercent}%"></span></div>
+        <small>${brokenCount > 0 ? `${brokenCount} ${brokenCount === 1 ? "przedmiot uszkodzony" : "przedmioty uszkodzone"} — odwiedź kowala` : `${durabilityCurrent} / ${durabilityMaximum || 0} trwałości`}</small>
+      </div>
     `;
   }
 
@@ -513,6 +546,10 @@ export class CharacterPanel {
         fill.style.width = `${Math.max(0, Math.min(100, (instance.durability / instance.maxDurability) * 100))}%`;
         track.appendChild(fill);
         btn.appendChild(track);
+        const value = document.createElement("span");
+        value.className = "character-panel__durability-value";
+        value.textContent = `${Math.round((instance.durability / instance.maxDurability) * 100)}%`;
+        btn.appendChild(value);
       }
       btn.draggable = true;
     }

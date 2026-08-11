@@ -1,4 +1,5 @@
 import { Room, Client } from "colyseus";
+import { StateView, type Schema } from "@colyseus/schema";
 import {
   AnimalState,
   EquipmentSlotState,
@@ -27,10 +28,15 @@ import {
 import { AnimalAi, type CircleBlocker } from "../world/AnimalAi.js";
 import {
   collidersFromMap,
-  loadMap,
+  knownMapIds,
+  loadMapById,
   type MapCircleCollider,
   type MapDocument,
 } from "../maps/loadMap.js";
+import {
+  findMapTransition,
+  resolveMapArrival,
+} from "../maps/mapTransition.js";
 import {
   addItemToPlayer,
   moveInventorySlot,
@@ -76,6 +82,7 @@ import {
 } from "../world/bagConfig.js";
 import {
   buyPriceOf,
+  canonicalItemId,
   getItemConfig,
   itemIdsMatch,
   sellPriceOf,
@@ -83,6 +90,7 @@ import {
 import {
   awardProfessionExperience,
   getProfessionConfig,
+  getProfessionGatherNode,
   getProfessionRecipe,
   PROFESSIONS,
   professionXpForLevel,
@@ -114,6 +122,7 @@ import {
   RESPAWN_DELAY_MS,
   deathExperienceLoss,
 } from "../world/deathConfig.js";
+import { rollLootTable } from "../world/lootTable.js";
 
 function facingAimPoint(
   x: number,
@@ -188,7 +197,9 @@ type SellToNpcPayload = {
 };
 type RepairEquipmentPayload = {
   npcInstanceId?: string;
+  source?: string;
   slotId?: string;
+  inventoryIndex?: number;
   x?: number;
   y?: number;
 };
@@ -199,8 +210,15 @@ type CraftRecipePayload = {
   x?: number;
   y?: number;
 };
+type MineNodePayload = {
+  nodeKey?: string;
+  nodeId?: string;
+  x?: number;
+  y?: number;
+};
 type AcceptQuestPayload = { questId?: string };
 type ClaimQuestRewardPayload = { questId?: string };
+type MapTransitionPayload = { requestId?: string; targetMapId?: string };
 
 const ALLOCATABLE_ATTRS = [
   "strength",
@@ -230,6 +248,8 @@ const CORPSE_DESPAWN_MS = 90_000;
 const NPC_TALK_RANGE = 128;
 /** Players must stand at a configured cooking node to craft. */
 const COOKING_STATION_RANGE = 132;
+/** Default stand distance for mining props when the map omits activationRadius. */
+const MINING_ACTIVATION_RANGE = 72;
 
 type ItemSlotLike = {
   itemId: string;
@@ -268,6 +288,7 @@ function clearItem(slot: ItemSlotLike): void {
 }
 
 interface AnimalSpawnSlot {
+  mapId: string;
   kind: CreatureKind;
   homeX: number;
   homeY: number;
@@ -294,6 +315,26 @@ export class WorldRoom extends Room {
   private readonly skillReadyAt = new Map<string, number>();
   /** sessionId → next permitted craft timestamp (prevents message spam). */
   private readonly craftReadyAt = new Map<string, number>();
+  /** playerId → active Well Fed-style food buff. */
+  private readonly foodBuffs = new Map<
+    string,
+    {
+      itemId: string;
+      expiresAt: number;
+      strength: number;
+      agility: number;
+      stamina: number;
+      intellect: number;
+      spirit: number;
+    }
+  >();
+  /** sessionId → in-progress mining channel. */
+  private readonly miningChannels = new Map<
+    string,
+    { nodeKey: string; nodeId: string; completeAt: number }
+  >();
+  /** nodeKey → unix ms when the vein respawns. */
+  private readonly depletedNodes = new Map<string, number>();
   /** sessionId → last time the player took creature damage. */
   private readonly lastDamageAt = new Map<string, number>();
   /** sessionId → last OOC regen tick. */
@@ -304,18 +345,22 @@ export class WorldRoom extends Room {
   private readonly diedAt = new Map<string, number>();
   /** Player id → latest ordered PostgreSQL write for that character. */
   private readonly pendingPlayerSaves = new Map<string, Promise<void>>();
-  private map!: MapDocument;
-  private mapColliders: MapCircleCollider[] = [];
+  /** Entity membership currently encoded into each client's interest view. */
+  private readonly viewEntities = new Map<string, Set<Schema>>();
+  private readonly maps = new Map<string, MapDocument>();
+  private readonly mapColliders = new Map<string, MapCircleCollider[]>();
   /** npcInstanceId → itemId → remaining stock (infinite offers omitted). */
   private readonly shopStock = new Map<string, Map<string, number>>();
 
   onCreate(): void {
     this.maxClients = 50;
     this.patchRate = 50;
-    this.map = loadMap();
-    this.mapColliders = collidersFromMap(this.map);
+    for (const mapId of knownMapIds()) {
+      const map = loadMapById(mapId);
+      this.maps.set(map.id, map);
+      this.mapColliders.set(map.id, collidersFromMap(map));
+    }
     this.initShopStock();
-    this.animalAi.setBounds(this.map.playable);
     this.animalAi.onPlayerDamaged = (sessionId, amount, animalId) => {
       this.lastDamageAt.set(sessionId, Date.now());
       const player = this.state.players.get(sessionId);
@@ -359,6 +404,7 @@ export class WorldRoom extends Room {
           this.clearItemUseCooldowns(sessionId);
           this.clearSkillCooldowns(sessionId);
           this.craftReadyAt.delete(sessionId);
+          this.miningChannels.delete(sessionId);
           this.deadSessions.delete(sessionId);
           this.diedAt.delete(sessionId);
         }
@@ -367,16 +413,30 @@ export class WorldRoom extends Room {
       const saved = await playerStore.get(playerId);
       let record = saved;
       if (!record) {
-        record = playerStore.createDefault(playerId, 0, 0, {
-          name: auth.characterName,
-          classId: auth.classId,
-        });
+        const startMap = this.requireMap("hunting_grounds");
+        record = playerStore.createDefault(
+          playerId,
+          startMap.spawns.player.x,
+          startMap.spawns.player.y,
+          { name: auth.characterName, classId: auth.classId },
+        );
         await playerStore.save(record);
+      }
+      if (!this.maps.has(record.mapId)) {
+        const startMap = this.requireMap("hunting_grounds");
+        record.mapId = startMap.id;
+        record.x = startMap.spawns.player.x;
+        record.y = startMap.spawns.player.y;
       }
       const player = this.hydratePlayer(record, !saved);
       this.state.players.set(client.sessionId, player);
+      client.view = new StateView();
+      this.refreshClientView(client);
+      this.refreshAllClientViews();
       if (player.hp <= 0) this.deadSessions.add(client.sessionId);
       client.userData = { playerId, accountId: auth.accountId };
+      this.sendMiningNodesState(client);
+      this.sendFoodBuffState(client);
     } catch (error) {
       markCharacterOffline(playerId);
       throw error;
@@ -396,6 +456,8 @@ export class WorldRoom extends Room {
       this.persistPlayer(player);
       await this.flushPlayerSave(player.playerId);
       this.state.players.delete(client.sessionId);
+      this.viewEntities.delete(client.sessionId);
+      this.refreshAllClientViews();
       markCharacterOffline(player.playerId);
     }
     this.attackReadyAt.delete(client.sessionId);
@@ -404,6 +466,7 @@ export class WorldRoom extends Room {
     this.clearItemUseCooldowns(client.sessionId);
     this.clearSkillCooldowns(client.sessionId);
     this.craftReadyAt.delete(client.sessionId);
+    this.miningChannels.delete(client.sessionId);
     this.deadSessions.delete(client.sessionId);
     this.diedAt.delete(client.sessionId);
   }
@@ -415,6 +478,80 @@ export class WorldRoom extends Room {
   }
 
   messages = {
+    mapTransition: (client: Client, data: MapTransitionPayload) => {
+      const player = this.livingPlayer(client);
+      const requestId =
+        typeof data?.requestId === "string" ? data.requestId.slice(0, 80) : "";
+      const targetMapId =
+        typeof data?.targetMapId === "string" ? data.targetMapId : "";
+      if (!player || !targetMapId) {
+        client.send("mapTransitionRejected", {
+          requestId,
+          reason: "invalid_request",
+        });
+        return;
+      }
+
+      const sourceMap = this.mapForPlayer(player);
+      const targetMap = this.maps.get(targetMapId);
+      const transition = findMapTransition(
+        sourceMap,
+        player.x,
+        player.y,
+        targetMapId,
+      );
+      if (!targetMap || !transition) {
+        client.send("mapTransitionRejected", {
+          requestId,
+          reason: targetMap ? "too_far" : "unknown_map",
+        });
+        return;
+      }
+
+      const arrival = resolveMapArrival(targetMap, transition.targetEntryId);
+      player.mapId = targetMap.id;
+      player.x = arrival.x;
+      player.y = arrival.y;
+      player.isNew = false;
+      this.animalAi.clearAggroOnPlayer(client.sessionId);
+      this.attackReadyAt.delete(client.sessionId);
+      this.clearSkillCooldowns(client.sessionId);
+      this.craftReadyAt.delete(client.sessionId);
+      this.miningChannels.delete(client.sessionId);
+      this.refreshAllClientViews();
+      this.persistPlayer(player);
+
+      client.send("mapTransitioned", {
+        requestId,
+        mapId: targetMap.id,
+        x: player.x,
+        y: player.y,
+      });
+      this.sendMiningNodesState(client);
+    },
+
+    /** Client re-requests depleted veins after UI is ready (join race). */
+    requestMiningNodesState: (client: Client) => {
+      this.sendMiningNodesState(client);
+    },
+
+    /** Client re-requests active food buff after UI is ready. */
+    requestFoodBuffState: (client: Client) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      this.sendFoodBuffState(client);
+    },
+
+    /** Right-click / click cancel: drop the active Well Fed buff. */
+    cancelFoodBuff: (client: Client) => {
+      const player = this.livingPlayer(client);
+      if (!player) return;
+      if (!this.foodBuffs.delete(player.playerId)) return;
+      this.recomputeGearStats(player);
+      client.send("foodBuffExpired", {});
+      client.send("notice", { kind: "food_buff_cancelled" });
+    },
+
     respawn: (client: Client) => {
       const player = this.state.players.get(client.sessionId);
       if (!player || player.hp > 0) return;
@@ -426,7 +563,7 @@ export class WorldRoom extends Room {
         return;
       }
 
-      const home = this.nearestHome(player.x, player.y);
+      const home = this.nearestHome(player, player.x, player.y);
       player.x = home.x;
       player.y = home.y;
       player.hp = player.maxHp;
@@ -452,8 +589,7 @@ export class WorldRoom extends Room {
       const player = this.livingPlayer(client);
       if (!player || !data) return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
       // Inventory is server-authoritative (loot / buy / equip / moveInventorySlot).
       // Never apply client slot snapshots — a stale save between loot messages
@@ -481,8 +617,7 @@ export class WorldRoom extends Room {
     move: (client: Client, data: MovePayload) => {
       const player = this.livingPlayer(client);
       if (!player || !data) return;
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
     },
 
     attackAnimal: (client: Client, data: AttackPayload) => {
@@ -491,7 +626,7 @@ export class WorldRoom extends Room {
 
       // Pose for range comes from move sync — do not trust attack payload coords.
       const animal = this.state.animals.get(data.animalId);
-      if (!animal?.alive) return;
+      if (!animal?.alive || animal.mapId !== player.mapId) return;
 
       const kind = animal.kind as CreatureKind;
       if (!CREATURE_KINDS[kind]) return;
@@ -531,14 +666,18 @@ export class WorldRoom extends Room {
           ? data.targetAnimalId
           : undefined;
       const target = targetId ? this.state.animals.get(targetId) : undefined;
+      const localTarget = target?.mapId === player.mapId ? target : undefined;
 
-      if (skill.requiresTarget && !target?.alive) {
+      if (skill.requiresTarget && !localTarget?.alive) {
         client.send("notice", { kind: "no_target" });
         return;
       }
 
-      if (skill.requiresTarget && target?.alive) {
-        const dist = Math.hypot(target.x - player.x, target.y - player.y);
+      if (skill.requiresTarget && localTarget?.alive) {
+        const dist = Math.hypot(
+          localTarget.x - player.x,
+          localTarget.y - player.y,
+        );
         // Small grace for pose sync lag (skill range is already generous vs melee).
         if (dist > skill.range + 24) {
           client.send("notice", { kind: "out_of_range" });
@@ -555,9 +694,9 @@ export class WorldRoom extends Room {
       let aimY: number;
       let dir: AttackFacing;
 
-      if (target?.alive) {
-        aimX = target.x;
-        aimY = target.y;
+      if (localTarget?.alive) {
+        aimX = localTarget.x;
+        aimY = localTarget.y;
         dir = facingToward(player.x, player.y, aimX, aimY);
       } else {
         dir = (player.attackDir as AttackFacing) || "down";
@@ -581,7 +720,7 @@ export class WorldRoom extends Room {
       // can skip siblings when two different animals are in the cone.
       const victims: AnimalState[] = [];
       for (const animal of this.state.animals.values()) {
-        if (!animal.alive) continue;
+        if (!animal.alive || animal.mapId !== player.mapId) continue;
         if (
           !inCone(
             player.x,
@@ -630,8 +769,9 @@ export class WorldRoom extends Room {
         return;
       }
 
-      // Nothing to restore at full health — don't burn the item.
-      if (config.use.heal > 0 && player.hp >= player.maxHp) {
+      const buff = config.use.buff;
+      // Heal-only items do nothing at full HP; food with a buff may still be eaten.
+      if (config.use.heal > 0 && player.hp >= player.maxHp && !buff) {
         client.send("notice", { kind: "already_full_hp" });
         return;
       }
@@ -639,6 +779,29 @@ export class WorldRoom extends Room {
       const itemId = slot.itemId;
       if (config.use.heal > 0) {
         player.hp = Math.min(player.maxHp, player.hp + config.use.heal);
+      }
+      if (buff) {
+        // One food buff at a time — a new meal replaces the previous Well Fed.
+        const expiresAt = now + buff.durationMs;
+        this.foodBuffs.set(player.playerId, {
+          itemId: canonicalItemId(itemId),
+          expiresAt,
+          strength: buff.strength,
+          agility: buff.agility,
+          stamina: buff.stamina,
+          intellect: buff.intellect,
+          spirit: buff.spirit,
+        });
+        this.recomputeGearStats(player);
+        client.send("foodBuffState", {
+          itemId: canonicalItemId(itemId),
+          expiresAt,
+          strength: buff.strength,
+          agility: buff.agility,
+          stamina: buff.stamina,
+          intellect: buff.intellect,
+          spirit: buff.spirit,
+        });
       }
 
       slot.quantity -= 1;
@@ -657,6 +820,19 @@ export class WorldRoom extends Room {
         slotIndex: data.slotIndex,
         itemId,
         cooldownMs: config.use.cooldownMs,
+        ...(buff
+          ? {
+              buff: {
+                strength: buff.strength,
+                agility: buff.agility,
+                stamina: buff.stamina,
+                intellect: buff.intellect,
+                spirit: buff.spirit,
+                durationMs: buff.durationMs,
+                expiresAt: now + buff.durationMs,
+              },
+            }
+          : {}),
       });
     },
 
@@ -818,11 +994,10 @@ export class WorldRoom extends Room {
       if (!player || !data?.animalId) return;
       if (typeof data.slotIndex !== "number" || data.slotIndex < 0) return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
       const animal = this.state.animals.get(data.animalId);
-      if (!animal || animal.alive) return;
+      if (!animal || animal.alive || animal.mapId !== player.mapId) return;
 
       const dist = Math.hypot(animal.x - player.x, animal.y - player.y);
       if (dist > PICKUP_RADIUS + 16) return;
@@ -850,11 +1025,10 @@ export class WorldRoom extends Room {
       const player = this.livingPlayer(client);
       if (!player || !data?.animalId) return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
       const animal = this.state.animals.get(data.animalId);
-      if (!animal || animal.alive) return;
+      if (!animal || animal.alive || animal.mapId !== player.mapId) return;
 
       const dist = Math.hypot(animal.x - player.x, animal.y - player.y);
       if (dist > PICKUP_RADIUS + 16) return;
@@ -890,11 +1064,10 @@ export class WorldRoom extends Room {
       const player = this.livingPlayer(client);
       if (!player || !data?.pickupId) return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
       const pickup = this.state.pickups.get(data.pickupId);
-      if (!pickup) return;
+      if (!pickup || pickup.mapId !== player.mapId) return;
       if (Date.now() < pickup.collectableAt) return;
 
       const dist = Math.hypot(pickup.x - player.x, pickup.y - player.y);
@@ -906,6 +1079,7 @@ export class WorldRoom extends Room {
       }
 
       this.state.pickups.delete(data.pickupId);
+      this.refreshAllClientViews();
       player.isNew = false;
       this.persistPlayer(player);
     },
@@ -915,6 +1089,7 @@ export class WorldRoom extends Room {
       if (!player) return;
       if (typeof data.x !== "number" || typeof data.y !== "number") return;
       if (typeof data.inventoryIndex !== "number") return;
+      this.applyClientPosition(player, data.x, data.y);
       const dropped = takeFromSlot(
         player,
         data.inventoryIndex,
@@ -923,8 +1098,9 @@ export class WorldRoom extends Room {
       if (!dropped) return;
       this.spawnPickup(
         dropped,
-        data.x,
-        data.y,
+        player.mapId,
+        player.x,
+        player.y,
         Date.now() + DROP_PICKUP_DELAY_MS,
       );
       player.isNew = false;
@@ -935,10 +1111,9 @@ export class WorldRoom extends Room {
       const player = this.livingPlayer(client);
       if (!player || !data?.npcInstanceId || !data.itemId) return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
-      const placement = this.findNpc(data.npcInstanceId);
+      const placement = this.findNpc(player, data.npcInstanceId);
       if (!placement) return;
       if (!this.withinNpcRange(player, placement)) {
         client.send("notice", { kind: "too_far" });
@@ -967,7 +1142,7 @@ export class WorldRoom extends Room {
         return;
       }
 
-      const stockMap = this.shopStock.get(placement.id);
+      const stockMap = this.shopStock.get(`${player.mapId}:${placement.id}`);
       if (offer.stock >= 0) {
         const left = stockMap?.get(data.itemId) ?? 0;
         if (left < quantity) {
@@ -1006,7 +1181,7 @@ export class WorldRoom extends Room {
         quantity,
         goldSpent: total,
         gold: player.gold,
-        stock: this.remainingStock(placement.id, data.itemId),
+        stock: this.remainingStock(player, placement.id, data.itemId),
       });
     },
 
@@ -1015,10 +1190,9 @@ export class WorldRoom extends Room {
       if (!player || !data?.npcInstanceId) return;
       if (typeof data.inventoryIndex !== "number") return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
-      const placement = this.findNpc(data.npcInstanceId);
+      const placement = this.findNpc(player, data.npcInstanceId);
       if (!placement) return;
       if (!this.withinNpcRange(player, placement)) {
         client.send("notice", { kind: "too_far" });
@@ -1066,10 +1240,9 @@ export class WorldRoom extends Room {
     repairEquipment: (client: Client, data: RepairEquipmentPayload) => {
       const player = this.livingPlayer(client);
       if (!player || !data?.npcInstanceId) return;
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
 
-      const placement = this.findNpc(data.npcInstanceId);
+      const placement = this.findNpc(player, data.npcInstanceId);
       if (!placement) return;
       if (!this.withinNpcRange(player, placement)) {
         client.send("notice", { kind: "too_far" });
@@ -1081,17 +1254,34 @@ export class WorldRoom extends Room {
         return;
       }
 
-      const candidates = data.slotId
-        ? [this.equipmentSlot(player, data.slotId)].filter(
-            (slot): slot is EquipmentSlotState => Boolean(slot),
-          )
-        : Array.from(player.equipment);
-      const repairs = candidates.flatMap((slot) => {
+      const equipped = Array.from(player.equipment).map((slot) => ({
+        slot,
+        slotId: slot.slotId,
+        inventoryIndex: undefined as number | undefined,
+      }));
+      const carried = Array.from(
+        { length: player.slots.length },
+        (_, index) => ({
+          slot: player.slots.at(index)!,
+          slotId: undefined as string | undefined,
+          inventoryIndex: index,
+        }),
+      );
+      const candidates =
+        data.source === "equipment" && data.slotId
+          ? equipped.filter((entry) => entry.slotId === data.slotId)
+          : data.source === "inventory" && Number.isInteger(data.inventoryIndex)
+            ? carried.filter(
+                (entry) => entry.inventoryIndex === data.inventoryIndex,
+              )
+            : [...equipped, ...carried];
+      const repairs = candidates.flatMap((entry) => {
+        const { slot } = entry;
         if (!slot.itemId || !isRepairable(slot.maxDurability)) return [];
         const item = getItemConfig(slot.itemId);
         if (!item || slot.durability >= slot.maxDurability) return [];
         const cost = repairCost(item, slot.durability, slot.maxDurability);
-        return cost > 0 ? [{ slot, cost }] : [];
+        return cost > 0 ? [{ ...entry, cost }] : [];
       });
       if (repairs.length === 0) {
         client.send("notice", { kind: "nothing_to_repair" });
@@ -1112,7 +1302,10 @@ export class WorldRoom extends Room {
       this.recomputeGearStats(player);
       this.persistPlayer(player);
       client.send("equipmentRepaired", {
-        slotIds: repairs.map(({ slot }) => slot.slotId),
+        slotIds: repairs.flatMap(({ slotId }) => (slotId ? [slotId] : [])),
+        inventoryIndices: repairs.flatMap(({ inventoryIndex }) =>
+          inventoryIndex === undefined ? [] : [inventoryIndex],
+        ),
         totalCost,
         gold: player.gold,
       });
@@ -1159,8 +1352,7 @@ export class WorldRoom extends Room {
       const profession = getProfessionConfig(recipe.professionId);
       if (!profession) return;
 
-      if (typeof data.x === "number") player.x = data.x;
-      if (typeof data.y === "number") player.y = data.y;
+      this.applyClientPosition(player, data.x, data.y);
       if (!this.isAtCookingStation(player)) {
         client.send("notice", { kind: "cooking_station_required" });
         return;
@@ -1234,6 +1426,144 @@ export class WorldRoom extends Room {
       });
     },
 
+    /** Begin a mining channel after validating range, tool and node state. */
+    startMine: (client: Client, data: MineNodePayload) => {
+      const player = this.livingPlayer(client);
+      if (!player || typeof data?.nodeKey !== "string") return;
+      if (typeof data.nodeId !== "string") return;
+
+      this.applyClientPosition(player, data.x, data.y);
+      const spot = this.findMiningSpot(player, data.nodeKey);
+      if (!spot || spot.nodeId !== data.nodeId) {
+        client.send("notice", { kind: "mining_node_missing" });
+        return;
+      }
+      if (this.isNodeDepleted(data.nodeKey)) {
+        client.send("notice", { kind: "mining_node_depleted" });
+        return;
+      }
+      if (
+        Math.hypot(player.x - spot.x, player.y - spot.y) > spot.activationRadius
+      ) {
+        client.send("notice", { kind: "mining_too_far" });
+        return;
+      }
+
+      const node = getProfessionGatherNode(data.nodeId);
+      const profession = node
+        ? getProfessionConfig(node.professionId)
+        : null;
+      if (!node || !profession) return;
+
+      const state = this.professionState(player, node.professionId);
+      if (state.level < node.level) {
+        client.send("notice", { kind: "profession_level_too_low" });
+        return;
+      }
+      if (!this.playerHasGatheringTool(player, node.requiredTool)) {
+        client.send("notice", { kind: "mining_pickaxe_required" });
+        return;
+      }
+
+      this.miningChannels.set(client.sessionId, {
+        nodeKey: data.nodeKey,
+        nodeId: data.nodeId,
+        completeAt: Date.now() + node.gatherTimeMs,
+      });
+    },
+
+    /** Finish mining once the channel timer elapses. */
+    completeMine: (client: Client, data: MineNodePayload) => {
+      const player = this.livingPlayer(client);
+      if (!player || typeof data?.nodeKey !== "string") return;
+      if (typeof data.nodeId !== "string") return;
+
+      const channel = this.miningChannels.get(client.sessionId);
+      this.miningChannels.delete(client.sessionId);
+      if (
+        !channel ||
+        channel.nodeKey !== data.nodeKey ||
+        channel.nodeId !== data.nodeId
+      ) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now < channel.completeAt - 150) return;
+      if (now > channel.completeAt + 4000) return;
+
+      this.applyClientPosition(player, data.x, data.y);
+      const spot = this.findMiningSpot(player, data.nodeKey);
+      if (!spot || spot.nodeId !== data.nodeId) {
+        client.send("notice", { kind: "mining_node_missing" });
+        return;
+      }
+      if (this.isNodeDepleted(data.nodeKey)) {
+        client.send("notice", { kind: "mining_node_depleted" });
+        return;
+      }
+      if (
+        Math.hypot(player.x - spot.x, player.y - spot.y) > spot.activationRadius
+      ) {
+        client.send("notice", { kind: "mining_too_far" });
+        return;
+      }
+
+      const node = getProfessionGatherNode(data.nodeId);
+      const profession = node
+        ? getProfessionConfig(node.professionId)
+        : null;
+      if (!node || !profession) return;
+
+      const state = this.professionState(player, node.professionId);
+      if (state.level < node.level) {
+        client.send("notice", { kind: "profession_level_too_low" });
+        return;
+      }
+      if (!this.playerHasGatheringTool(player, node.requiredTool)) {
+        client.send("notice", { kind: "mining_pickaxe_required" });
+        return;
+      }
+
+      const quantity =
+        node.output.quantityMin +
+        Math.floor(
+          Math.random() *
+            (node.output.quantityMax - node.output.quantityMin + 1),
+        );
+      const output = emptyItemData(node.output.itemId, quantity);
+      if (!this.canFitCraftOutput(player, [], output)) {
+        client.send("notice", { kind: "inventory_full" });
+        return;
+      }
+      if (!addItemToPlayer(player, output, player.slots.length)) return;
+
+      const respawnAt = now + node.respawnMs;
+      this.depletedNodes.set(data.nodeKey, respawnAt);
+      this.broadcast("miningNodeDepleted", {
+        nodeKey: data.nodeKey,
+        respawnAt,
+      });
+
+      const gainedXp = node.xp;
+      const result = awardProfessionExperience(profession, state, gainedXp);
+      state.level = result.level;
+      state.experience = result.experience;
+      state.experienceToLevel = professionXpForLevel(profession, result.level);
+      player.isNew = false;
+      this.persistPlayer(player);
+      client.send("oreMined", {
+        professionId: node.professionId,
+        nodeId: node.id,
+        nodeKey: data.nodeKey,
+        itemId: node.output.itemId,
+        quantity,
+        xp: gainedXp,
+        levelsGained: result.levelsGained,
+        level: state.level,
+      });
+    },
+
     /** Accepting a quest is always verified against its configured quest giver. */
     acceptQuest: (client: Client, data: AcceptQuestPayload) => {
       const player = this.livingPlayer(client);
@@ -1291,18 +1621,75 @@ export class WorldRoom extends Room {
     return player && player.hp > 0 ? player : null;
   }
 
+  private requireMap(mapId: string): MapDocument {
+    const map = this.maps.get(mapId);
+    if (!map) throw new Error(`Unknown map id: ${mapId}`);
+    return map;
+  }
+
+  private mapForPlayer(player: PlayerState): MapDocument {
+    return this.maps.get(player.mapId) ?? this.requireMap("hunting_grounds");
+  }
+
+  /** Interest management: only entities in the character's current zone are encoded. */
+  private refreshAllClientViews(): void {
+    for (const client of this.clients) this.refreshClientView(client);
+  }
+
+  private refreshClientView(client: Client): void {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    const view = client.view ?? (client.view = new StateView());
+    const desired = new Set<Schema>();
+    for (const candidate of this.state.players.values()) {
+      if (candidate.mapId === player.mapId) desired.add(candidate);
+    }
+    for (const animal of this.state.animals.values()) {
+      if (animal.mapId === player.mapId) desired.add(animal);
+    }
+    for (const pickup of this.state.pickups.values()) {
+      if (pickup.mapId === player.mapId) desired.add(pickup);
+    }
+
+    const previous = this.viewEntities.get(client.sessionId) ?? new Set();
+    for (const entity of previous) {
+      if (!desired.has(entity)) view.remove(entity);
+    }
+    for (const entity of desired) {
+      if (!previous.has(entity)) view.add(entity);
+    }
+    this.viewEntities.set(client.sessionId, desired);
+  }
+
+  /** Keeps client pose inside its authoritative zone; mapId is never client supplied. */
+  private applyClientPosition(
+    player: PlayerState,
+    x: unknown,
+    y: unknown,
+  ): void {
+    const map = this.mapForPlayer(player);
+    if (typeof x === "number" && Number.isFinite(x)) {
+      player.x = Math.min(map.playable.maxX, Math.max(map.playable.minX, x));
+    }
+    if (typeof y === "number" && Number.isFinite(y)) {
+      player.y = Math.min(map.playable.maxY, Math.max(map.playable.minY, y));
+    }
+  }
+
   /** Selects the closest configured settlement, falling back to map spawn. */
   private nearestHome(
+    player: PlayerState,
     x: number,
     y: number,
   ): { id: string; name: string; x: number; y: number } {
+    const map = this.mapForPlayer(player);
     const fallback = {
       id: "map-spawn",
       name: "Najbliższe schronienie",
-      x: this.map.spawns.player.x,
-      y: this.map.spawns.player.y,
+      x: map.spawns.player.x,
+      y: map.spawns.player.y,
     };
-    const homes = (this.map.homes ?? []).filter(
+    const homes = (map.homes ?? []).filter(
       (home) =>
         home.id &&
         home.name &&
@@ -1329,18 +1716,158 @@ export class WorldRoom extends Room {
     this.processSpawnSlots(now);
     this.despawnExpiredCorpses(now);
 
-    const blockers: CircleBlocker[] = this.mapColliders.map((c) => ({
-      x: c.x,
-      y: c.y,
-      radius: c.radius,
-    }));
     // Players are not solid — walking into a creature must not shove it around.
     // Combat still uses `state.players` for aggro / chase / attacks.
     for (const [, animal] of this.state.animals) {
-      this.animalAi.tick(animal, dt, now, blockers, this.state.players);
+      const map = this.maps.get(animal.mapId);
+      if (!map) continue;
+      const blockers: CircleBlocker[] = (
+        this.mapColliders.get(animal.mapId) ?? []
+      ).map((c) => ({ x: c.x, y: c.y, radius: c.radius }));
+      this.animalAi.tick(
+        animal,
+        dt,
+        now,
+        blockers,
+        this.state.players,
+        map.playable,
+      );
     }
     this.tickPlayerRegen(now);
     this.resolvePlayerDeaths(now);
+    this.tickMiningRespawns(now);
+    this.tickFoodBuffs(now);
+  }
+
+  private activeFoodBuff(playerId: string): {
+    itemId: string;
+    expiresAt: number;
+    strength: number;
+    agility: number;
+    stamina: number;
+    intellect: number;
+    spirit: number;
+  } | null {
+    const buff = this.foodBuffs.get(playerId);
+    if (!buff) return null;
+    if (Date.now() >= buff.expiresAt) {
+      this.foodBuffs.delete(playerId);
+      return null;
+    }
+    return buff;
+  }
+
+  private tickFoodBuffs(now: number): void {
+    for (const [playerId, buff] of this.foodBuffs) {
+      if (now < buff.expiresAt) continue;
+      this.foodBuffs.delete(playerId);
+      for (const [sessionId, player] of this.state.players) {
+        if (player.playerId !== playerId) continue;
+        this.recomputeGearStats(player);
+        const client = this.clients.find((c) => c.sessionId === sessionId);
+        client?.send("foodBuffExpired", {});
+        client?.send("notice", { kind: "food_buff_expired" });
+        break;
+      }
+    }
+  }
+
+  private sendFoodBuffState(client: Client): void {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    const buff = this.activeFoodBuff(player.playerId);
+    if (!buff) {
+      client.send("foodBuffState", {
+        itemId: "",
+        expiresAt: 0,
+        strength: 0,
+        agility: 0,
+        stamina: 0,
+        intellect: 0,
+        spirit: 0,
+      });
+      return;
+    }
+    client.send("foodBuffState", {
+      itemId: buff.itemId,
+      expiresAt: buff.expiresAt,
+      strength: buff.strength,
+      agility: buff.agility,
+      stamina: buff.stamina,
+      intellect: buff.intellect,
+      spirit: buff.spirit,
+    });
+  }
+
+  private tickMiningRespawns(now: number): void {
+    for (const [nodeKey, respawnAt] of this.depletedNodes) {
+      if (now < respawnAt) continue;
+      this.depletedNodes.delete(nodeKey);
+      this.broadcast("miningNodeRespawned", { nodeKey });
+    }
+  }
+
+  private sendMiningNodesState(client: Client): void {
+    const nodes = Array.from(this.depletedNodes.entries()).map(
+      ([nodeKey, respawnAt]) => ({ nodeKey, respawnAt }),
+    );
+    client.send("miningNodesState", { nodes });
+  }
+
+  private isNodeDepleted(nodeKey: string): boolean {
+    const respawnAt = this.depletedNodes.get(nodeKey);
+    if (!respawnAt) return false;
+    if (Date.now() >= respawnAt) {
+      this.depletedNodes.delete(nodeKey);
+      return false;
+    }
+    return true;
+  }
+
+  private findMiningSpot(
+    player: PlayerState,
+    nodeKey: string,
+  ): {
+    x: number;
+    y: number;
+    nodeId: string;
+    activationRadius: number;
+  } | null {
+    const map = this.mapForPlayer(player);
+    for (const prop of map.props) {
+      const interaction = map.propTypes[prop.type]?.interaction;
+      if (!interaction || interaction.kind !== "mining") continue;
+      const key = `${map.id}:${prop.type}:${prop.x}:${prop.y}`;
+      if (key !== nodeKey) continue;
+      return {
+        x: prop.x + (interaction.offsetX ?? 0),
+        y: prop.y + (interaction.offsetY ?? 0),
+        nodeId: interaction.nodeId,
+        activationRadius: Math.max(
+          1,
+          interaction.activationRadius ?? MINING_ACTIVATION_RANGE,
+        ),
+      };
+    }
+    return null;
+  }
+
+  private playerHasGatheringTool(
+    player: PlayerState,
+    requiredTool: string,
+  ): boolean {
+    const matches = (itemId: string, durability: number, maxDurability: number) => {
+      if (!itemId) return false;
+      if (isBroken(durability, maxDurability)) return false;
+      return getItemConfig(itemId)?.gatheringTool === requiredTool;
+    };
+    for (const slot of player.equipment) {
+      if (matches(slot.itemId, slot.durability, slot.maxDurability)) return true;
+    }
+    for (const slot of player.slots) {
+      if (matches(slot.itemId, slot.durability, slot.maxDurability)) return true;
+    }
+    return false;
   }
 
   /** WoW-lite OOC regen: after delay without damage, heal on an interval. */
@@ -1390,6 +1917,7 @@ export class WorldRoom extends Room {
       this.clearItemUseCooldowns(sessionId);
       this.clearSkillCooldowns(sessionId);
       this.craftReadyAt.delete(sessionId);
+      this.miningChannels.delete(sessionId);
 
       const lostExperience = deathExperienceLoss(
         player.experience,
@@ -1400,7 +1928,7 @@ export class WorldRoom extends Room {
       player.isNew = false;
       this.persistPlayer(player);
 
-      const home = this.nearestHome(player.x, player.y);
+      const home = this.nearestHome(player, player.x, player.y);
       this.clients
         .find((client) => client.sessionId === sessionId)
         ?.send("playerDied", {
@@ -1436,25 +1964,30 @@ export class WorldRoom extends Room {
   }
 
   private spawnAnimals(): void {
-    for (const spawn of this.map.spawns.animals) {
-      const kind = spawn.kind as CreatureKind;
-      const slot: AnimalSpawnSlot = {
-        kind,
-        homeX: spawn.x,
-        homeY: spawn.y,
-        livingId: null,
-        respawnAt: 0,
-      };
-      this.spawnSlots.push(slot);
-      this.spawnLivingAnimal(slot, spawn.id);
+    for (const map of this.maps.values()) {
+      for (const spawn of map.spawns.animals) {
+        const kind = spawn.kind as CreatureKind;
+        if (!CREATURE_KINDS[kind]) continue;
+        const slot: AnimalSpawnSlot = {
+          mapId: map.id,
+          kind,
+          homeX: spawn.x,
+          homeY: spawn.y,
+          livingId: null,
+          respawnAt: 0,
+        };
+        this.spawnSlots.push(slot);
+        this.spawnLivingAnimal(slot, `${map.id}:${spawn.id}`);
+      }
     }
   }
 
   private spawnLivingAnimal(slot: AnimalSpawnSlot, preferredId?: string): void {
     const config = CREATURE_KINDS[slot.kind];
-    const id = preferredId ?? `${slot.kind}-n${++this.animalSeq}`;
+    const id = preferredId ?? `${slot.mapId}:${slot.kind}-n${++this.animalSeq}`;
     const animal = new AnimalState();
     animal.id = id;
+    animal.mapId = slot.mapId;
     animal.kind = slot.kind;
     animal.x = slot.homeX;
     animal.y = slot.homeY;
@@ -1466,12 +1999,14 @@ export class WorldRoom extends Room {
     this.animalAi.register(animal, slot.homeX, slot.homeY);
     slot.livingId = id;
     slot.respawnAt = 0;
+    this.refreshAllClientViews();
   }
 
   private removeAnimal(id: string): void {
     this.state.animals.delete(id);
     this.animalAi.unregister(id);
     this.corpseDespawnAt.delete(id);
+    this.refreshAllClientViews();
   }
 
   private isLootEmpty(animal: AnimalState): boolean {
@@ -1498,6 +2033,7 @@ export class WorldRoom extends Room {
 
   private spawnPickup(
     item: ItemInstanceData,
+    mapId: string,
     x: number,
     y: number,
     collectableAt: number,
@@ -1505,17 +2041,20 @@ export class WorldRoom extends Room {
     const id = `pickup-${++this.pickupSeq}`;
     const pickup = new PickupState();
     pickup.id = id;
+    pickup.mapId = mapId;
     writeItem(pickup, item);
     pickup.x = x;
     pickup.y = y;
     pickup.collectableAt = collectableAt;
     this.state.pickups.set(id, pickup);
+    this.refreshAllClientViews();
   }
 
   private hydratePlayer(saved: StoredPlayer, isNew: boolean): PlayerState {
     const derived = playerStore.derived(saved);
     const player = new PlayerState();
     player.playerId = saved.playerId;
+    player.mapId = saved.mapId;
     player.name = saved.name;
     player.classId = saved.classId;
     player.level = saved.level;
@@ -1667,6 +2206,14 @@ export class WorldRoom extends Room {
       player.bonusStamina += attributeBonusOf(slot.affixesJson, "stamina");
       player.bonusIntellect += attributeBonusOf(slot.affixesJson, "intellect");
       player.bonusSpirit += attributeBonusOf(slot.affixesJson, "spirit");
+    }
+    const food = this.activeFoodBuff(player.playerId);
+    if (food) {
+      player.bonusStrength += food.strength;
+      player.bonusAgility += food.agility;
+      player.bonusStamina += food.stamina;
+      player.bonusIntellect += food.intellect;
+      player.bonusSpirit += food.spirit;
     }
     attrs.strength += player.bonusStrength;
     attrs.agility += player.bonusAgility;
@@ -1924,6 +2471,7 @@ export class WorldRoom extends Room {
 
     const record: StoredPlayer = {
       playerId: player.playerId,
+      mapId: player.mapId,
       name: player.name,
       classId: player.classId,
       level: player.level,
@@ -2104,7 +2652,7 @@ export class WorldRoom extends Room {
   }
 
   private isAtCookingStation(player: PlayerState): boolean {
-    return (this.map.cookingStations ?? []).some(
+    return (this.mapForPlayer(player).cookingStations ?? []).some(
       (station) =>
         Math.hypot(player.x - station.x, player.y - station.y) <=
         Math.max(1, station.radius ?? COOKING_STATION_RANGE),
@@ -2178,8 +2726,13 @@ export class WorldRoom extends Room {
 
   private initShopStock(): void {
     this.shopStock.clear();
-    for (const placement of this.map.npcs ?? []) {
-      this.shopStock.set(placement.id, cloneShopStock(placement.npcId));
+    for (const map of this.maps.values()) {
+      for (const placement of map.npcs ?? []) {
+        this.shopStock.set(
+          `${map.id}:${placement.id}`,
+          cloneShopStock(placement.npcId),
+        );
+      }
     }
   }
 
@@ -2206,7 +2759,7 @@ export class WorldRoom extends Room {
   ): void {
     const kind = animal.kind as CreatureKind;
     const config = CREATURE_KINDS[kind];
-    if (!config || !animal.alive) return;
+    if (!config || !animal.alive || animal.mapId !== player.mapId) return;
 
     const dealt = Math.min(animal.hp, damage);
     animal.hp = Math.max(0, animal.hp - damage);
@@ -2222,7 +2775,7 @@ export class WorldRoom extends Room {
 
     animal.alive = false;
     animal.respawnAt = 0;
-    this.fillCorpseLoot(animal, config.loot);
+    this.fillCorpseLoot(animal, rollLootTable(config.loot));
     this.corpseDespawnAt.set(animal.id, Date.now() + CORPSE_DESPAWN_MS);
 
     this.grantExperience(client, player, config.xp, {
@@ -2241,8 +2794,12 @@ export class WorldRoom extends Room {
     }
   }
 
-  private findNpc(instanceId: string) {
-    return (this.map.npcs ?? []).find((n) => n.id === instanceId) ?? null;
+  private findNpc(player: PlayerState, instanceId: string) {
+    return (
+      (this.mapForPlayer(player).npcs ?? []).find(
+        (npc) => npc.id === instanceId,
+      ) ?? null
+    );
   }
 
   private withinNpcRange(
@@ -2253,7 +2810,7 @@ export class WorldRoom extends Room {
   }
 
   private isNearNpcId(player: PlayerState, npcId: string): boolean {
-    return (this.map.npcs ?? []).some(
+    return (this.mapForPlayer(player).npcs ?? []).some(
       (npc) => npc.npcId === npcId && this.withinNpcRange(player, npc),
     );
   }
@@ -2265,7 +2822,7 @@ export class WorldRoom extends Room {
     if (quest.turnIn.kind === "npc") {
       return this.isNearNpcId(player, quest.turnIn.target);
     }
-    const station = (this.map.cookingStations ?? []).find(
+    const station = (this.mapForPlayer(player).cookingStations ?? []).find(
       (candidate) => candidate.id === quest.turnIn.target,
     );
     return (
@@ -2275,14 +2832,18 @@ export class WorldRoom extends Room {
     );
   }
 
-  private remainingStock(instanceId: string, itemId: string): number {
-    const npcPlacement = this.findNpc(instanceId);
+  private remainingStock(
+    player: PlayerState,
+    instanceId: string,
+    itemId: string,
+  ): number {
+    const npcPlacement = this.findNpc(player, instanceId);
     if (!npcPlacement) return 0;
     const offer = getNpcConfig(npcPlacement.npcId)?.shop.find(
       (row) => row.itemId === itemId,
     );
     if (!offer) return 0;
     if (offer.stock < 0) return -1;
-    return this.shopStock.get(instanceId)?.get(itemId) ?? 0;
+    return this.shopStock.get(`${player.mapId}:${instanceId}`)?.get(itemId) ?? 0;
   }
 }

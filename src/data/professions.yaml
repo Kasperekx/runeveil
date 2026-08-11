@@ -13,7 +13,7 @@ professions:
     recipes:
       grilled_wild_meat:
         name: Pieczone mięso z dziczyzny
-        description: Soczysty kawałek mięsa opieczony nad żarem.
+        description: Soczysty kawałek jeleniego mięsa opieczony nad żarem.
         level: 1
         xp: 12
         craftTimeMs: 1600
@@ -21,11 +21,11 @@ professions:
           item: grilled_wild_meat
           quantity: 1
         ingredients:
-          - item: meat
+          - item: deer_meat
             quantity: 1
       hunter_stew:
         name: Gulasz myśliwski
-        description: Syty posiłek z dwóch porcji dziczyzny, gotowany powoli przy ogniu.
+        description: Syty posiłek z mięsa dzika i jelenia, gotowany powoli przy ogniu.
         level: 10
         xp: 22
         craftTimeMs: 2200
@@ -33,11 +33,13 @@ professions:
           item: hunter_stew
           quantity: 1
         ingredients:
-          - item: meat
-            quantity: 2
+          - item: boar_meat
+            quantity: 1
+          - item: deer_meat
+            quantity: 1
       smoked_wild_meat:
         name: Wędzona dziczyzna
-        description: Trwałe, aromatyczne mięso na długą wyprawę.
+        description: Trwałe, aromatyczne mięso z dzika na długą wyprawę.
         level: 25
         xp: 34
         craftTimeMs: 2600
@@ -45,5 +47,28 @@ professions:
           item: smoked_wild_meat
           quantity: 1
         ingredients:
-          - item: meat
-            quantity: 3
+          - item: boar_meat
+            quantity: 2
+
+  mining:
+    name: Górnictwo
+    description: Wydobywaj rudę ze skał i żył metalu. Potrzebujesz kilofa.
+    icon: "⛏"
+    maxLevel: 100
+    xp:
+      base: 30
+      step: 12
+    recipes: {}
+    nodes:
+      copper_vein:
+        name: Żyła miedzi
+        description: Płytka żyła miedzi w skale. Wymaga kilofa.
+        level: 1
+        xp: 14
+        gatherTimeMs: 2200
+        respawnMs: 45000
+        requiredTool: mining
+        output:
+          item: copper_ore
+          quantityMin: 1
+          quantityMax: 2

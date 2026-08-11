@@ -1,4 +1,8 @@
 import { Game } from "./game/Game";
+import {
+  rememberLastCharacter,
+  resumeLastCharacter,
+} from "./auth/lastCharacter";
 import { AuthScreen } from "./ui/AuthScreen";
 import { CharacterSelectScreen } from "./ui/CharacterSelectScreen";
 
@@ -6,7 +10,12 @@ const bootStatus = document.getElementById("boot-status");
 
 async function bootstrap(): Promise<void> {
   const session = await AuthScreen.authenticate();
-  const access = await CharacterSelectScreen.select(session);
+  // Account cookie survives refresh; resume the last entered character so F5
+  // returns to the world instead of the character hall.
+  const access =
+    resumeLastCharacter(session) ??
+    (await CharacterSelectScreen.select(session));
+  rememberLastCharacter(access.account.id, access.characterId);
   await new Game().start(access);
 }
 

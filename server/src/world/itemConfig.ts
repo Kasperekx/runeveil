@@ -3,9 +3,19 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { load } from "js-yaml";
 
+export interface ItemUseBuff {
+  durationMs: number;
+  strength: number;
+  agility: number;
+  stamina: number;
+  intellect: number;
+  spirit: number;
+}
+
 export interface ItemUseEffect {
   heal: number;
   cooldownMs: number;
+  buff: ItemUseBuff | null;
 }
 
 /** Fallback when sellPrice is omitted: floor(buyPrice * ratio). */
@@ -38,6 +48,8 @@ export interface ItemConfig {
   buyPrice: number;
   /** What the vendor pays the player per unit. */
   sellPrice: number;
+  /** Gathering profession tool tag (e.g. mining); empty when not a tool. */
+  gatheringTool: string;
 }
 
 interface ItemYamlEntry {
@@ -47,6 +59,14 @@ interface ItemYamlEntry {
   use?: {
     heal?: number;
     cooldownMs?: number;
+    buff?: {
+      durationMs?: number;
+      strength?: number;
+      agility?: number;
+      stamina?: number;
+      intellect?: number;
+      spirit?: number;
+    };
   };
   capacity?: number;
   slot?: string;
@@ -58,6 +78,7 @@ interface ItemYamlEntry {
   maxDurability?: number;
   buyPrice?: number;
   sellPrice?: number;
+  gatheringTool?: string;
 }
 
 interface ItemsYamlFile {
@@ -106,6 +127,29 @@ function parseDamageRange(entry: ItemYamlEntry): {
   };
 }
 
+function parseUseEffect(
+  entry: ItemYamlEntry["use"],
+): ItemUseEffect | null {
+  if (!entry) return null;
+  const buffEntry = entry.buff;
+  const durationMs = Math.max(0, Math.floor(buffEntry?.durationMs ?? 0));
+  const strength = Math.max(0, Math.floor(buffEntry?.strength ?? 0));
+  const agility = Math.max(0, Math.floor(buffEntry?.agility ?? 0));
+  const stamina = Math.max(0, Math.floor(buffEntry?.stamina ?? 0));
+  const intellect = Math.max(0, Math.floor(buffEntry?.intellect ?? 0));
+  const spirit = Math.max(0, Math.floor(buffEntry?.spirit ?? 0));
+  const hasBuff =
+    durationMs > 0 &&
+    (strength > 0 || agility > 0 || stamina > 0 || intellect > 0 || spirit > 0);
+  return {
+    heal: Math.max(0, Math.floor(entry.heal ?? 0)),
+    cooldownMs: Math.max(0, Math.floor(entry.cooldownMs ?? 0)),
+    buff: hasBuff
+      ? { durationMs, strength, agility, stamina, intellect, spirit }
+      : null,
+  };
+}
+
 export const ITEMS: Record<string, ItemConfig> = Object.fromEntries(
   Object.entries(yaml.items).map(([id, entry]) => {
     const buyPrice = Math.max(0, Math.floor(entry.buyPrice ?? 0));
@@ -113,6 +157,12 @@ export const ITEMS: Record<string, ItemConfig> = Object.fromEntries(
       typeof entry.sellPrice === "number"
         ? Math.max(0, Math.floor(entry.sellPrice))
         : Math.floor(buyPrice * SELL_PRICE_RATIO);
+    const maxDurability = Math.max(0, Math.floor(entry.maxDurability ?? 0));
+    if (entry.slot && maxDurability <= 0) {
+      throw new Error(
+        `Invalid items.yaml: wearable item "${id}" requires maxDurability`,
+      );
+    }
     return [
       id,
       {
@@ -120,27 +170,23 @@ export const ITEMS: Record<string, ItemConfig> = Object.fromEntries(
         name: entry.name,
         stackable: entry.stackable ?? false,
         maxStack: Math.max(1, Math.floor(entry.maxStack ?? 1)),
-        use: entry.use
-          ? {
-              heal: Math.max(0, Math.floor(entry.use.heal ?? 0)),
-              cooldownMs: Math.max(0, Math.floor(entry.use.cooldownMs ?? 0)),
-            }
-          : null,
+        use: parseUseEffect(entry.use),
         capacity: Math.max(0, Math.floor(entry.capacity ?? 0)),
         slot: entry.slot ?? null,
         armor: Math.max(0, Math.floor(entry.armor ?? 0)),
         ...parseDamageRange(entry),
         attackSpeed: Math.max(0.1, entry.attackSpeed ?? 1),
-        maxDurability: Math.max(0, Math.floor(entry.maxDurability ?? 0)),
+        maxDurability,
         buyPrice,
         sellPrice,
+        gatheringTool: (entry.gatheringTool ?? "").trim(),
       },
     ];
   }),
 );
 
 export function getItemConfig(itemId: string): ItemConfig | null {
-  return ITEMS[itemId] ?? null;
+  return ITEMS[canonicalItemId(itemId)] ?? ITEMS[itemId] ?? null;
 }
 
 /**
@@ -149,6 +195,7 @@ export function getItemConfig(itemId: string): ItemConfig | null {
  */
 const ITEM_ID_ALIASES: Record<string, string> = {
   health_potion: "health_potion_v2",
+  meat: "deer_meat",
 };
 
 export function canonicalItemId(itemId: string): string {

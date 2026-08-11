@@ -1,4 +1,5 @@
 import { AuthApi, AuthApiError } from "../auth/AuthApi";
+import { clearLastCharacter } from "../auth/lastCharacter";
 import type { AuthCharacter, AuthSession, GameAccess } from "../auth/types";
 import {
   getClass,
@@ -85,15 +86,14 @@ export class CharacterSelectScreen {
         </div>
       </header>
       <main class="character-select__layout">
-        <aside class="character-roster" aria-label="Twoje postacie">
-          <header class="character-roster__header">
-            <h1>Postacie</h1>
-            <span data-roster-count></span>
-          </header>
-          <div class="character-roster__list" data-roster></div>
-        </aside>
         <section class="character-stage" data-stage aria-live="polite"></section>
-        <aside class="character-details" data-details></aside>
+        <aside class="character-gate" data-details></aside>
+        <nav class="character-caravan" aria-label="Twoje postacie">
+          <p class="character-caravan__label">
+            Postacie <span data-roster-count></span>
+          </p>
+          <div class="character-caravan__list" data-roster></div>
+        </nav>
       </main>`;
     app.append(this.root);
 
@@ -156,7 +156,7 @@ export class CharacterSelectScreen {
 
   private renderRoster(): void {
     this.required("[data-roster-count]").textContent =
-      `${this.characters.length} / ${MAX_CHARACTERS}`;
+      `${this.characters.length}/${MAX_CHARACTERS}`;
     this.roster.replaceChildren();
 
     for (let index = 0; index < MAX_CHARACTERS; index += 1) {
@@ -177,7 +177,7 @@ export class CharacterSelectScreen {
           </span>
           <span class="character-slot__copy">
             <strong>${escapeHtml(character.name)}</strong>
-            <small>Poz. ${character.level} · ${escapeHtml(cls.name)}</small>
+            <small>${escapeHtml(cls.name)} · ${character.level}</small>
           </span>`;
         button.setAttribute(
           "aria-label",
@@ -191,7 +191,7 @@ export class CharacterSelectScreen {
         button.className = "character-slot character-slot--empty";
         button.innerHTML = `
           <span class="character-slot__empty-mark" aria-hidden="true">+</span>
-          <span class="character-slot__copy"><strong>Nowa postać</strong><small>Wolne miejsce</small></span>`;
+          <span class="character-slot__copy"><strong>Nowa</strong><small>Wolne</small></span>`;
         button.disabled = this.characters.length >= MAX_CHARACTERS;
         button.addEventListener("click", () => this.beginCreation());
       }
@@ -206,17 +206,13 @@ export class CharacterSelectScreen {
       return;
     }
     const cls = getClass(character.classId);
-    this.renderStage(cls, character.name, `Poziom ${character.level}`);
+    this.root.classList.toggle("character-select--create", false);
+    this.renderStage(cls);
     this.details.innerHTML = `
+      <p class="character-gate__meta">${escapeHtml(cls.name)} · poziom ${character.level}</p>
       <h2>${escapeHtml(character.name)}</h2>
-      <p class="character-details__epithet">${escapeHtml(cls.selection.epithet)}</p>
-      ${classSummary(cls)}
-      <dl class="character-details__facts">
-        <div><dt>Poziom</dt><dd>${character.level}</dd></div>
-        <div><dt>Klasa</dt><dd>${escapeHtml(cls.name)}</dd></div>
-        <div><dt>Kraina</dt><dd>Eden</dd></div>
-      </dl>
-      <button class="character-details__primary" type="button" data-enter>Wejdź</button>
+      <p class="character-gate__epithet">${escapeHtml(cls.selection.epithet)}</p>
+      <button class="character-details__primary" type="button" data-enter>Wejdź do Edenu</button>
       <button class="character-details__delete" type="button" data-delete-character>
         Usuń postać
       </button>`;
@@ -232,11 +228,13 @@ export class CharacterSelectScreen {
 
   private renderCreation(): void {
     const cls = getClass(this.selectedClassId);
-    this.renderStage(cls, "Nowy bohater", cls.selection.epithet);
+    this.root.classList.toggle("character-select--create", true);
+    this.renderStage(cls);
     const canCancel = this.characters.length > 0;
     this.details.innerHTML = `
-      <h2>Nowa postać</h2>
-      <p class="character-details__lead">Wybierz klasę i nadaj imię.</p>
+      <p class="character-gate__meta">Nowa wyprawa</p>
+      <h2>Stwórz postać</h2>
+      <p class="character-gate__epithet">Wybierz klasę i nadaj imię.</p>
       <form class="character-create" data-create-form novalidate>
         <fieldset class="character-create__classes">
           <legend>Klasa</legend>
@@ -325,31 +323,18 @@ export class CharacterSelectScreen {
     const cls = getClass(this.selectedClassId);
     const target = this.required("[data-class-info]");
     target.innerHTML = `
-      <div class="character-create__class-heading">
-        <span>${escapeHtml(cls.selection.epithet)}</span>
-        <span>Trudność ${difficultyPips(cls.selection.difficulty)}</span>
-      </div>
-      <p>${escapeHtml(cls.description)}</p>
-      <ul>${cls.selection.strengths.map((strength) => `<li>${escapeHtml(strength)}</li>`).join("")}</ul>
+      <p class="character-create__blurb">${escapeHtml(cls.description)}</p>
       ${statBars(cls)}`;
   }
 
-  private renderStage(
-    cls: ClassDefinition,
-    name: string,
-    subtitle: string,
-  ): void {
+  private renderStage(cls: ClassDefinition): void {
     this.stopAnimation();
     const frames = previewFrames(cls.id);
     this.stage.className = `character-stage character-stage--${cls.selection.accent}`;
     this.stage.innerHTML = `
       <div class="character-stage__figure">
         <img src="/${escapeHtml(frames[0] ?? cls.selection.preview)}" alt="Podgląd klasy ${escapeHtml(cls.name)}" data-character-preview draggable="false" />
-      </div>
-      <div class="character-stage__identity">
-        <p>${escapeHtml(cls.name)}</p>
-        <h2>${escapeHtml(name)}</h2>
-        <span>${escapeHtml(subtitle)}</span>
+        <div class="character-stage__ground" aria-hidden="true"></div>
       </div>`;
 
     if (frames.length > 1) {
@@ -536,6 +521,7 @@ export class CharacterSelectScreen {
     button.disabled = true;
     button.textContent = "Wylogowywanie…";
     try {
+      clearLastCharacter(this.session.account.id);
       await this.api.logout();
       window.location.reload();
     } catch {
@@ -575,15 +561,6 @@ export class CharacterSelectScreen {
   }
 }
 
-function classSummary(cls: ClassDefinition): string {
-  return `
-    <p class="character-details__class-line">
-      <strong>${escapeHtml(cls.name)}</strong>
-      <span>${escapeHtml(cls.selection.role)} · ${escapeHtml(cls.selection.armor)}</span>
-    </p>
-    <p class="character-details__description">${escapeHtml(cls.description)}</p>`;
-}
-
 function statBars(cls: ClassDefinition): string {
   const stats = [
     ["Siła", cls.base.strength],
@@ -596,10 +573,6 @@ function statBars(cls: ClassDefinition): string {
         <div><span>${label}</span><i><b style="width:${Math.min(100, value * 5)}%"></b></i><em>${value}</em></div>`,
     )
     .join("")}</div>`;
-}
-
-function difficultyPips(value: number): string {
-  return `${value}/3`;
 }
 
 function previewFrames(classId: string): string[] {

@@ -1,0 +1,311 @@
+{
+  "id": "hunting_grounds",
+  "tiledMap": "/maps/hunting_grounds.tmj",
+  "width": 1280,
+  "height": 720,
+  "tileSize": 64,
+  "playable": {
+    "minX": 40,
+    "maxX": 1240,
+    "minY": 40,
+    "maxY": 680
+  },
+  "ground": {
+    "texture": "/assets/environment/ground.png?v=1",
+    "tileScale": 1
+  },
+  "groundPatches": [
+    {
+      "texture": "/assets/environment/stone-ground.png?v=1",
+      "tileScale": 1,
+      "x": 280,
+      "y": 300,
+      "width": 720,
+      "height": 380
+    }
+  ],
+  "propTypes": {
+    "merchant-caravan": {
+      "texture": "/assets/props/merchant-caravan-v2.png?v=4",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": 0,
+          "y": -18,
+          "radius": 28
+        },
+        {
+          "x": 0,
+          "y": 12,
+          "radius": 26
+        },
+        {
+          "x": -16,
+          "y": 0,
+          "radius": 18
+        },
+        {
+          "x": 16,
+          "y": 0,
+          "radius": 18
+        }
+      ]
+    },
+    "blacksmith-forge": {
+      "texture": "/assets/props/blacksmith-forge.png?v=2",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": 0,
+          "y": -16,
+          "radius": 34
+        },
+        {
+          "x": -28,
+          "y": 4,
+          "radius": 22
+        },
+        {
+          "x": 28,
+          "y": 4,
+          "radius": 22
+        },
+        {
+          "x": 0,
+          "y": 28,
+          "radius": 20
+        }
+      ],
+      "light": {
+        "color": 16750413,
+        "radius": 90,
+        "intensity": 0.35,
+        "flicker": true,
+        "offsetY": -8
+      }
+    },
+    "cooking-campfire": {
+      "texture": "/assets/props/campfire-cooking.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 22,
+      "interaction": {
+        "kind": "cooking",
+        "radius": 52,
+        "stationId": "hunting-grounds-hearth"
+      },
+      "ambientEffect": {
+        "kind": "campfire"
+      },
+      "light": {
+        "color": 16750413,
+        "radius": 162,
+        "intensity": 0.6,
+        "flicker": true,
+        "offsetY": 18
+      }
+    },
+    "oak": {
+      "texture": "/assets/props/trees/oak.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 18,
+      "shadow": {
+        "radiusX": 36,
+        "radiusY": 12,
+        "alpha": 0.35
+      }
+    },
+    "medieval-tavern": {
+      "texture": "/assets/props/medieval-tavern.png?v=6",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 70,
+      "light": {
+        "color": 12096842,
+        "radius": 110,
+        "intensity": 0.2,
+        "offsetY": 0
+      },
+      "interaction": {
+        "kind": "enter",
+        "radius": 36,
+        "offsetX": 15,
+        "offsetY": 100,
+        "activationRadius": 78,
+        "label": "Karczma",
+        "targetMapId": "hunters-tavern",
+        "targetEntryId": "from-hunting-grounds"
+      }
+    },
+    "hunter-tent": {
+      "texture": "/assets/props/hunter-tent.png?v=2",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": -22,
+          "y": -6,
+          "radius": 24
+        },
+        {
+          "x": 0,
+          "y": -8,
+          "radius": 28
+        },
+        {
+          "x": 22,
+          "y": -6,
+          "radius": 24
+        }
+      ],
+      "shadow": {
+        "radiusX": 40,
+        "radiusY": 16,
+        "alpha": 0.38
+      }
+    }
+  },
+  "props": [
+    {
+      "type": "medieval-tavern",
+      "x": 640,
+      "y": 240
+    },
+    {
+      "type": "merchant-caravan",
+      "x": 380,
+      "y": 560
+    },
+    {
+      "type": "blacksmith-forge",
+      "x": 900,
+      "y": 478.176
+    },
+    {
+      "type": "cooking-campfire",
+      "x": 634,
+      "y": 558
+    },
+    {
+      "type": "oak",
+      "x": 160,
+      "y": 112.8
+    },
+    {
+      "type": "oak",
+      "x": 280,
+      "y": 52.8
+    },
+    {
+      "type": "oak",
+      "x": 980,
+      "y": 82.8
+    },
+    {
+      "type": "oak",
+      "x": 1120,
+      "y": 172.8
+    },
+    {
+      "type": "oak",
+      "x": 200,
+      "y": 352.8
+    },
+    {
+      "type": "oak",
+      "x": 1080,
+      "y": 332.8
+    },
+    {
+      "type": "oak",
+      "x": 140,
+      "y": 552.8
+    },
+    {
+      "type": "oak",
+      "x": 1140,
+      "y": 572.8
+    }
+  ],
+  "spawns": {
+    "player": {
+      "x": 640,
+      "y": 480
+    },
+    "animals": [
+      {
+        "id": "boar-0",
+        "kind": "boar",
+        "x": 820,
+        "y": 220
+      },
+      {
+        "id": "boar-1",
+        "kind": "boar",
+        "x": 480,
+        "y": 200
+      },
+      {
+        "id": "deer-0",
+        "kind": "deer",
+        "x": 700,
+        "y": 140
+      },
+      {
+        "id": "deer-1",
+        "kind": "deer",
+        "x": 420,
+        "y": 280
+      }
+    ]
+  },
+  "npcs": [
+    {
+      "id": "merchant-1",
+      "npcId": "dark_merchant",
+      "x": 448,
+      "y": 572
+    },
+    {
+      "id": "blacksmith-1",
+      "npcId": "dark_blacksmith",
+      "x": 820,
+      "y": 560
+    }
+  ],
+  "cookingStations": [
+    {
+      "id": "hunting-grounds-hearth",
+      "name": "Ognisko kucharskie",
+      "x": 634,
+      "y": 558,
+      "radius": 96
+    }
+  ],
+  "homes": [
+    {
+      "id": "hunters-camp",
+      "name": "Obozowisko Łowców",
+      "x": 640,
+      "y": 480
+    }
+  ]
+}

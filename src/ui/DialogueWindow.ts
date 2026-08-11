@@ -12,6 +12,14 @@ import { makeDraggable, clearDragPosition } from "./makeDraggable";
 export type DialogueTab = "buy" | "sell";
 
 type DialogueMode = "root" | "story" | "trade" | "repair";
+type DialogueOptionKind =
+  "talk" | "trade" | "repair" | "quest" | "close" | "back";
+
+const OPTION_BADGES: Partial<Record<DialogueOptionKind, string>> = {
+  trade: "Handel",
+  repair: "Usługa",
+  quest: "Zadanie",
+};
 
 export interface NpcDialogueView {
   name: string;
@@ -39,7 +47,12 @@ export interface DialogueTradeHandlers {
 
 export interface DialogueRepairHandlers {
   getEquipment: () => Array<ItemInstance & { slotId: string }>;
-  onRepair: (npcInstanceId: string, slotId?: string) => void;
+  onRepair: (
+    npcInstanceId: string,
+    target?:
+      | { source: "equipment"; slotId: string }
+      | { source: "inventory"; inventoryIndex: number },
+  ) => void;
 }
 
 /**
@@ -94,7 +107,7 @@ export class DialogueWindow {
         <div class="dialogue-window__ornament dialogue-window__ornament--bl" aria-hidden="true"></div>
         <div class="dialogue-window__ornament dialogue-window__ornament--br" aria-hidden="true"></div>
         <header class="dialogue-window__header" data-header>
-          <span class="dialogue-window__sigil" aria-hidden="true">⚔</span>
+          <span class="dialogue-window__sigil" data-sigil aria-hidden="true">⚔</span>
           <h2 class="dialogue-window__title" data-title>Rozmowa</h2>
           <div class="dialogue-window__gold" data-gold title="Złoto">0</div>
           <button type="button" class="dialogue-window__close" data-close aria-label="Zamknij">×</button>
@@ -118,6 +131,22 @@ export class DialogueWindow {
             </div>
             <div class="dialogue-window__list" data-list role="list"></div>
           </div>
+          <section class="repair-workshop" data-repair hidden aria-label="Warsztat kowala">
+            <div class="repair-workshop__hero">
+              <span class="repair-workshop__anvil" aria-hidden="true">⚒</span>
+              <div>
+                <span class="repair-workshop__eyebrow">Usługi rzemieślnicze</span>
+                <h3>Warsztat kowala</h3>
+                <p>Napraw założony sprzęt i przedmioty noszone w plecaku.</p>
+              </div>
+            </div>
+            <div class="repair-workshop__condition" data-repair-condition></div>
+            <div class="repair-workshop__list" data-repair-list role="list"></div>
+            <footer class="repair-workshop__footer">
+              <button type="button" class="repair-workshop__back" data-repair-back>Wróć do rozmowy</button>
+              <button type="button" class="repair-workshop__all" data-repair-all>Napraw wszystko</button>
+            </footer>
+          </section>
         </div>
       </div>
     `;
@@ -146,6 +175,14 @@ export class DialogueWindow {
       const tab = target.dataset.tab;
       if (tab === "buy" || tab === "sell") win.setTab(tab);
     });
+    root.querySelector("[data-repair-back]")!.addEventListener("click", () => {
+      win.mode = "root";
+      win.syncMode();
+    });
+    root.querySelector("[data-repair-all]")!.addEventListener("click", () => {
+      if (!win.view) return;
+      win.repairHandlers?.onRepair(win.view.npcInstanceId);
+    });
     makeDraggable(root, root.querySelector("[data-header]") as HTMLElement);
 
     return win;
@@ -159,6 +196,7 @@ export class DialogueWindow {
       if (this.opened && this.mode === "trade" && this.tab === "sell") {
         this.renderList();
       }
+      if (this.opened && this.mode === "repair") this.renderRepairList();
     };
     inventory.onChange(onChange);
     this.unbindInventory = () => {
@@ -217,7 +255,8 @@ export class DialogueWindow {
       this.opened &&
       (this.mode === "repair" || (this.mode === "trade" && this.tab === "buy"))
     ) {
-      this.renderList();
+      if (this.mode === "repair") this.renderRepairList();
+      else this.renderList();
     }
   }
 
@@ -247,6 +286,14 @@ export class DialogueWindow {
 
   private syncMode(): void {
     if (!this.view) return;
+    const repairMode = this.mode === "repair";
+    this.root.classList.toggle("dialogue-window--repair", repairMode);
+    this.root.querySelector<HTMLElement>("[data-sigil]")!.textContent =
+      repairMode ? "⚒" : "⚔";
+    this.root.querySelector<HTMLElement>(".dialogue-window__identity")!.hidden =
+      repairMode;
+    this.greetingEl.hidden = repairMode;
+    this.root.querySelector<HTMLElement>("[data-repair]")!.hidden = !repairMode;
 
     if (this.mode === "trade") {
       this.titleEl.textContent = "Handel";
@@ -272,13 +319,11 @@ export class DialogueWindow {
 
     if (this.mode === "repair") {
       this.titleEl.textContent = "Naprawa ekwipunku";
-      this.greetingEl.textContent =
-        "Sprawdzę pęknięcia, nitowania i ostrze. Wybierz przedmiot albo napraw wszystko.";
       this.goldEl.hidden = false;
-      this.optionsEl.hidden = false;
-      this.renderBackOption();
-      this.shopSection.hidden = false;
-      this.tabsEl.hidden = true;
+      this.optionsEl.hidden = true;
+      this.optionsEl.replaceChildren();
+      this.shopSection.hidden = true;
+      this.listEl.replaceChildren();
       this.renderRepairList();
       return;
     }
@@ -303,19 +348,33 @@ export class DialogueWindow {
     if (!this.view) return;
 
     for (const action of this.view.questActions ?? []) {
-      const button = this.buildOptionButton(action.label, () => {
-        action.onClick();
-        this.close();
-      });
-      button.classList.add("dialogue-window__option--quest");
-      this.optionsEl.appendChild(button);
+      this.optionsEl.appendChild(
+        this.buildOptionButton(
+          action.label,
+          () => {
+            action.onClick();
+            this.close();
+          },
+          "quest",
+        ),
+      );
     }
 
     for (const option of this.view.dialogue) {
+      const kind =
+        option.action === "trade" ||
+        option.action === "repair" ||
+        option.action === "close"
+          ? option.action
+          : "talk";
       this.optionsEl.appendChild(
-        this.buildOptionButton(option.label, () => {
-          this.chooseOption(option);
-        }),
+        this.buildOptionButton(
+          option.label,
+          () => {
+            this.chooseOption(option);
+          },
+          kind,
+        ),
       );
     }
   }
@@ -324,19 +383,27 @@ export class DialogueWindow {
     this.optionsEl.replaceChildren();
     if (this.mode === "trade" || this.mode === "repair") {
       this.optionsEl.appendChild(
-        this.buildOptionButton("Wróć do rozmowy", () => {
-          this.mode = "root";
-          this.syncMode();
-        }),
+        this.buildOptionButton(
+          "Wróć do rozmowy",
+          () => {
+            this.mode = "root";
+            this.syncMode();
+          },
+          "back",
+        ),
       );
       return;
     }
 
     this.optionsEl.appendChild(
-      this.buildOptionButton("Wróć", () => {
-        this.mode = "root";
-        this.syncMode();
-      }),
+      this.buildOptionButton(
+        "Wróć",
+        () => {
+          this.mode = "root";
+          this.syncMode();
+        },
+        "back",
+      ),
     );
   }
 
@@ -368,12 +435,18 @@ export class DialogueWindow {
   private buildOptionButton(
     label: string,
     onClick: () => void,
+    kind: DialogueOptionKind = "talk",
   ): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "dialogue-window__option";
+    button.className = `dialogue-window__option dialogue-window__option--${kind}`;
     button.setAttribute("role", "listitem");
-    button.textContent = label;
+    const badge = OPTION_BADGES[kind];
+    if (badge) {
+      button.innerHTML = `<span class="dialogue-window__option-label">${escapeHtml(label)}</span><span class="dialogue-window__option-badge">${badge}</span>`;
+    } else {
+      button.textContent = label;
+    }
     button.addEventListener("click", onClick);
     return button;
   }
@@ -404,16 +477,24 @@ export class DialogueWindow {
   }
 
   private renderRepairList(): void {
-    this.listEl.replaceChildren();
+    const repairList =
+      this.root.querySelector<HTMLElement>("[data-repair-list]")!;
+    const condition = this.root.querySelector<HTMLElement>(
+      "[data-repair-condition]",
+    )!;
+    const repairAll =
+      this.root.querySelector<HTMLButtonElement>("[data-repair-all]")!;
+    repairList.replaceChildren();
     const view = this.view;
     const handlers = this.repairHandlers;
     if (!view || !handlers) {
-      this.listEl.appendChild(
+      repairList.appendChild(
         this.emptyNote("Usługa naprawy jest niedostępna."),
       );
+      repairAll.disabled = true;
       return;
     }
-    const damaged = handlers
+    const equipped = handlers
       .getEquipment()
       .filter(
         (slot) =>
@@ -421,44 +502,91 @@ export class DialogueWindow {
           slot.maxDurability > 0 &&
           slot.durability < slot.maxDurability &&
           hasItem(slot.itemId),
-      );
+      )
+      .map((slot) => ({
+        item: slot,
+        sourceLabel: "Założone",
+        target: { source: "equipment", slotId: slot.slotId } as const,
+      }));
+    const carried = (this.inventory?.getSlots() ?? []).flatMap(
+      (slot, inventoryIndex) => {
+        if (
+          !slot?.itemId ||
+          slot.maxDurability <= 0 ||
+          slot.durability >= slot.maxDurability ||
+          !hasItem(slot.itemId)
+        ) {
+          return [];
+        }
+        return [
+          {
+            item: { ...slot, itemId: slot.itemId },
+            sourceLabel: "Plecak",
+            target: { source: "inventory", inventoryIndex } as const,
+          },
+        ];
+      },
+    );
+    const damaged = [...equipped, ...carried];
+    const allDurable = [
+      ...handlers.getEquipment(),
+      ...(this.inventory?.getSlots() ?? []),
+    ].filter((slot) => slot.itemId && slot.maxDurability > 0);
+    const currentDurability = allDurable.reduce(
+      (sum, slot) => sum + slot.durability,
+      0,
+    );
+    const maximumDurability = allDurable.reduce(
+      (sum, slot) => sum + slot.maxDurability,
+      0,
+    );
+    const conditionPercent =
+      maximumDurability > 0
+        ? Math.round((currentDurability / maximumDurability) * 100)
+        : 100;
+    condition.innerHTML = `
+      <div class="repair-workshop__condition-copy">
+        <span>Łączny stan wyposażenia</span><strong>${conditionPercent}%</strong>
+      </div>
+      <div class="repair-workshop__condition-track"><span style="width:${conditionPercent}%"></span></div>`;
     if (damaged.length === 0) {
-      this.listEl.appendChild(
-        this.emptyNote("Twój wyposażony sprzęt jest w doskonałym stanie."),
+      repairList.appendChild(
+        this.emptyNote("Cały sprzęt jest w doskonałym stanie."),
       );
+      repairAll.textContent = "Nie wymaga naprawy";
+      repairAll.disabled = true;
       return;
     }
     const totalCost = damaged.reduce(
-      (total, slot) => total + repairCost(getItem(slot.itemId), slot),
+      (total, entry) =>
+        total + repairCost(getItem(entry.item.itemId), entry.item),
       0,
     );
-    const all = document.createElement("button");
-    all.type = "button";
-    all.className = "dialogue-window__repair-all";
-    all.textContent = `Napraw wszystko · ${totalCost} g`;
-    all.disabled = view.gold < totalCost;
-    all.addEventListener("click", () => handlers.onRepair(view.npcInstanceId));
-    this.listEl.appendChild(all);
-    for (const slot of damaged) {
+    repairAll.textContent = `Napraw wszystko · ${totalCost} g`;
+    repairAll.disabled = view.gold < totalCost;
+    for (const entry of damaged) {
+      const slot = entry.item;
       const item = getItem(slot.itemId);
       const missing = slot.maxDurability - slot.durability;
       const cost = repairCost(item, slot);
+      const percent = Math.round((slot.durability / slot.maxDurability) * 100);
       const row = document.createElement("button");
       row.type = "button";
-      row.className = "dialogue-window__row dialogue-window__row--repair";
+      row.className = "repair-workshop__item";
       row.innerHTML = `
-        <span class="dialogue-window__row-icon"><img src="/${item.icon}" alt="" draggable="false" /></span>
-        <span class="dialogue-window__row-meta">
-          <span class="dialogue-window__row-name">${escapeHtml(item.name)}</span>
-          <span class="dialogue-window__row-sub">Trwałość: ${slot.durability} / ${slot.maxDurability}</span>
+        <span class="repair-workshop__item-icon"><img src="/${item.icon}" alt="" draggable="false" /></span>
+        <span class="repair-workshop__item-main">
+          <span class="repair-workshop__item-heading"><strong>${escapeHtml(item.name)}</strong><em>${entry.sourceLabel}</em></span>
+          <span class="repair-workshop__item-values"><span>Trwałość</span><b>${slot.durability} / ${slot.maxDurability}</b></span>
+          <span class="repair-workshop__item-track"><span style="width:${percent}%"></span></span>
         </span>
-        <span class="dialogue-window__row-price">${cost} g</span>`;
+        <span class="repair-workshop__item-cost"><small>Napraw</small><strong>${cost} g</strong></span>`;
       row.title = `Brakuje ${missing} punktów trwałości`;
       row.disabled = view.gold < cost;
       row.addEventListener("click", () =>
-        handlers.onRepair(view.npcInstanceId, slot.slotId),
+        handlers.onRepair(view.npcInstanceId, entry.target),
       );
-      this.listEl.appendChild(row);
+      repairList.appendChild(row);
     }
   }
 

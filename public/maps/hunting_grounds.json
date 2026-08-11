@@ -18,14 +18,14 @@
       "texture": "/assets/environment/stone-ground.png?v=1",
       "tileScale": 1,
       "x": 280,
-      "y": 400,
+      "y": 300,
       "width": 720,
-      "height": 280
+      "height": 380
     }
   ],
   "propTypes": {
     "merchant-caravan": {
-      "texture": "/assets/props/merchant-caravan-v2.png?v=3",
+      "texture": "/assets/props/merchant-caravan-v2.png?v=5",
       "anchorX": 0.5,
       "anchorY": 0.5,
       "scale": 1,
@@ -33,55 +33,57 @@
       "collisionRadius": 0,
       "colliders": [
         {
-          "x": -6,
-          "y": -28,
-          "radius": 28
-        },
-        {
-          "x": 20,
-          "y": -20,
+          "x": -40,
+          "y": 4,
           "radius": 26
         },
         {
-          "x": 44,
-          "y": -10,
-          "radius": 22
+          "x": 0,
+          "y": 6,
+          "radius": 28
+        },
+        {
+          "x": 40,
+          "y": 4,
+          "radius": 26
         }
-      ],
-      "shadow": {
-        "radiusX": 48,
-        "radiusY": 16,
-        "alpha": 0.4
-      }
+      ]
     },
     "blacksmith-forge": {
-      "texture": "/assets/props/blacksmith-forge.png?v=1",
+      "texture": "/assets/props/blacksmith-forge.png?v=2",
       "anchorX": 0.5,
-      "anchorY": 0.92,
-      "scale": 1.15,
+      "anchorY": 0.5,
+      "scale": 1,
       "filter": "nearest",
       "collisionRadius": 0,
       "colliders": [
         {
-          "x": 4,
-          "y": -32,
+          "x": 0,
+          "y": -16,
           "radius": 34
         },
         {
-          "x": 34,
-          "y": -20,
-          "radius": 26
+          "x": -28,
+          "y": 4,
+          "radius": 22
         },
         {
-          "x": 38,
-          "y": 0,
-          "radius": 18
+          "x": 28,
+          "y": 4,
+          "radius": 22
+        },
+        {
+          "x": 0,
+          "y": 28,
+          "radius": 20
         }
       ],
-      "shadow": {
-        "radiusX": 44,
-        "radiusY": 16,
-        "alpha": 0.42
+      "light": {
+        "color": 16750413,
+        "radius": 90,
+        "intensity": 0.35,
+        "flicker": true,
+        "offsetY": -8
       }
     },
     "cooking-campfire": {
@@ -106,9 +108,101 @@
         "flicker": true,
         "offsetY": 18
       }
+    },
+    "oak": {
+      "texture": "/assets/props/trees/oak.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 18,
+      "shadow": {
+        "radiusX": 36,
+        "radiusY": 12,
+        "alpha": 0.35
+      }
+    },
+    "medieval-tavern": {
+      "texture": "/assets/props/medieval-tavern.png?v=6",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 70,
+      "light": {
+        "color": 12096842,
+        "radius": 110,
+        "intensity": 0.2,
+        "offsetY": 0
+      },
+      "interaction": {
+        "kind": "enter",
+        "radius": 36,
+        "offsetX": 15,
+        "offsetY": 100,
+        "activationRadius": 78,
+        "label": "Karczma",
+        "targetMapId": "hunters-tavern",
+        "targetEntryId": "from-hunting-grounds"
+      }
+    },
+    "hunter-tent": {
+      "texture": "/assets/props/hunter-tent.png?v=2",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 0,
+      "colliders": [
+        {
+          "x": -22,
+          "y": -6,
+          "radius": 24
+        },
+        {
+          "x": 0,
+          "y": -8,
+          "radius": 28
+        },
+        {
+          "x": 22,
+          "y": -6,
+          "radius": 24
+        }
+      ],
+      "shadow": {
+        "radiusX": 40,
+        "radiusY": 16,
+        "alpha": 0.38
+      }
+    },
+    "copper-ore": {
+      "texture": "/assets/props/copper-ore.png?v=2",
+      "depletedTexture": "/assets/props/copper-ore-depleted.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 14,
+      "interaction": {
+        "kind": "mining",
+        "radius": 28,
+        "activationRadius": 72,
+        "nodeId": "copper_vein"
+      }
     }
   },
   "props": [
+    {
+      "type": "medieval-tavern",
+      "x": 640,
+      "y": 348
+    },
+    {
+      "type": "hunter-tent",
+      "x": 520,
+      "y": 470
+    },
     {
       "type": "merchant-caravan",
       "x": 380,
@@ -117,12 +211,67 @@
     {
       "type": "blacksmith-forge",
       "x": 900,
-      "y": 540
+      "y": 478
     },
     {
       "type": "cooking-campfire",
       "x": 634,
       "y": 558
+    },
+    {
+      "type": "copper-ore",
+      "x": 320,
+      "y": 160
+    },
+    {
+      "type": "copper-ore",
+      "x": 880,
+      "y": 180
+    },
+    {
+      "type": "copper-ore",
+      "x": 560,
+      "y": 100
+    },
+    {
+      "type": "oak",
+      "x": 160,
+      "y": 180
+    },
+    {
+      "type": "oak",
+      "x": 280,
+      "y": 120
+    },
+    {
+      "type": "oak",
+      "x": 980,
+      "y": 150
+    },
+    {
+      "type": "oak",
+      "x": 1120,
+      "y": 240
+    },
+    {
+      "type": "oak",
+      "x": 200,
+      "y": 420
+    },
+    {
+      "type": "oak",
+      "x": 1080,
+      "y": 400
+    },
+    {
+      "type": "oak",
+      "x": 140,
+      "y": 620
+    },
+    {
+      "type": "oak",
+      "x": 1140,
+      "y": 640
     }
   ],
   "spawns": {
@@ -157,6 +306,13 @@
       }
     ]
   },
+  "entryPoints": [
+    {
+      "id": "from-hunters-tavern",
+      "x": 655,
+      "y": 465
+    }
+  ],
   "npcs": [
     {
       "id": "merchant-1",

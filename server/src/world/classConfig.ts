@@ -138,6 +138,8 @@ export function emptyEquipment(): Record<
     instanceId: string;
     rarity: string;
     affixesJson: string;
+    durability: number;
+    maxDurability: number;
   }
 > {
   return Object.fromEntries(
@@ -149,6 +151,8 @@ export function emptyEquipment(): Record<
         instanceId: "",
         rarity: "common",
         affixesJson: "[]",
+        durability: 0,
+        maxDurability: 0,
       },
     ]),
   );

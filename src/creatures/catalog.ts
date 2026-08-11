@@ -1,13 +1,21 @@
 import { load } from "js-yaml";
 import creaturesYaml from "../data/creatures.yaml?raw";
 import type { WanderingAnimalConfig } from "./WanderingAnimal";
-import { creatureSpritePaths, type CreatureSpritePaths } from "./CreatureSprites";
+import {
+  creatureSpritePaths,
+  type CreatureSpritePaths,
+} from "./CreatureSprites";
 
 export type CreatureId = string;
 
 export interface CreatureLootEntry {
   itemId: string;
+  /** Legacy/offline representative quantity; network loot is server-rolled. */
   quantity: number;
+  chance: number;
+  minQuantity: number;
+  maxQuantity: number;
+  group: string | null;
 }
 
 export interface CreatureDefinition {
@@ -31,6 +39,10 @@ export interface CreatureDefinition {
 interface LootYamlEntry {
   item: string;
   quantity?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  chance?: number;
+  group?: string;
 }
 
 interface CreatureYamlEntry {
@@ -67,16 +79,35 @@ function parseLoot(entry: CreatureYamlEntry): CreatureLootEntry[] {
   if (Array.isArray(entry.loot) && entry.loot.length > 0) {
     return entry.loot
       .filter((row) => typeof row?.item === "string" && row.item.length > 0)
-      .map((row) => ({
-        itemId: row.item,
-        quantity: Math.max(1, Math.floor(row.quantity ?? 1)),
-      }));
+      .map((row) => {
+        const legacyQuantity = Math.max(1, Math.floor(row.quantity ?? 1));
+        const minQuantity = Math.max(
+          1,
+          Math.floor(row.minQuantity ?? legacyQuantity),
+        );
+        const maxQuantity = Math.max(
+          minQuantity,
+          Math.floor(row.maxQuantity ?? minQuantity),
+        );
+        return {
+          itemId: row.item,
+          quantity: minQuantity,
+          chance: row.chance ?? 100,
+          minQuantity,
+          maxQuantity,
+          group: row.group?.trim() || null,
+        };
+      });
   }
   if (entry.dropItem) {
     return [
       {
         itemId: entry.dropItem,
         quantity: Math.max(1, Math.floor(entry.dropQuantity ?? 1)),
+        chance: 100,
+        minQuantity: Math.max(1, Math.floor(entry.dropQuantity ?? 1)),
+        maxQuantity: Math.max(1, Math.floor(entry.dropQuantity ?? 1)),
+        group: null,
       },
     ];
   }
@@ -96,7 +127,10 @@ export async function loadCreatureCatalog(): Promise<void> {
       id,
       name: entry.name,
       description: (entry.description ?? "").trim(),
-      sprites: creatureSpritePaths(entry.sprites.folder, entry.sprites.filePrefix),
+      sprites: creatureSpritePaths(
+        entry.sprites.folder,
+        entry.sprites.filePrefix,
+      ),
       speed: entry.speed,
       animFps: entry.animFps,
       hitRadius: entry.hitRadius,
@@ -150,7 +184,7 @@ export function wanderingConfig(id: CreatureId): WanderingAnimalConfig {
     animFps: c.animFps,
     respawnMs: c.respawnMs,
     hitRadius: c.hitRadius,
-    dropItem: first?.itemId ?? "meat",
+    dropItem: first?.itemId ?? "deer_meat",
     dropQuantity: first?.quantity ?? 1,
   };
 }

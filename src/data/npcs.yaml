@@ -44,8 +44,10 @@ npcs:
     shop:
       - item: health_potion_v2
         stock: 12
-      - item: meat
-        stock: 20
+      - item: boar_meat
+        stock: 12
+      - item: deer_meat
+        stock: 12
       - item: backpack
         stock: 2
       - item: small_backpack
@@ -56,6 +58,8 @@ npcs:
         stock: 1
       - item: iron_shortsword
         stock: 2
+      - item: copper_pickaxe
+        stock: 4
 
   dark_blacksmith:
     name: Kowal

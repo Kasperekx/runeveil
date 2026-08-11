@@ -27,8 +27,8 @@ export class Minimap {
   private readonly waypointEl: HTMLElement;
   private readonly clearWaypointButton: HTMLButtonElement;
   private readonly toggleButton: HTMLButtonElement;
-  private readonly scale: number;
-  private readonly offset: Point;
+  private scale: number;
+  private offset: Point;
   private expanded = true;
   private elapsed = UPDATE_INTERVAL_MS;
   private waypoint: Waypoint | null = null;
@@ -36,7 +36,7 @@ export class Minimap {
   private constructor(
     private readonly app: Application,
     private readonly root: HTMLElement,
-    private readonly map: MapDocument,
+    private map: MapDocument,
     private readonly camera: Camera,
     private readonly getPlayerPosition: () => Point,
     private readonly animals: NetworkAnimalSystem,
@@ -105,6 +105,21 @@ export class Minimap {
 
   get isExpanded(): boolean {
     return this.expanded;
+  }
+
+  /** Swap the drawn map after an interior / outdoor transition. */
+  setMap(map: MapDocument): void {
+    this.map = map;
+    this.waypoint = null;
+    const mapScale = Math.min(WIDTH / map.width, HEIGHT / map.height);
+    this.scale = mapScale;
+    this.offset = {
+      x: (WIDTH - map.width * mapScale) / 2,
+      y: (HEIGHT - map.height * mapScale) / 2,
+    };
+    const title = this.root.querySelector(".minimap__header strong");
+    if (title) title.textContent = mapName(map.id);
+    this.draw();
   }
 
   toggle(): void {
@@ -230,6 +245,10 @@ export class Minimap {
       if (!definition) continue;
       if (definition.interaction?.kind === "cooking") {
         this.drawDiamond(context, this.project(prop.x, prop.y), "#f0a34e", 4);
+      } else if (definition.interaction?.kind === "enter") {
+        const doorX = prop.x + (definition.interaction.offsetX ?? 0);
+        const doorY = prop.y + (definition.interaction.offsetY ?? 0);
+        this.drawDiamond(context, this.project(doorX, doorY), "#b8954a", 5);
       } else if (prop.type.includes("merchant")) {
         this.drawSquare(context, this.project(prop.x, prop.y), "#d4bd6f", 4);
       } else if (prop.type.includes("forge")) {
@@ -410,6 +429,7 @@ export class Minimap {
 
 function mapName(id: string): string {
   if (id === "hunting_grounds") return "Tereny łowieckie";
+  if (id === "hunters-tavern") return "Karczma Łowców";
   return id.replace(/[_-]+/g, " ");
 }
 

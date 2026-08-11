@@ -3,12 +3,13 @@ import { createApp } from "./createApp";
 import { Camera } from "./Camera";
 import { screenToWorld } from "./screenToWorld";
 import type { GameAccess } from "../auth/types";
+import { clearLastCharacter } from "../auth/lastCharacter";
 import { NetworkAnimalSystem } from "../creatures/NetworkAnimalSystem";
 import { Environment } from "../environment/Environment";
 import { KeyboardInput } from "../input/KeyboardInput";
 import { Inventory } from "../inventory/Inventory";
 import { getItem, hasItem, loadItemCatalog } from "../items/catalog";
-import { loadProfessionCatalog } from "../professions/catalog";
+import { getProfession, loadProfessionCatalog } from "../professions/catalog";
 import {
   getQuest,
   listQuests,
@@ -53,6 +54,7 @@ import { LoadingScreen } from "../ui/LoadingScreen";
 import { LootWindow } from "../ui/LootWindow";
 import { MICRO_ICONS, MicroMenu } from "../ui/MicroMenu";
 import { PlayerHud } from "../ui/PlayerHud";
+import { PlayerBuffs } from "../ui/PlayerBuffs";
 import { Minimap } from "../ui/Minimap";
 import { ProfessionsHotkeys } from "../ui/ProfessionsHotkeys";
 import { ProfessionsPanel } from "../ui/ProfessionsPanel";
@@ -64,6 +66,8 @@ import { SystemMenu } from "../ui/SystemMenu";
 import { TargetFrame } from "../ui/TargetFrame";
 import { NetworkPickupSystem } from "../world/NetworkPickupSystem";
 import { CookingStationInteraction } from "../world/CookingStationInteraction";
+import { BuildingEnterInteraction } from "../world/BuildingEnterInteraction";
+import { MiningInteraction } from "../world/MiningInteraction";
 import { LightSystem } from "../lighting/LightSystem";
 
 const NOTICE_COPY: Record<string, string> = {
@@ -77,10 +81,16 @@ const NOTICE_COPY: Record<string, string> = {
   too_far: "Podejdź bliżej, by handlować.",
   already_full_hp: "Jesteś już w pełni sił.",
   item_on_cooldown: "Przedmiot się jeszcze odnawia.",
+  food_buff_expired: "Efekt posiłku dobiegł końca.",
+  food_buff_cancelled: "Anulowano efekt posiłku.",
   cooking_station_required: "Podejdź do paleniska przy kuźni, aby gotować.",
   profession_level_too_low:
-    "Twój poziom Gotowania jest za niski dla tego przepisu.",
+    "Twój poziom profesji jest za niski dla tej czynności.",
   missing_ingredients: "Brakuje składników do przygotowania tego posiłku.",
+  mining_pickaxe_required: "Potrzebujesz kilofa, aby wydobywać rudę.",
+  mining_too_far: "Podejdź bliżej do żyły, aby kopać.",
+  mining_node_depleted: "Ta żyła jest już wyczerpana.",
+  mining_node_missing: "Nie znaleziono żyły rudy.",
   quest_giver_too_far: "Podejdź do zleceniodawcy, aby przyjąć to zadanie.",
   quest_prerequisite_missing: "Najpierw ukończ poprzednie zadanie.",
   quest_turn_in_too_far: "Podejdź do wskazanego miejsca, aby odebrać nagrodę.",
@@ -96,6 +106,10 @@ const CRAFT_REJECTION_NOTICES = new Set([
   "profession_level_too_low",
   "missing_ingredients",
   "inventory_full",
+  "mining_pickaxe_required",
+  "mining_too_far",
+  "mining_node_depleted",
+  "mining_node_missing",
 ]);
 
 /** Composition root: wires systems without owning their logic. */
@@ -115,13 +129,13 @@ export class Game {
     boot.markProgress();
     boot.setStatus("Tkanka świata…");
 
-    const map = await loadMap();
+    let map = await loadMap();
     const app = await createApp();
     const world = new Container();
     world.sortableChildren = true;
 
     boot.setStatus("Korzenie i trawy…");
-    const environment = await Environment.create(app, world, map);
+    let environment = await Environment.create(app, world, map);
     const npcs = await NpcSystem.create(app, world, map);
 
     boot.setStatus("Przekraczanie zasłony…");
@@ -132,7 +146,7 @@ export class Game {
       map.spawns.player,
       access.classId,
     );
-    LightSystem.create(app, world, map);
+    let lights = LightSystem.create(app, world, map);
     const bag = new Inventory();
     const network = new GameNetwork(player, bag, access.characterId);
 
@@ -141,6 +155,8 @@ export class Game {
 
     const settings = new Settings(document.getElementById("ui-root")!);
     const playerHud = PlayerHud.create();
+    const playerBuffs = PlayerBuffs.create();
+    playerBuffs.setCancelFoodHandler(() => network.cancelFoodBuff());
     const characterPanel = CharacterPanel.create(bag, {
       onEquip: (inventoryIndex, slotId) =>
         network.equipItem(inventoryIndex, slotId),
@@ -347,6 +363,18 @@ export class Game {
     boot.setStatus("Wiązanie z realm…");
     const snapshot = await network.connect();
     if (snapshot) {
+      // The database-backed server location wins on reconnect/refresh.
+      if (snapshot.mapId !== map.id) {
+        const restoredMap = await loadMap(snapshot.mapId);
+        environment.dispose();
+        lights.dispose();
+        npcs.dispose();
+        map = restoredMap;
+        environment = await Environment.create(app, world, map);
+        lights = LightSystem.create(app, world, map);
+        await npcs.loadMap(world, map);
+        camera.setMapSize(map.width, map.height);
+      }
       network.hydrate(snapshot);
       applySheet(snapshot);
     }
@@ -372,14 +400,43 @@ export class Game {
       setDeathState(hp <= 0);
     };
     network.onSheetChange = (snap) => applySheet(snap);
-    network.onItemUsed = (event) =>
+    network.onItemUsed = (event) => {
       itemCooldowns.start(event.itemId, event.cooldownMs);
+      const buff = event.buff;
+      if (!buff) return;
+      const parts: string[] = [];
+      if (buff.strength > 0) parts.push(`+${buff.strength} Siła`);
+      if (buff.stamina > 0) parts.push(`+${buff.stamina} Wytrzymałość`);
+      if (buff.agility > 0) parts.push(`+${buff.agility} Zwinność`);
+      if (buff.intellect > 0) parts.push(`+${buff.intellect} Intelekt`);
+      if (buff.spirit > 0) parts.push(`+${buff.spirit} Duch`);
+      if (parts.length === 0) return;
+      const minutes = Math.round(buff.durationMs / 60000);
+      const duration =
+        minutes >= 60 ? `${Math.round(minutes / 60)} godz.` : `${minutes} min.`;
+      toast.show(`${parts.join(", ")} · ${duration}`);
+    };
+    network.onFoodBuffState = (event) => {
+      playerBuffs.setFoodBuff(event);
+    };
+    const pendingFood = network.getFoodBuffState();
+    if (pendingFood) playerBuffs.setFoodBuff(pendingFood);
+    network.requestFoodBuffState();
     network.onProfessionCrafted = (event) => {
       professionsPanel.handleCrafted(event.recipeId, event.quantity);
+      const profession = getProfession(event.professionId);
       toast.show(
         event.levelsGained > 0
-          ? `Gotowanie ${event.level} · awans profesji!`
-          : `Gotowanie · +${event.xp} PD`,
+          ? `${profession.name} ${event.level} · awans profesji!`
+          : `${profession.name} · +${event.xp} PD`,
+      );
+    };
+    network.onOreMined = (event) => {
+      const profession = getProfession(event.professionId);
+      toast.show(
+        event.levelsGained > 0
+          ? `${profession.name} ${event.level} · awans profesji!`
+          : `${profession.name} · +${event.xp} PD`,
       );
     };
     network.onQuestReady = (event) => {
@@ -479,6 +536,48 @@ export class Game {
       () => player.position,
       toast,
     );
+    const miningInteraction = new MiningInteraction(
+      app,
+      camera,
+      world,
+      environment,
+      input,
+      bag,
+      () => equippedItems,
+      () => player.position,
+      toast,
+      (nodeKey, nodeId) => network.startMine(nodeKey, nodeId),
+      (nodeKey, nodeId) => network.completeMine(nodeKey, nodeId),
+      () => Boolean(systemMenu?.isOpen) || isPlayerDead,
+    );
+    network.onMiningNodesState = (event) => {
+      miningInteraction.applyDepletedState(event.nodes);
+    };
+    network.onMiningNodeDepleted = (event) => {
+      miningInteraction.setNodeDepleted(event.nodeKey, true);
+    };
+    network.onMiningNodeRespawned = (event) => {
+      miningInteraction.setNodeDepleted(event.nodeKey, false);
+    };
+    // Apply any join-time snapshot that arrived before this UI existed, then
+    // ask again so a raced early message cannot leave fresh veins on refresh.
+    const pendingMining = network.getMiningNodesState();
+    if (pendingMining) miningInteraction.applyDepletedState(pendingMining.nodes);
+    network.requestMiningNodesState();
+    let transitionMap: (mapId: string) => Promise<void> = async () => {
+      throw new Error("Map transition is not ready yet.");
+    };
+    const buildingEnterInteraction = new BuildingEnterInteraction(
+      app,
+      camera,
+      world,
+      environment,
+      input,
+      () => player.position,
+      toast,
+      (mapId) => transitionMap(mapId),
+      () => Boolean(systemMenu?.isOpen) || isPlayerDead,
+    );
     const npcInteraction = new NpcInteraction(
       app,
       camera,
@@ -511,7 +610,10 @@ export class Game {
         }
         return actions;
       },
-      (x, y) => cookingStationInteraction.isAt(x, y),
+      (x, y) =>
+        cookingStationInteraction.isAt(x, y) ||
+        buildingEnterInteraction.isAt(x, y) ||
+        miningInteraction.isAt(x, y),
     );
     const dialogueHotkeys = new DialogueHotkeys(dialogueWindow, input);
     const pickups = new NetworkPickupSystem(app, world, player, network);
@@ -527,6 +629,38 @@ export class Game {
       () => network.syncPosition(),
       () => Boolean(systemMenu?.isOpen) || isPlayerDead,
     );
+
+    transitionMap = async (mapId: string): Promise<void> => {
+      if (map.id === mapId) return;
+      // Flush pose, validate the door and persist the destination on the server
+      // before swapping any client visuals.
+      const transition = await network.requestMapTransition(mapId);
+      const next = await loadMap(transition.mapId);
+      environment.dispose();
+      lights.dispose();
+      npcs.dispose();
+
+      map = next;
+      environment = await Environment.create(app, world, map);
+      lights = LightSystem.create(app, world, map);
+      await npcs.loadMap(world, map);
+      syncQuestMarkers();
+
+      movement.setWorldContext(environment, map.playable);
+      cookingStationInteraction.setEnvironment(environment);
+      buildingEnterInteraction.setEnvironment(environment);
+      miningInteraction.setEnvironment(environment);
+      camera.setMapSize(map.width, map.height);
+      minimap.setMap(map);
+
+      player.setPosition(transition.x, transition.y);
+      camera.snap();
+      toast.show(
+        map.id === "hunters-tavern"
+          ? "Witaj w Karczmie Łowców"
+          : "Wracasz na tereny łowieckie",
+      );
+    };
 
     inventoryPanel = InventoryPanel.create(
       bag,
@@ -568,8 +702,10 @@ export class Game {
       } catch (error) {
         console.error("[game] character logout failed", error);
       }
+      // Clear resume so the next boot opens the character hall intentionally.
+      clearLastCharacter(access.account.id);
       // Reload tears down every Pixi/UI system. The HttpOnly account session is
-      // intentionally preserved, so bootstrap lands directly in character hall.
+      // intentionally preserved, so bootstrap lands in character hall.
       window.location.reload();
     };
     const settingsPanel = SettingsPanel.create(settings, {
@@ -719,6 +855,8 @@ export class Game {
     // click (stopImmediatePropagation) instead of also selecting/attacking.
     npcInteraction.start();
     cookingStationInteraction.start();
+    buildingEnterInteraction.start();
+    miningInteraction.start();
     if (network.connected) {
       pickups.start();
       animals.start();

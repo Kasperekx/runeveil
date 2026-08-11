@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "npm run dev",
+    "maps:build": "node scripts/build-tiled-maps.mjs",
+    "maps:check": "node scripts/build-tiled-maps.mjs --check",
+    "map:edit": "node scripts/open-tiled-map.mjs hunting_grounds",
+    "predev": "npm run maps:build",
+    "prebuild": "npm run maps:build",
     "build": "npm run lint && tsc && vite build",
     "lint": "eslint .",
     "dev": "vite",
@@ -15,6 +20,7 @@
   "dependencies": {
     "@colyseus/sdk": "^0.17.43",
     "js-yaml": "^5.2.3",
+    "pixi-tiledmap": "2.0.0",
     "pixi.js": "^8.8.1"
   },
   "devDependencies": {

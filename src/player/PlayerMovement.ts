@@ -12,11 +12,20 @@ export class PlayerMovement {
     private readonly app: Application,
     private readonly player: Player,
     private readonly input: KeyboardInput,
-    private readonly environment: Environment,
-    private readonly playable: MapPlayableBounds,
+    private environment: Environment,
+    private playable: MapPlayableBounds,
     private readonly onMoved?: () => void,
     private readonly isBlocked: () => boolean = () => false,
   ) {}
+
+  /** Swap collision context after an interior / outdoor map transition. */
+  setWorldContext(
+    environment: Environment,
+    playable: MapPlayableBounds,
+  ): void {
+    this.environment = environment;
+    this.playable = playable;
+  }
 
   start(): void {
     this.app.ticker.add(this.update);

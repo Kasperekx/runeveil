@@ -5,6 +5,7 @@ import {
   getProfession,
   listProfessions,
   professionXpForLevel,
+  type ProfessionGatherNode,
   type ProfessionRecipe,
 } from "../professions/catalog";
 import type { ProfessionSnapshot } from "../network/GameNetwork";
@@ -295,10 +296,27 @@ export class ProfessionsPanel {
 
     if (
       !this.selectedRecipeId ||
-      !profession.recipes.some((recipe) => recipe.id === this.selectedRecipeId)
+      (!profession.recipes.some(
+        (recipe) => recipe.id === this.selectedRecipeId,
+      ) &&
+        !profession.nodes.some((node) => node.id === this.selectedRecipeId))
     ) {
-      this.selectedRecipeId = profession.recipes[0]?.id ?? null;
+      this.selectedRecipeId =
+        profession.recipes[0]?.id ?? profession.nodes[0]?.id ?? null;
     }
+
+    if (profession.recipes.length === 0 && profession.nodes.length > 0) {
+      this.listEl.replaceChildren(
+        ...profession.nodes.map((node) => this.nodeRow(node, state.level)),
+      );
+      const selectedNode =
+        profession.nodes.find((node) => node.id === this.selectedRecipeId) ??
+        profession.nodes[0]!;
+      this.selectedRecipeId = selectedNode.id;
+      this.renderNodeDetail(selectedNode, state.level, profession.name);
+      return;
+    }
+
     this.listEl.replaceChildren(
       ...profession.recipes.map((recipe) =>
         this.recipeRow(recipe, state.level),
@@ -309,6 +327,48 @@ export class ProfessionsPanel {
     );
     if (selected) this.renderDetail(selected, state.level);
     else this.detailEl.textContent = "Brak znanych przepisów.";
+  }
+
+  private nodeRow(node: ProfessionGatherNode, level: number): HTMLElement {
+    const output = getItem(node.output.itemId);
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "professions-panel__recipe";
+    const locked = level < node.level;
+    if (locked) row.classList.add("is-locked");
+    if (node.id === this.selectedRecipeId) row.classList.add("is-active");
+    const tone = recipeTone(level, node.level);
+    row.dataset.tone = tone;
+    const qty =
+      node.output.quantityMin === node.output.quantityMax
+        ? `${node.output.quantityMin}`
+        : `${node.output.quantityMin}–${node.output.quantityMax}`;
+    row.innerHTML = `<img src="/${output.icon}" alt="" /><span><strong>${escapeHtml(node.name)}</strong><small><i aria-hidden="true"></i>Poziom ${node.level} <b>+${node.xp} PD</b> · ×${qty}</small></span>`;
+    row.addEventListener("click", () => {
+      this.selectedRecipeId = node.id;
+      this.render();
+    });
+    return row;
+  }
+
+  private renderNodeDetail(
+    node: ProfessionGatherNode,
+    level: number,
+    professionName: string,
+  ): void {
+    const output = getItem(node.output.itemId);
+    const missingLevel = level < node.level;
+    const qty =
+      node.output.quantityMin === node.output.quantityMax
+        ? `×${node.output.quantityMin}`
+        : `×${node.output.quantityMin}–${node.output.quantityMax}`;
+    this.detailEl.innerHTML = `
+      <div class="professions-panel__detail-head"><p class="professions-panel__eyebrow">Węzeł wydobycia</p><h3>${escapeHtml(node.name)}</h3><p>${escapeHtml(node.description || "Szukaj tej żyły w świecie i użyj kilofa.")}</p></div>
+      <div class="professions-panel__output"><span>Łup</span><b>${escapeHtml(output.name)} ${qty}</b><em>+${node.xp} PD</em></div>
+      <h4>Wymagania</h4>
+      <ul><li>Kilof w ekwipunku lub dłoni</li><li>Podejdź do żyły i naciśnij <b>E</b> albo kliknij skałę</li></ul>
+      ${missingLevel ? `<p class="professions-panel__locked">Wymaga ${node.level}. poziomu ${escapeHtml(professionName)}.</p>` : `<p class="professions-panel__locked">Wydobywanie odbywa się w świecie — nie z tego okna.</p>`}
+    `;
   }
 
   private recipeRow(recipe: ProfessionRecipe, level: number): HTMLElement {

@@ -8,21 +8,46 @@
 # use: optional. Items without it can sit on the action bar but do nothing.
 #   heal:        hit points restored
 #   cooldownMs:  per-item cooldown applied after a successful use
+#   buff:        optional temporary Well Fed-style attribute bonus
+#                Only one food buff can be active; a new meal replaces the old one.
+#     durationMs: how long the buff lasts
+#     strength / agility / stamina / intellect / spirit: flat bonuses
 #
 # capacity: optional. Marks the item as a container (bag) granting that many
 #   inventory slots while equipped in a bag slot.
 #
 # buyPrice: vendor buy price in gold (required for shop listings).
 # sellPrice: optional; vendor pays this when the player sells. Default = floor(buyPrice * 0.35).
+# maxDurability: required for every wearable item (anything with `slot`).
+# Consumables, materials and bags intentionally do not use durability, like in WoW.
 
 items:
-  meat:
-    name: Mięso z dzikiej zwierzyny
+  boar_meat:
+    name: Mięso z dzika
     description: |
-      Surowy kawałek mięsa z upolowanej zwierzyny.
-      Przyda się przy ognisku albo w drodze, gdy brakuje zapasów.
-      Użyj z paska akcji (1–0), by odzyskać siły.
-    icon: assets/items/meat-v2.png
+      Tłusty kawałek mięsa z upolowanego dzika.
+      Dobry do pieczenia — a razem z jelenim
+      złoży się na sycący gulasz.
+    icon: assets/items/boar-meat.png?v=2
+    type: consumable
+    typeLabel: Konsumowalny
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 20
+    buyPrice: 4
+    sellPrice: 1
+    use:
+      heal: 10
+      cooldownMs: 8000
+
+  deer_meat:
+    name: Mięso z jelenia
+    description: |
+      Chude mięso z upolowanego jelenia.
+      Delikatniejsze od dziczyzny z dzika —
+      razem z nim tworzy gulasz myśliwski.
+    icon: assets/items/deer-meat.png?v=2
     type: consumable
     typeLabel: Konsumowalny
     rarity: common
@@ -55,8 +80,9 @@ items:
   hunter_stew:
     name: Gulasz myśliwski
     description: |
-      Syty gulasz z dziczyzny. Najlepiej smakuje po polowaniu.
-    icon: assets/items/meat-v2.png
+      Syty gulasz z mięsa dzika i jelenia.
+      Rozgrzewa ciało na całą godzinę polowania.
+    icon: assets/items/hunter-stew.png?v=2
     type: consumable
     typeLabel: Posiłek
     rarity: uncommon
@@ -67,6 +93,10 @@ items:
     use:
       heal: 52
       cooldownMs: 10000
+      buff:
+        durationMs: 3600000
+        strength: 2
+        stamina: 1
 
   smoked_wild_meat:
     name: Wędzona dziczyzna
@@ -274,3 +304,40 @@ items:
     maxDurability: 100
     buyPrice: 75
     sellPrice: 25
+
+  copper_ore:
+    name: Ruda miedzi
+    description: |
+      Surowy kawałek miedzi wydarty ze skały.
+      Przyda się przy kuźni, gdy nadejdzie czas wytopu.
+    icon: assets/items/copper-ore.png
+    type: material
+    typeLabel: Materiał
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 20
+    buyPrice: 6
+    sellPrice: 2
+
+  copper_pickaxe:
+    name: Miedziany kilof
+    description: |
+      Ciężki kilof z miedzianym ostrzem i dębowym trzonkiem.
+      Przyda się przy żyłach rudy — a w potrzebie
+      też przebije coś więcej niż kamień.
+    icon: assets/items/copper-pickaxe.png
+    type: weapon
+    typeLabel: Narzędzie
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: mainHand
+    damageMin: 3
+    damageMax: 6
+    attackSpeed: 0.85
+    maxDurability: 80
+    buyPrice: 55
+    sellPrice: 18
+    gatheringTool: mining

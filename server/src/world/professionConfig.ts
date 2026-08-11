@@ -20,6 +20,20 @@ export interface ProfessionRecipeConfig {
   ingredients: ProfessionIngredient[];
 }
 
+export interface ProfessionGatherNodeConfig {
+  id: string;
+  professionId: string;
+  name: string;
+  description: string;
+  level: number;
+  xp: number;
+  gatherTimeMs: number;
+  respawnMs: number;
+  /** Matches `gatheringTool` on items (e.g. mining). */
+  requiredTool: string;
+  output: { itemId: string; quantityMin: number; quantityMax: number };
+}
+
 export interface ProfessionConfig {
   id: string;
   name: string;
@@ -27,6 +41,7 @@ export interface ProfessionConfig {
   xpBase: number;
   xpStep: number;
   recipes: Record<string, ProfessionRecipeConfig>;
+  nodes: Record<string, ProfessionGatherNodeConfig>;
 }
 
 interface RecipeYamlEntry {
@@ -37,11 +52,29 @@ interface RecipeYamlEntry {
   output?: { item?: string; quantity?: number };
   ingredients?: Array<{ item?: string; quantity?: number }>;
 }
+
+interface NodeYamlEntry {
+  name: string;
+  description?: string;
+  level?: number;
+  xp?: number;
+  gatherTimeMs?: number;
+  respawnMs?: number;
+  requiredTool?: string;
+  output?: {
+    item?: string;
+    quantity?: number;
+    quantityMin?: number;
+    quantityMax?: number;
+  };
+}
+
 interface ProfessionYamlEntry {
   name: string;
   maxLevel?: number;
   xp?: { base?: number; step?: number };
   recipes?: Record<string, RecipeYamlEntry>;
+  nodes?: Record<string, NodeYamlEntry>;
 }
 
 function loadYaml(): Record<string, ProfessionYamlEntry> {
@@ -97,6 +130,39 @@ export const PROFESSIONS: Record<string, ProfessionConfig> = Object.fromEntries(
         ingredients,
       };
     }
+
+    const nodes: Record<string, ProfessionGatherNodeConfig> = {};
+    for (const [nodeId, node] of Object.entries(entry.nodes ?? {})) {
+      const outputId = node.output?.item ?? "";
+      const requiredTool = node.requiredTool?.trim() ?? "";
+      if (!outputId || !requiredTool) {
+        throw new Error(`Invalid ${id}.${nodeId} node in professions.yaml`);
+      }
+      if (!getItemConfig(outputId)) {
+        throw new Error(`Unknown output item ${outputId} in ${id}.${nodeId}`);
+      }
+      const quantityMin = Math.max(
+        1,
+        whole(node.output?.quantityMin ?? node.output?.quantity, 1),
+      );
+      const quantityMax = Math.max(
+        quantityMin,
+        whole(node.output?.quantityMax ?? node.output?.quantity, quantityMin),
+      );
+      nodes[nodeId] = {
+        id: nodeId,
+        professionId: id,
+        name: node.name,
+        description: (node.description ?? "").trim(),
+        level: Math.max(1, whole(node.level, 1)),
+        xp: Math.max(1, whole(node.xp, 1)),
+        gatherTimeMs: Math.max(500, whole(node.gatherTimeMs, 2000)),
+        respawnMs: Math.max(5000, whole(node.respawnMs, 45000)),
+        requiredTool,
+        output: { itemId: outputId, quantityMin, quantityMax },
+      };
+    }
+
     return [
       id,
       {
@@ -106,6 +172,7 @@ export const PROFESSIONS: Record<string, ProfessionConfig> = Object.fromEntries(
         xpBase: Math.max(1, whole(entry.xp?.base, 30)),
         xpStep: whole(entry.xp?.step, 0),
         recipes,
+        nodes,
       },
     ];
   }),
@@ -121,6 +188,16 @@ export function getProfessionRecipe(
   for (const profession of Object.values(PROFESSIONS)) {
     const recipe = profession.recipes[recipeId];
     if (recipe) return recipe;
+  }
+  return null;
+}
+
+export function getProfessionGatherNode(
+  nodeId: string,
+): ProfessionGatherNodeConfig | null {
+  for (const profession of Object.values(PROFESSIONS)) {
+    const node = profession.nodes[nodeId];
+    if (node) return node;
   }
   return null;
 }

@@ -11,6 +11,8 @@ export interface MapPlayableBounds {
 
 export interface MapPropType {
   texture: string;
+  /** Client-only visual used while a gather node is depleted. */
+  depletedTexture?: string;
   anchorX: number;
   anchorY: number;
   scale?: number;
@@ -23,11 +25,32 @@ export interface MapPropType {
   collisionRadius: number;
   /** Extra solid circles relative to the prop foot (wide wagons, etc.). */
   colliders?: Array<{ x?: number; y?: number; radius: number }>;
-  interaction?: {
-    kind: "cooking";
-    radius: number;
-    stationId?: string;
-  };
+  interaction?:
+    | {
+        kind: "cooking";
+        radius: number;
+        stationId?: string;
+        offsetX?: number;
+        offsetY?: number;
+      }
+    | {
+        kind: "enter";
+        radius: number;
+        offsetX?: number;
+        offsetY?: number;
+        activationRadius?: number;
+        label?: string;
+        targetMapId?: string;
+        targetEntryId?: string;
+      }
+    | {
+        kind: "mining";
+        radius: number;
+        offsetX?: number;
+        offsetY?: number;
+        activationRadius?: number;
+        nodeId: string;
+      };
   ambientEffect?: {
     kind: "campfire";
   };
@@ -78,12 +101,26 @@ export interface MapHome {
   y: number;
 }
 
+export interface MapEntryPoint {
+  id: string;
+  x: number;
+  y: number;
+}
+
 export interface MapDocument {
   id: string;
+  /** Client-side Tiled source; the server consumes the compiled fields below. */
+  tiledMap?: string;
   width: number;
   height: number;
   tileSize: number;
   playable: MapPlayableBounds;
+  lighting?: {
+    mode: "world" | "interior";
+    ambientColor?: number;
+    ambientAlpha?: number;
+    localLightVisibility?: number;
+  };
   ground: { texture: string; tileScale?: number };
   propTypes: Record<string, MapPropType>;
   props: MapPropInstance[];
@@ -96,6 +133,8 @@ export interface MapDocument {
   cookingStations?: MapCookingStation[];
   /** Resurrection points. The closest one to the death location is used. */
   homes?: MapHome[];
+  /** Named, server-selected arrival points for doors and portals. */
+  entryPoints?: MapEntryPoint[];
 }
 
 export interface MapCircleCollider {
@@ -106,16 +145,32 @@ export interface MapCircleCollider {
 
 const DEFAULT_MAP = "hunting_grounds.json";
 
+const MAP_FILES: Record<string, string> = {
+  hunting_grounds: "hunting_grounds.json",
+  "hunters-tavern": "hunters-tavern.json",
+};
+
 /** Load map JSON from repo public/maps (shared with the client). */
 export function loadMap(name = DEFAULT_MAP): MapDocument {
+  const file = MAP_FILES[name] ?? (name.endsWith(".json") ? name : DEFAULT_MAP);
   const here = dirname(fileURLToPath(import.meta.url));
-  const path = join(here, "../../../public/maps", name);
+  const path = join(here, "../../../public/maps", file);
   const raw = readFileSync(path, "utf8");
   const data = JSON.parse(raw) as MapDocument;
   if (!data?.id || !data.playable || !data.spawns?.animals) {
-    throw new Error(`Invalid map: ${name}`);
+    throw new Error(`Invalid map: ${file}`);
   }
   return data;
+}
+
+export function loadMapById(mapId: string): MapDocument {
+  const file = MAP_FILES[mapId];
+  if (!file) throw new Error(`Unknown map id: ${mapId}`);
+  return loadMap(file);
+}
+
+export function knownMapIds(): string[] {
+  return Object.keys(MAP_FILES);
 }
 
 /** Default body radius for static map NPCs. */

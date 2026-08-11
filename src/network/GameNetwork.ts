@@ -12,6 +12,7 @@ const MOVE_THROTTLE_MS = 50;
 const STATE_WAIT_MS = 5000;
 
 export interface NetworkPlayerSnapshot {
+  mapId: string;
   x: number;
   y: number;
   hp: number;
@@ -70,6 +71,25 @@ export interface ItemUsedEvent {
   slotIndex: number;
   itemId: string;
   cooldownMs: number;
+  buff?: {
+    strength: number;
+    agility: number;
+    stamina: number;
+    intellect: number;
+    spirit: number;
+    durationMs: number;
+    expiresAt: number;
+  };
+}
+
+export interface FoodBuffStateEvent {
+  itemId: string;
+  expiresAt: number;
+  strength: number;
+  agility: number;
+  stamina: number;
+  intellect: number;
+  spirit: number;
 }
 
 export interface ItemSnapshot {
@@ -158,6 +178,30 @@ export interface ProfessionCraftedEvent {
   level: number;
 }
 
+export interface OreMinedEvent {
+  professionId: string;
+  nodeId: string;
+  nodeKey: string;
+  itemId: string;
+  quantity: number;
+  xp: number;
+  levelsGained: number;
+  level: number;
+}
+
+export interface MiningNodeStateEvent {
+  nodes: Array<{ nodeKey: string; respawnAt: number }>;
+}
+
+export interface MiningNodeDepletedEvent {
+  nodeKey: string;
+  respawnAt: number;
+}
+
+export interface MiningNodeRespawnedEvent {
+  nodeKey: string;
+}
+
 export interface QuestReadyEvent {
   questId: string;
 }
@@ -170,6 +214,18 @@ export interface QuestClaimedEvent {
   questId: string;
   gold: number;
   experience: number;
+}
+
+export interface MapTransitionEvent {
+  requestId: string;
+  mapId: string;
+  x: number;
+  y: number;
+}
+
+interface MapTransitionRejectedEvent {
+  requestId: string;
+  reason: string;
 }
 
 export interface NetworkAnimalSnapshot {
@@ -210,6 +266,7 @@ export interface NetworkRemotePlayerSnapshot {
 
 interface RoomPlayerLike {
   playerId: string;
+  mapId: string;
   name: string;
   classId: string;
   level: number;
@@ -274,6 +331,7 @@ interface RoomPlayerLike {
 
 interface RoomAnimalLike {
   id: string;
+  mapId: string;
   kind: string;
   x: number;
   y: number;
@@ -294,6 +352,7 @@ interface RoomAnimalLike {
 
 interface RoomPickupLike {
   id: string;
+  mapId: string;
   itemId: string;
   quantity: number;
   instanceId?: string;
@@ -332,6 +391,16 @@ export class GameNetwork {
   private lastBagsKey = "";
   /** Last observed own HP; used to detect soft-death revive teleports. */
   private lastHp = -1;
+  private activeMapId = "hunting_grounds";
+  private transitionSequence = 0;
+  private readonly pendingMapTransitions = new Map<
+    string,
+    {
+      resolve: (event: MapTransitionEvent) => void;
+      reject: (error: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
   private readonly endpoint: string;
   private readonly authApi = new AuthApi();
 
@@ -351,6 +420,16 @@ export class GameNetwork {
   onPlayerRespawned: ((event: PlayerRespawnedEvent) => void) | null = null;
   /** Result of a server-authoritative profession craft. */
   onProfessionCrafted: ((event: ProfessionCraftedEvent) => void) | null = null;
+  /** Successful mining gather. */
+  onOreMined: ((event: OreMinedEvent) => void) | null = null;
+  /** Full depleted-node snapshot (join / map sync). */
+  onMiningNodesState: ((event: MiningNodeStateEvent) => void) | null = null;
+  onMiningNodeDepleted: ((event: MiningNodeDepletedEvent) => void) | null =
+    null;
+  onMiningNodeRespawned: ((event: MiningNodeRespawnedEvent) => void) | null =
+    null;
+  /** Active food buff snapshot (join / apply). */
+  onFoodBuffState: ((event: FoodBuffStateEvent | null) => void) | null = null;
   /** Objective complete; the player must claim the configured reward. */
   onQuestReady: ((event: QuestReadyEvent) => void) | null = null;
   /** The quest giver accepted the player's request. */
@@ -369,6 +448,8 @@ export class GameNetwork {
   onEquipmentRepaired: ((event: EquipmentRepairedEvent) => void) | null = null;
   /** One or more worn items reached zero durability. */
   onEquipmentBroken: ((event: EquipmentBrokenEvent) => void) | null = null;
+  /** Latest depleted-node snapshot (join can arrive before UI handlers exist). */
+  private miningNodesState: MiningNodeStateEvent | null = null;
 
   constructor(
     private readonly player: Player,
@@ -387,11 +468,39 @@ export class GameNetwork {
     return this.room !== null;
   }
 
+  /** Cached join/sync snapshot of depleted mining nodes. */
+  getMiningNodesState(): MiningNodeStateEvent | null {
+    return this.miningNodesState;
+  }
+
+  /** Ask the server to re-send depleted node timers for this room. */
+  requestMiningNodesState(): void {
+    this.room?.send("requestMiningNodesState");
+  }
+
+  /** Ask the server for the active food buff (join race / UI ready). */
+  requestFoodBuffState(): void {
+    this.room?.send("requestFoodBuffState");
+  }
+
+  /** Cancel the active Well Fed buff (click the buff icon). */
+  cancelFoodBuff(): void {
+    this.room?.send("cancelFoodBuff");
+  }
+
+  private foodBuffState: FoodBuffStateEvent | null = null;
+
+  getFoodBuffState(): FoodBuffStateEvent | null {
+    return this.foodBuffState;
+  }
+
   async connect(): Promise<NetworkPlayerSnapshot | null> {
     const client = new Client(this.endpoint);
     client.auth.token = await this.authApi.gameTicket(this.characterId);
 
     this.room = await client.joinOrCreate("world");
+    // Register before waiting on state — onJoin may already have sent mining sync.
+    this.bindMiningMessages(this.room);
 
     await this.waitForOwnPlayer();
 
@@ -403,7 +512,32 @@ export class GameNetwork {
     });
 
     this.room.onMessage("itemUsed", (event: ItemUsedEvent) => {
+      if (event.buff?.expiresAt) {
+        this.foodBuffState = {
+          itemId: event.itemId,
+          expiresAt: event.buff.expiresAt,
+          strength: event.buff.strength,
+          agility: event.buff.agility,
+          stamina: event.buff.stamina,
+          intellect: event.buff.intellect,
+          spirit: event.buff.spirit,
+        };
+        this.onFoodBuffState?.(this.foodBuffState);
+      }
       this.onItemUsed?.(event);
+    });
+    this.room.onMessage("foodBuffState", (event: FoodBuffStateEvent) => {
+      if (!event?.itemId || !event.expiresAt || event.expiresAt <= Date.now()) {
+        this.foodBuffState = null;
+        this.onFoodBuffState?.(null);
+        return;
+      }
+      this.foodBuffState = event;
+      this.onFoodBuffState?.(event);
+    });
+    this.room.onMessage("foodBuffExpired", () => {
+      this.foodBuffState = null;
+      this.onFoodBuffState?.(null);
     });
 
     this.room.onMessage("levelUp", (event: LevelUpEvent) => {
@@ -429,6 +563,9 @@ export class GameNetwork {
         this.onProfessionCrafted?.(event);
       },
     );
+    this.room.onMessage("oreMined", (event: OreMinedEvent) => {
+      this.onOreMined?.(event);
+    });
     this.room.onMessage("questReady", (event: QuestReadyEvent) => {
       this.onQuestReady?.(event);
     });
@@ -459,11 +596,68 @@ export class GameNetwork {
     this.room.onMessage("equipmentBroken", (event: EquipmentBrokenEvent) => {
       this.onEquipmentBroken?.(event);
     });
+    this.room.onMessage("mapTransitioned", (event: MapTransitionEvent) => {
+      const pending = this.pendingMapTransitions.get(event.requestId);
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      this.pendingMapTransitions.delete(event.requestId);
+      this.activeMapId = event.mapId;
+      pending.resolve(event);
+    });
+    this.room.onMessage(
+      "mapTransitionRejected",
+      (event: MapTransitionRejectedEvent) => {
+        const pending = this.pendingMapTransitions.get(event.requestId);
+        if (!pending) return;
+        clearTimeout(pending.timer);
+        this.pendingMapTransitions.delete(event.requestId);
+        pending.reject(new Error(`Map transition rejected: ${event.reason}`));
+      },
+    );
+
+    // Join-time sync may have raced the early listener; ask again once ready.
+    this.requestMiningNodesState();
+    this.requestFoodBuffState();
 
     return this.readOwnSnapshot();
   }
 
+  private bindMiningMessages(room: Room): void {
+    room.onMessage("miningNodesState", (event: MiningNodeStateEvent) => {
+      this.miningNodesState = event;
+      this.onMiningNodesState?.(event);
+    });
+    room.onMessage("miningNodeDepleted", (event: MiningNodeDepletedEvent) => {
+      if (this.miningNodesState) {
+        const nodes = this.miningNodesState.nodes.filter(
+          (node) => node.nodeKey !== event.nodeKey,
+        );
+        nodes.push({ nodeKey: event.nodeKey, respawnAt: event.respawnAt });
+        this.miningNodesState = { nodes };
+      } else {
+        this.miningNodesState = {
+          nodes: [{ nodeKey: event.nodeKey, respawnAt: event.respawnAt }],
+        };
+      }
+      this.onMiningNodeDepleted?.(event);
+    });
+    room.onMessage(
+      "miningNodeRespawned",
+      (event: MiningNodeRespawnedEvent) => {
+        if (this.miningNodesState) {
+          this.miningNodesState = {
+            nodes: this.miningNodesState.nodes.filter(
+              (node) => node.nodeKey !== event.nodeKey,
+            ),
+          };
+        }
+        this.onMiningNodeRespawned?.(event);
+      },
+    );
+  }
+
   hydrate(snapshot: NetworkPlayerSnapshot): void {
+    this.activeMapId = snapshot.mapId;
     this.applyServerSlots(snapshot.slots);
     this.applyServerBags(snapshot.bags);
     this.lastHp = snapshot.hp;
@@ -490,6 +684,23 @@ export class GameNetwork {
     this.scheduleSave();
   }
 
+  /** Requests a server-validated door transition and resolves after commit. */
+  requestMapTransition(targetMapId: string): Promise<MapTransitionEvent> {
+    const room = this.room;
+    if (!room) return Promise.reject(new Error("Not connected"));
+    this.flushMove();
+    this.cancelScheduledSave();
+    const requestId = `${room.sessionId}:${++this.transitionSequence}`;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingMapTransitions.delete(requestId);
+        reject(new Error("Map transition timed out"));
+      }, STATE_WAIT_MS);
+      this.pendingMapTransitions.set(requestId, { resolve, reject, timer });
+      room.send("mapTransition", { requestId, targetMapId });
+    });
+  }
+
   listAnimals(): NetworkAnimalSnapshot[] {
     const state = this.room?.state as RoomStateLike | undefined;
     const animals = state?.animals;
@@ -497,6 +708,7 @@ export class GameNetwork {
 
     const list: NetworkAnimalSnapshot[] = [];
     animals.forEach((animal) => {
+      if (animal.mapId !== this.activeMapId) return;
       const loot: NetworkAnimalSnapshot["loot"] = [];
       const rawLoot = animal.loot;
       if (rawLoot) {
@@ -534,6 +746,7 @@ export class GameNetwork {
 
     const list: NetworkPickupSnapshot[] = [];
     pickups.forEach((pickup) => {
+      if (pickup.mapId !== this.activeMapId) return;
       list.push({
         id: pickup.id,
         itemId: pickup.itemId,
@@ -575,6 +788,7 @@ export class GameNetwork {
     const selfId = this.room.sessionId;
     players.forEach((player, sessionId) => {
       if (sessionId === selfId) return;
+      if (player.mapId !== this.activeMapId) return;
       list.push({
         sessionId,
         name: player.name || "Wędrowiec",
@@ -624,6 +838,21 @@ export class GameNetwork {
     this.cancelScheduledSave();
     const { x, y } = this.player.position;
     this.room.send("craftRecipe", { recipeId, quantity, x, y });
+  }
+
+  /** Begin a mining channel; server records the completion timestamp. */
+  startMine(nodeKey: string, nodeId: string): void {
+    if (!this.room) return;
+    const { x, y } = this.player.position;
+    this.room.send("startMine", { nodeKey, nodeId, x, y });
+  }
+
+  /** Finish a mining channel; server awards ore if the channel is ready. */
+  completeMine(nodeKey: string, nodeId: string): void {
+    if (!this.room) return;
+    this.cancelScheduledSave();
+    const { x, y } = this.player.position;
+    this.room.send("completeMine", { nodeKey, nodeId, x, y });
   }
 
   acceptQuest(questId: string): void {
@@ -713,11 +942,16 @@ export class GameNetwork {
     });
   }
 
-  repairEquipment(npcInstanceId: string, slotId?: string): void {
+  repairEquipment(
+    npcInstanceId: string,
+    target?:
+      | { source: "equipment"; slotId: string }
+      | { source: "inventory"; inventoryIndex: number },
+  ): void {
     if (!this.room) return;
     this.cancelScheduledSave();
     const { x, y } = this.player.position;
-    this.room.send("repairEquipment", { npcInstanceId, slotId, x, y });
+    this.room.send("repairEquipment", { npcInstanceId, ...target, x, y });
   }
 
   collectPickup(pickupId: string): void {
@@ -735,12 +969,14 @@ export class GameNetwork {
 
   dispose(): void {
     this.clearTimers();
+    this.rejectPendingMapTransitions();
     this.flushSave();
     this.room = null;
   }
 
   async disconnect(): Promise<void> {
     this.clearTimers();
+    this.rejectPendingMapTransitions();
     const room = this.room;
     if (!room) return;
     this.flushMove();
@@ -758,6 +994,14 @@ export class GameNetwork {
       clearTimeout(this.moveTimer);
       this.moveTimer = null;
     }
+  }
+
+  private rejectPendingMapTransitions(): void {
+    for (const pending of this.pendingMapTransitions.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("Disconnected during map transition"));
+    }
+    this.pendingMapTransitions.clear();
   }
 
   private pullServerInventory(): void {
@@ -988,6 +1232,7 @@ export class GameNetwork {
     }
 
     return {
+      mapId: mine.mapId || "hunting_grounds",
       x: mine.x,
       y: mine.y,
       hp: mine.hp ?? 100,

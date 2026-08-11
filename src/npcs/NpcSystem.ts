@@ -144,6 +144,103 @@ export class NpcSystem {
     return system;
   }
 
+  /** Drop every placed NPC before an interior / outdoor map swap. */
+  dispose(): void {
+    this.app.ticker.remove(this.update);
+    this.selectedId = null;
+    for (const instance of this.instances) {
+      instance.root.destroy({ children: true });
+    }
+    this.instances.length = 0;
+  }
+
+  /** Rebuild placements for a newly loaded map (call after dispose). */
+  async loadMap(world: Container, map: MapDocument): Promise<void> {
+    for (const placement of map.npcs ?? []) {
+      if (!hasNpc(placement.npcId)) {
+        console.warn(`[npcs] unknown npc id: ${placement.npcId}`);
+        continue;
+      }
+
+      const def = getNpc(placement.npcId);
+      const frames = await Promise.all(def.frames.map(loadNearestTexture));
+
+      const root = new Container();
+      root.position.set(placement.x, placement.y);
+      root.zIndex = Math.round(placement.y);
+      world.addChild(root);
+
+      const selection = new Graphics();
+      selection
+        .ellipse(0, 2, 22, 10)
+        .fill({ color: 0xb8954a, alpha: 0.22 })
+        .ellipse(0, 2, 22, 10)
+        .stroke({ width: 2, color: 0xe6c878, alpha: 0.95 });
+      selection.visible = false;
+      root.addChild(selection);
+
+      const sprite = new Sprite(frames[0]);
+      sprite.anchor.set(0.5, 0.92);
+      sprite.roundPixels = true;
+      root.addChild(sprite);
+
+      const nameLabel = new Text({
+        text: def.name,
+        style: {
+          fontFamily: "Cinzel, Georgia, serif",
+          fontSize: 9,
+          fontWeight: "500",
+          fill: 0xd4b86a,
+          stroke: { color: 0x1a140c, width: 1.5 },
+          align: "center",
+        },
+      });
+      nameLabel.anchor.set(0.5, 1);
+      nameLabel.position.set(0, NAME_Y);
+      nameLabel.alpha = 0.88;
+      nameLabel.roundPixels = true;
+      root.addChild(nameLabel);
+
+      const questMarker = new Text({
+        text: "?",
+        style: {
+          fontFamily: "Cinzel, Georgia, serif",
+          fontSize: 21,
+          fontWeight: "700",
+          fill: 0xf4d467,
+          stroke: { color: 0x201507, width: 3 },
+          dropShadow: {
+            color: 0x000000,
+            alpha: 0.72,
+            blur: 2,
+            distance: 1,
+          },
+        },
+      });
+      questMarker.anchor.set(0.5, 1);
+      questMarker.position.set(0, QUEST_MARKER_Y);
+      questMarker.visible = false;
+      questMarker.roundPixels = true;
+      root.addChild(questMarker);
+
+      this.instances.push({
+        id: placement.id,
+        npcId: placement.npcId,
+        x: placement.x,
+        y: placement.y,
+        root,
+        selection,
+        frames,
+        fps: def.animFps,
+        elapsed: 0,
+        frameIndex: 0,
+        sprite,
+        questMarker,
+      });
+    }
+    this.app.ticker.add(this.update);
+  }
+
   start(): void {
     this.app.ticker.add(this.update);
   }

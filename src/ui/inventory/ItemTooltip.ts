@@ -291,7 +291,7 @@ function itemDetailsHtml(
     ${item.capacity > 0 ? `<p class="item-tooltip__stat">Pojemność: ${item.capacity} miejsc</p>` : ""}
     ${item.armor > 0 ? `<p class="item-tooltip__stat">Pancerz: ${item.armor}</p>` : ""}
     ${item.damageMax > 0 ? `<p class="item-tooltip__stat">Obrażenia: ${item.damageMin}–${item.damageMax}</p>` : ""}
-    ${durabilityHtml(instance)}
+    ${durabilityHtml(item, instance)}
     ${affixes.map((affix) => `<p class="item-tooltip__stat item-tooltip__stat--affix">${escapeHtml(affixLabel(affix))}</p>`).join("")}
     ${useStatsHtml(item)}
     <p class="item-tooltip__desc">${escapeHtml(item.description)}</p>
@@ -306,15 +306,21 @@ function itemDetailsHtml(
 }
 
 function durabilityHtml(
+  item: Pick<ItemDefinition, "maxDurability">,
   instance: Pick<ItemInstance, "durability" | "maxDurability"> | null,
 ): string {
-  if (!instance || instance.maxDurability <= 0) return "";
-  const ratio = Math.max(
-    0,
-    Math.min(1, instance.durability / instance.maxDurability),
-  );
+  const maxDurability =
+    instance && instance.maxDurability > 0
+      ? instance.maxDurability
+      : item.maxDurability;
+  if (maxDurability <= 0) return "";
+  const durability =
+    instance && instance.maxDurability > 0
+      ? instance.durability
+      : maxDurability;
+  const ratio = Math.max(0, Math.min(1, durability / maxDurability));
   const broken = ratio <= 0;
-  return `<p class="item-tooltip__durability ${broken ? "item-tooltip__durability--broken" : ""}">Trwałość: ${instance.durability} / ${instance.maxDurability}</p>
+  return `<p class="item-tooltip__durability ${broken ? "item-tooltip__durability--broken" : ""}">Trwałość: ${durability} / ${maxDurability}</p>
     <span class="item-tooltip__durability-track"><span style="width:${ratio * 100}%"></span></span>
     ${broken ? '<p class="item-tooltip__broken">Uszkodzony — nie daje statystyk.</p>' : ""}`;
 }
@@ -386,6 +392,28 @@ function useStatsHtml(item: ItemDefinition): string {
     lines.push(
       `<p class="item-tooltip__stat item-tooltip__stat--heal">Przywraca ${use.heal} życia</p>`,
     );
+  }
+  const buff = use.buff;
+  if (buff) {
+    const bonuses: string[] = [];
+    if (buff.strength > 0) bonuses.push(`+${buff.strength} do Siły`);
+    if (buff.agility > 0) bonuses.push(`+${buff.agility} do Zwinności`);
+    if (buff.stamina > 0) bonuses.push(`+${buff.stamina} do Wytrzymałości`);
+    if (buff.intellect > 0) bonuses.push(`+${buff.intellect} do Intelektu`);
+    if (buff.spirit > 0) bonuses.push(`+${buff.spirit} do Ducha`);
+    if (bonuses.length > 0) {
+      const minutes = Math.round(buff.durationMs / 60000);
+      const duration =
+        minutes >= 60
+          ? `${Math.round(minutes / 60)} godz.`
+          : `${minutes} min.`;
+      lines.push(
+        `<p class="item-tooltip__stat item-tooltip__stat--heal">${escapeHtml(bonuses.join(", "))} na ${duration}</p>`,
+      );
+      lines.push(
+        `<p class="item-tooltip__stat">Zastępuje poprzedni efekt posiłku</p>`,
+      );
+    }
   }
   if (use.cooldownMs > 0) {
     const seconds = use.cooldownMs / 1000;

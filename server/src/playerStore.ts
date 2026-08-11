@@ -42,6 +42,7 @@ export interface StoredQuest {
 
 export interface StoredPlayer {
   playerId: string;
+  mapId: string;
   name: string;
   classId: string;
   level: number;
@@ -61,6 +62,7 @@ export interface StoredPlayer {
 
 interface PlayerRow {
   player_id: string;
+  map_id: string;
   name: string;
   class_id: string;
   level: number;
@@ -223,6 +225,7 @@ async function rowToPlayer(
 
   return {
     playerId,
+    mapId: row.map_id || "hunting_grounds",
     name: row.name,
     classId: row.class_id,
     level: numberAtLeast(row.level, 1),
@@ -253,13 +256,14 @@ async function save(player: StoredPlayer): Promise<void> {
     await client.query("BEGIN");
     await client.query(
       `INSERT INTO players (
-        player_id, name, class_id, level, experience, x, y, hp,
+        player_id, map_id, name, class_id, level, experience, x, y, hp,
         strength, agility, stamina, intellect, spirit, gold,
         unspent_attr_points, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8,
-        $9, $10, $11, $12, $13, $14, $15, NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9,
+        $10, $11, $12, $13, $14, $15, $16, NOW()
       ) ON CONFLICT (player_id) DO UPDATE SET
+        map_id = EXCLUDED.map_id,
         name = EXCLUDED.name,
         class_id = EXCLUDED.class_id,
         level = EXCLUDED.level,
@@ -277,6 +281,7 @@ async function save(player: StoredPlayer): Promise<void> {
         updated_at = NOW()`,
       [
         player.playerId,
+        player.mapId,
         player.name,
         player.classId,
         numberAtLeast(player.level, 1),
@@ -431,6 +436,7 @@ export const playerStore = {
     const bags = [...STARTER_BAGS];
     return {
       playerId,
+      mapId: "hunting_grounds",
       name: identity?.name ?? "Wędrowiec",
       classId: cls.id,
       level: 1,
