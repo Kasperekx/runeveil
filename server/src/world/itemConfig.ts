@@ -50,6 +50,10 @@ export interface ItemConfig {
   sellPrice: number;
   /** Gathering profession tool tag (e.g. mining); empty when not a tool. */
   gatheringTool: string;
+  /** True for weapons that occupy both hands (clears offHand on equip). */
+  twoHanded: boolean;
+  /** Minimum character level required to equip; 0 = none. */
+  requiredLevel: number;
 }
 
 interface ItemYamlEntry {
@@ -79,6 +83,8 @@ interface ItemYamlEntry {
   buyPrice?: number;
   sellPrice?: number;
   gatheringTool?: string;
+  twoHanded?: boolean;
+  requiredLevel?: number;
 }
 
 interface ItemsYamlFile {
@@ -180,6 +186,8 @@ export const ITEMS: Record<string, ItemConfig> = Object.fromEntries(
         buyPrice,
         sellPrice,
         gatheringTool: (entry.gatheringTool ?? "").trim(),
+        twoHanded: Boolean(entry.twoHanded),
+        requiredLevel: Math.max(0, Math.floor(entry.requiredLevel ?? 0)),
       },
     ];
   }),

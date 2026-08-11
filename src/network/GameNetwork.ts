@@ -108,6 +108,23 @@ export interface CombatTextEvent {
   animalId: string;
   /** Default damage; heal = out-of-combat / potion-style green float. */
   kind?: "damage" | "heal";
+  /** Creature catalog id when an animal is involved. */
+  creatureKind?: string;
+  /** True when this hit killed the animal. */
+  killed?: boolean;
+}
+
+export interface ChatMessageEvent {
+  playerId: string;
+  name: string;
+  text: string;
+  mapId: string;
+}
+
+export interface LootDroppedEvent {
+  creatureKind: string;
+  animalId: string;
+  items: Array<{ itemId: string; quantity: number }>;
 }
 
 export interface NoticeEvent {
@@ -438,6 +455,10 @@ export class GameNetwork {
   onQuestClaimed: ((event: QuestClaimedEvent) => void) | null = null;
   /** Fires for damage this player dealt or took; drives floating combat text. */
   onCombatText: ((event: CombatTextEvent) => void) | null = null;
+  /** Map-local Say chat from any player on the same map. */
+  onChat: ((event: ChatMessageEvent) => void) | null = null;
+  /** Corpse loot rolled on kill (chat log — not collect). */
+  onLootDropped: ((event: LootDroppedEvent) => void) | null = null;
   /** Fires when the equipped bag loadout changes. */
   onBagsChange: ((bags: string[]) => void) | null = null;
   /** Fires for short server notices (inventory full, …). */
@@ -578,6 +599,14 @@ export class GameNetwork {
 
     this.room.onMessage("combatText", (event: CombatTextEvent) => {
       this.onCombatText?.(event);
+    });
+
+    this.room.onMessage("chat", (event: ChatMessageEvent) => {
+      this.onChat?.(event);
+    });
+
+    this.room.onMessage("lootDropped", (event: LootDroppedEvent) => {
+      this.onLootDropped?.(event);
     });
 
     this.room.onMessage("notice", (event: NoticeEvent) => {
@@ -808,6 +837,14 @@ export class GameNetwork {
     this.cancelScheduledSave();
     const { x, y } = this.player.position;
     this.room.send("lootCorpse", { animalId, slotIndex, x, y });
+  }
+
+  /** Map-local Say (server validates + rate-limits). */
+  sendChat(text: string): void {
+    if (!this.room) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    this.room.send("chat", { text: trimmed.slice(0, 120) });
   }
 
   /** Take every loot slot that fits in one server-authoritative pass. */

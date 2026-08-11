@@ -48,6 +48,9 @@ creatures:
       - item: iron_shortsword
         chance: 0.5
         group: rare_gear
+      - item: iron_greatsword
+        chance: 0.45
+        group: rare_gear
       - item: small_backpack
         chance: 1.2
         group: rare_gear

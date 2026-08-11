@@ -103,6 +103,10 @@ export interface ItemDefinition {
   sellPrice: number;
   /** Gathering profession tool tag (e.g. mining); empty when not a tool. */
   gatheringTool: string;
+  /** True for weapons that occupy both hands. */
+  twoHanded: boolean;
+  /** Minimum character level required to equip; 0 = none. */
+  requiredLevel: number;
 }
 
 export interface ItemUseBuff {
@@ -154,6 +158,8 @@ interface ItemYamlEntry {
   buyPrice?: number;
   sellPrice?: number;
   gatheringTool?: string;
+  twoHanded?: boolean;
+  requiredLevel?: number;
 }
 
 interface ItemsYamlFile {
@@ -258,6 +264,8 @@ export async function loadItemCatalog(): Promise<void> {
       buyPrice,
       sellPrice,
       gatheringTool: (entry.gatheringTool ?? "").trim(),
+      twoHanded: Boolean(entry.twoHanded),
+      requiredLevel: Math.max(0, Math.floor(entry.requiredLevel ?? 0)),
     };
   }
 

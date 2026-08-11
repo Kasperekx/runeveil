@@ -281,6 +281,8 @@ items:
 
   # ——— Broń ———
   # slot: mainHand / offHand
+  # twoHanded: true → zajmuje obie dłonie (zdejmuje offHand przy założeniu)
+  # requiredLevel: minimalny poziom postaci do założenia
   # damageMin / damageMax: przedział obrażeń broni (WoW-lite)
   # (legacy: samo `damage` → min = max = damage)
   # attackSpeed: mnożnik tempa swingu (1 = normalnie; wyżej = szybciej)
@@ -304,6 +306,29 @@ items:
     maxDurability: 100
     buyPrice: 75
     sellPrice: 25
+
+  iron_greatsword:
+    name: Żelazny miecz dwuręczny
+    description: |
+      Ciężka, długa klinga wymagająca obu dłoni.
+      Powolna, ale gdy trafi — dzik pada jak ścięty dąb.
+      Dostępny od 10. poziomu.
+    icon: assets/items/iron-greatsword.png?v=1
+    type: weapon
+    typeLabel: Broń dwuręczna
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: mainHand
+    twoHanded: true
+    requiredLevel: 10
+    damageMin: 14
+    damageMax: 22
+    attackSpeed: 0.72
+    maxDurability: 120
+    buyPrice: 180
+    sellPrice: 55
 
   copper_ore:
     name: Ruda miedzi

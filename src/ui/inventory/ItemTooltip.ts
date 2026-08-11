@@ -289,6 +289,8 @@ function itemDetailsHtml(
     <p class="item-tooltip__name item-tooltip__name--${rarity}">${escapeHtml(item.name)}</p>
     <p class="item-tooltip__meta">${escapeHtml(item.typeLabel)} · ${escapeHtml(itemRarityLabel(rarity))}</p>
     ${item.capacity > 0 ? `<p class="item-tooltip__stat">Pojemność: ${item.capacity} miejsc</p>` : ""}
+    ${item.twoHanded ? `<p class="item-tooltip__stat">Dwuręczna</p>` : ""}
+    ${item.requiredLevel > 0 ? `<p class="item-tooltip__stat">Wymagany poziom: ${item.requiredLevel}</p>` : ""}
     ${item.armor > 0 ? `<p class="item-tooltip__stat">Pancerz: ${item.armor}</p>` : ""}
     ${item.damageMax > 0 ? `<p class="item-tooltip__stat">Obrażenia: ${item.damageMin}–${item.damageMax}</p>` : ""}
     ${durabilityHtml(item, instance)}

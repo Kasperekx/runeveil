@@ -1,9 +1,18 @@
-export type KeyCode = string;
-
 /**
  * Single source of keyboard state for the game.
  * UI and gameplay both read from here (SRP: input only).
  */
+export type KeyCode = string;
+
+/** True when the event target is a text field (chat, auth, …). */
+export function isTextEntryTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (target.isContentEditable) return true;
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
 export class KeyboardInput {
   private readonly pressed = new Set<KeyCode>();
   private readonly downHandlers = new Set<
@@ -57,6 +66,11 @@ export class KeyboardInput {
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    // While typing in chat / forms: never drive movement or panel hotkeys.
+    if (isTextEntryTarget(event.target)) {
+      return;
+    }
+
     const { code } = event;
 
     if (
@@ -90,4 +104,4 @@ export class KeyboardInput {
   private onVisibilityChange = (): void => {
     if (document.hidden) this.pressed.clear();
   };
-}
+};

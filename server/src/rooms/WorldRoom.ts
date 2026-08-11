@@ -239,7 +239,32 @@ type CombatTextEvent = {
   target: "animal" | "player";
   animalId: string;
   kind?: "damage" | "heal";
+  /** Creature catalog id when an animal is the other party. */
+  creatureKind?: string;
+  /** True when this hit reduced the animal to 0 HP. */
+  killed?: boolean;
 };
+
+type ChatSayPayload = { text?: string };
+
+type LootDroppedEvent = {
+  creatureKind: string;
+  animalId: string;
+  items: Array<{ itemId: string; quantity: number }>;
+};
+
+type ChatMessageEvent = {
+  playerId: string;
+  name: string;
+  text: string;
+  mapId: string;
+};
+
+const CHAT_MAX_LEN = 120;
+/** Sliding window: at most N say messages per window. */
+const CHAT_RATE_LIMIT = 5;
+const CHAT_RATE_WINDOW_MS = 10_000;
+const CHAT_DUPLICATE_MS = 1_500;
 
 const RECONNECT_SECONDS = 60;
 /** Unlooted corpses are removed after this (replacement already uses spawn slots). */
@@ -351,6 +376,13 @@ export class WorldRoom extends Room {
   private readonly mapColliders = new Map<string, MapCircleCollider[]>();
   /** npcInstanceId → itemId → remaining stock (infinite offers omitted). */
   private readonly shopStock = new Map<string, Map<string, number>>();
+  /** sessionId → recent say timestamps (rate limit). */
+  private readonly chatSentAt = new Map<string, number[]>();
+  /** sessionId → last say text + time (anti-duplicate). */
+  private readonly chatLast = new Map<
+    string,
+    { text: string; at: number }
+  >();
 
   onCreate(): void {
     this.maxClients = 50;
@@ -365,6 +397,7 @@ export class WorldRoom extends Room {
       this.lastDamageAt.set(sessionId, Date.now());
       const player = this.state.players.get(sessionId);
       if (player) this.damageArmorFromHit(player, sessionId);
+      const animal = this.state.animals.get(animalId);
       this.clients
         .find((c) => c.sessionId === sessionId)
         ?.send("combatText", {
@@ -372,6 +405,7 @@ export class WorldRoom extends Room {
           target: "player",
           animalId,
           kind: "damage",
+          creatureKind: animal?.kind,
         } satisfies CombatTextEvent);
     };
     this.spawnAnimals();
@@ -469,6 +503,8 @@ export class WorldRoom extends Room {
     this.miningChannels.delete(client.sessionId);
     this.deadSessions.delete(client.sessionId);
     this.diedAt.delete(client.sessionId);
+    this.chatSentAt.delete(client.sessionId);
+    this.chatLast.delete(client.sessionId);
   }
 
   onDispose(): void {
@@ -550,6 +586,38 @@ export class WorldRoom extends Room {
       this.recomputeGearStats(player);
       client.send("foodBuffExpired", {});
       client.send("notice", { kind: "food_buff_cancelled" });
+    },
+
+    /** Map-local Say chat (validated + rate-limited). */
+    chat: (client: Client, data: ChatSayPayload) => {
+      const player = this.livingPlayer(client);
+      if (!player) return;
+
+      const text = sanitizeChatText(
+        typeof data?.text === "string" ? data.text : "",
+      );
+      if (!text) {
+        client.send("notice", { kind: "chat_invalid" });
+        return;
+      }
+
+      const now = Date.now();
+      if (!this.allowChatMessage(client.sessionId, text, now)) {
+        client.send("notice", { kind: "chat_rate_limited" });
+        return;
+      }
+
+      const event: ChatMessageEvent = {
+        playerId: player.playerId,
+        name: player.name || "Wędrowiec",
+        text,
+        mapId: player.mapId,
+      };
+      for (const other of this.clients) {
+        const peer = this.state.players.get(other.sessionId);
+        if (!peer || peer.mapId !== player.mapId) continue;
+        other.send("chat", event);
+      }
     },
 
     respawn: (client: Client) => {
@@ -777,8 +845,11 @@ export class WorldRoom extends Room {
       }
 
       const itemId = slot.itemId;
+      let healed = 0;
       if (config.use.heal > 0) {
+        const before = player.hp;
         player.hp = Math.min(player.maxHp, player.hp + config.use.heal);
+        healed = player.hp - before;
       }
       if (buff) {
         // One food buff at a time — a new meal replaces the previous Well Fed.
@@ -816,6 +887,15 @@ export class WorldRoom extends Room {
       player.isNew = false;
       this.persistPlayer(player);
 
+      if (healed > 0) {
+        client.send("combatText", {
+          amount: healed,
+          target: "player",
+          animalId: "",
+          kind: "heal",
+        } satisfies CombatTextEvent);
+      }
+
       client.send("itemUsed", {
         slotIndex: data.slotIndex,
         itemId,
@@ -849,8 +929,35 @@ export class WorldRoom extends Room {
       const fits = equipSlotOf(source.itemId);
       if (!fits || fits !== data.slotId) return;
 
+      const incoming = getItemConfig(source.itemId);
+      if (!incoming) return;
+      if (incoming.requiredLevel > 0 && player.level < incoming.requiredLevel) {
+        client.send("notice", { kind: "equip_level_too_low" });
+        return;
+      }
+
       const target = this.equipmentSlot(player, data.slotId);
       if (!target) return;
+
+      // Two-handers clear the off-hand; equipping an off-hand clears a 2H main.
+      if (incoming.twoHanded && data.slotId === "mainHand") {
+        if (
+          !this.stowEquipmentSlot(player, "offHand", [data.inventoryIndex])
+        ) {
+          client.send("notice", { kind: "inventory_full" });
+          return;
+        }
+      } else if (data.slotId === "offHand") {
+        const main = this.equipmentSlot(player, "mainHand");
+        if (main?.itemId && getItemConfig(main.itemId)?.twoHanded) {
+          if (
+            !this.stowEquipmentSlot(player, "mainHand", [data.inventoryIndex])
+          ) {
+            client.send("notice", { kind: "inventory_full" });
+            return;
+          }
+        }
+      }
 
       // Straight swap: whatever was worn drops into the vacated bag slot.
       const previous = target.itemId;
@@ -1073,7 +1180,8 @@ export class WorldRoom extends Room {
       const dist = Math.hypot(pickup.x - player.x, pickup.y - player.y);
       if (dist > PICKUP_RADIUS + 16) return;
 
-      if (!addItemToPlayer(player, itemData(pickup), player.slots.length)) {
+      const loot = itemData(pickup);
+      if (!addItemToPlayer(player, loot, player.slots.length)) {
         client.send("notice", { kind: "inventory_full" });
         return;
       }
@@ -1799,6 +1907,50 @@ export class WorldRoom extends Room {
     });
   }
 
+  private sendLootDropped(
+    client: Client,
+    animal: AnimalState,
+  ): void {
+    const items: Array<{ itemId: string; quantity: number }> = [];
+    for (let i = 0; i < animal.loot.length; i++) {
+      const slot = animal.loot.at(i);
+      if (!slot?.itemId || slot.quantity <= 0) continue;
+      items.push({ itemId: slot.itemId, quantity: slot.quantity });
+    }
+    if (items.length === 0) return;
+    client.send("lootDropped", {
+      creatureKind: animal.kind,
+      animalId: animal.id,
+      items,
+    } satisfies LootDroppedEvent);
+  }
+
+  private allowChatMessage(
+    sessionId: string,
+    text: string,
+    now: number,
+  ): boolean {
+    const last = this.chatLast.get(sessionId);
+    if (
+      last &&
+      last.text === text &&
+      now - last.at < CHAT_DUPLICATE_MS
+    ) {
+      return false;
+    }
+
+    const windowStart = now - CHAT_RATE_WINDOW_MS;
+    const recent = (this.chatSentAt.get(sessionId) ?? []).filter(
+      (t) => t >= windowStart,
+    );
+    if (recent.length >= CHAT_RATE_LIMIT) return false;
+
+    recent.push(now);
+    this.chatSentAt.set(sessionId, recent);
+    this.chatLast.set(sessionId, { text, at: now });
+    return true;
+  }
+
   private tickMiningRespawns(now: number): void {
     for (const [nodeKey, respawnAt] of this.depletedNodes) {
       if (now < respawnAt) continue;
@@ -2357,6 +2509,32 @@ export class WorldRoom extends Room {
     return null;
   }
 
+  /**
+   * Moves an equipment piece into the bag so a two-hander / off-hand swap can
+   * proceed. Returns false when there is no free inventory slot.
+   */
+  private stowEquipmentSlot(
+    player: PlayerState,
+    slotId: string,
+    reservedIndexes: number[] = [],
+  ): boolean {
+    const worn = this.equipmentSlot(player, slotId);
+    if (!worn?.itemId) return true;
+    const reserved = new Set(reservedIndexes);
+    let free = -1;
+    for (let i = 0; i < player.slots.length; i++) {
+      if (reserved.has(i)) continue;
+      if (!player.slots.at(i)?.itemId) {
+        free = i;
+        break;
+      }
+    }
+    if (free < 0) return false;
+    writeItem(player.slots.at(free)!, { ...itemData(worn), quantity: 1 });
+    clearItem(worn);
+    return true;
+  }
+
   /** True when every slot at index >= capacity is empty. */
   private tailEmpty(player: PlayerState, capacity: number): boolean {
     for (let i = capacity; i < player.slots.length; i++) {
@@ -2764,19 +2942,23 @@ export class WorldRoom extends Room {
     const dealt = Math.min(animal.hp, damage);
     animal.hp = Math.max(0, animal.hp - damage);
     this.animalAi.aggro(animal.id, client.sessionId);
+    const killed = animal.hp <= 0;
 
     client.send("combatText", {
       amount: dealt,
       target: "animal",
       animalId: animal.id,
+      creatureKind: animal.kind,
+      killed: killed || undefined,
     } satisfies CombatTextEvent);
 
-    if (animal.hp > 0) return;
+    if (!killed) return;
 
     animal.alive = false;
     animal.respawnAt = 0;
     this.fillCorpseLoot(animal, rollLootTable(config.loot));
     this.corpseDespawnAt.set(animal.id, Date.now() + CORPSE_DESPAWN_MS);
+    this.sendLootDropped(client, animal);
 
     this.grantExperience(client, player, config.xp, {
       kind: animal.kind,
@@ -2846,4 +3028,12 @@ export class WorldRoom extends Room {
     if (offer.stock < 0) return -1;
     return this.shopStock.get(`${player.mapId}:${instanceId}`)?.get(itemId) ?? 0;
   }
+}
+
+function sanitizeChatText(raw: string): string {
+  return raw
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, CHAT_MAX_LEN);
 }

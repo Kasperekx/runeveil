@@ -42,6 +42,18 @@ import { CharacterPanel } from "../ui/CharacterPanel";
 import { DialogueWindow } from "../ui/DialogueWindow";
 import { DeathScreen } from "../ui/DeathScreen";
 import { FloatingCombatText } from "../ui/FloatingCombatText";
+import { GameChat } from "../ui/GameChat";
+import {
+  formatChatSay,
+  formatCombatDealt,
+  formatCombatHeal,
+  formatCombatTaken,
+  formatLevelUp,
+  formatLootDropped,
+  formatSystem,
+  formatXpGain,
+  itemDisplayName,
+} from "../ui/chat/chatLogFormat";
 import { GameToast } from "../ui/GameToast";
 import { ItemCooldowns } from "../ui/ItemCooldowns";
 import { SkillCooldowns } from "../ui/SkillCooldowns";
@@ -83,6 +95,7 @@ const NOTICE_COPY: Record<string, string> = {
   item_on_cooldown: "Przedmiot się jeszcze odnawia.",
   food_buff_expired: "Efekt posiłku dobiegł końca.",
   food_buff_cancelled: "Anulowano efekt posiłku.",
+  equip_level_too_low: "Twój poziom jest za niski, by założyć ten przedmiot.",
   cooking_station_required: "Podejdź do paleniska przy kuźni, aby gotować.",
   profession_level_too_low:
     "Twój poziom profesji jest za niski dla tej czynności.",
@@ -99,6 +112,8 @@ const NOTICE_COPY: Record<string, string> = {
   respawn_too_soon: "Nie możesz jeszcze powrócić do schronienia.",
   repair_unavailable: "Ten NPC nie świadczy usług naprawy.",
   nothing_to_repair: "Twój ekwipunek nie wymaga naprawy.",
+  chat_rate_limited: "Piszesz zbyt szybko. Odczekaj chwilę.",
+  chat_invalid: "Wiadomość jest pusta lub niedozwolona.",
 };
 
 const CRAFT_REJECTION_NOTICES = new Set([
@@ -157,6 +172,20 @@ export class Game {
     const playerHud = PlayerHud.create();
     const playerBuffs = PlayerBuffs.create();
     playerBuffs.setCancelFoodHandler(() => network.cancelFoodBuff());
+    const gameChat = GameChat.create(document.getElementById("ui-root")!, {
+      onFocusChange: (focused) => {
+        if (focused) input.clear();
+      },
+    });
+    gameChat.bindSend((text) => network.sendChat(text));
+    gameChat.append(
+      "system",
+      "Witaj w Runeveil. Enter — czat · zakładki filtrują dziennik.",
+    );
+    const logSystem = (text: string): void => {
+      const line = formatSystem(text);
+      gameChat.append(line.channel, line.text);
+    };
     const characterPanel = CharacterPanel.create(bag, {
       onEquip: (inventoryIndex, slotId) =>
         network.equipItem(inventoryIndex, slotId),
@@ -414,7 +443,9 @@ export class Game {
       const minutes = Math.round(buff.durationMs / 60000);
       const duration =
         minutes >= 60 ? `${Math.round(minutes / 60)} godz.` : `${minutes} min.`;
-      toast.show(`${parts.join(", ")} · ${duration}`);
+      const msg = `${parts.join(", ")} · ${duration}`;
+      toast.show(msg);
+      logSystem(`Efekt posiłku: ${msg}.`);
     };
     network.onFoodBuffState = (event) => {
       playerBuffs.setFoodBuff(event);
@@ -425,35 +456,48 @@ export class Game {
     network.onProfessionCrafted = (event) => {
       professionsPanel.handleCrafted(event.recipeId, event.quantity);
       const profession = getProfession(event.professionId);
-      toast.show(
+      const msg =
         event.levelsGained > 0
           ? `${profession.name} ${event.level} · awans profesji!`
-          : `${profession.name} · +${event.xp} PD`,
-      );
+          : `${profession.name} · +${event.xp} PD`;
+      toast.show(msg);
+      logSystem(msg);
     };
     network.onOreMined = (event) => {
       const profession = getProfession(event.professionId);
-      toast.show(
+      const msg =
         event.levelsGained > 0
           ? `${profession.name} ${event.level} · awans profesji!`
-          : `${profession.name} · +${event.xp} PD`,
+          : `${profession.name} · +${event.xp} PD`;
+      toast.show(msg);
+      logSystem(
+        `Wydobyto ${itemDisplayName(event.itemId)}${
+          event.quantity > 1 ? ` ×${event.quantity}` : ""
+        }. ${msg}`,
       );
     };
     network.onQuestReady = (event) => {
       const quest = getQuest(event.questId);
       toast.show(`Zadanie gotowe · ${quest.name}`);
+      logSystem(`Zadanie gotowe do oddania: ${quest.name}.`);
     };
     network.onQuestAccepted = (event) => {
       const quest = getQuest(event.questId);
       toast.show(`Przyjęto zadanie · ${quest.name}`);
+      logSystem(`Przyjęto zadanie: ${quest.name}.`);
     };
     network.onQuestClaimed = (event) => {
       const quest = getQuest(event.questId);
       toast.show(`Nagroda odebrana · ${quest.name}`);
+      logSystem(`Odebrano nagrodę za zadanie: ${quest.name}.`);
     };
 
     const levelUpBanner = LevelUpBanner.create();
-    network.onLevelUp = (event) => levelUpBanner.show(event);
+    network.onLevelUp = (event) => {
+      levelUpBanner.show(event);
+      const line = formatLevelUp(event.level);
+      gameChat.append(line.channel, line.text);
+    };
     network.onPlayerDied = (event) => {
       setDeathState(true);
       deathScreen.show({
@@ -462,11 +506,15 @@ export class Game {
         homeName: event.homeName,
         respawnDelayMs: event.respawnDelayMs,
       });
+      logSystem(
+        `Giniesz. Tracisz ${event.lostExperience} PD (−${event.penaltyPercent}%).`,
+      );
     };
     network.onPlayerRespawned = (event) => {
       setDeathState(false);
       player.setPosition(event.x, event.y);
       toast.show(`Wskrzeszono · ${event.homeName}`);
+      logSystem(`Powracasz do życia przy: ${event.homeName}.`);
     };
 
     network.onNotice = (event) => {
@@ -474,7 +522,10 @@ export class Game {
         professionsPanel.cancelCraft();
       }
       const message = NOTICE_COPY[event.kind];
-      if (message) toast.show(message);
+      if (message) {
+        toast.show(message);
+        logSystem(message);
+      }
     };
     network.onTradeResult = (event) => {
       playerGold = event.gold;
@@ -483,10 +534,23 @@ export class Game {
       if (event.kind === "buy" && typeof event.stock === "number") {
         dialogueWindow.setStock(event.itemId, event.stock);
       }
+      const name = itemDisplayName(event.itemId);
       if (event.kind === "buy") {
-        toast.show(`Kupiono · −${event.goldSpent ?? 0} g`);
+        const spent = event.goldSpent ?? 0;
+        toast.show(`Kupiono · −${spent} g`);
+        logSystem(
+          `Kupujesz ${name}${
+            event.quantity > 1 ? ` ×${event.quantity}` : ""
+          } za ${spent} g.`,
+        );
       } else {
-        toast.show(`Sprzedano · +${event.goldEarned ?? 0} g`);
+        const earned = event.goldEarned ?? 0;
+        toast.show(`Sprzedano · +${earned} g`);
+        logSystem(
+          `Sprzedajesz ${name}${
+            event.quantity > 1 ? ` ×${event.quantity}` : ""
+          } za ${earned} g.`,
+        );
       }
     };
     network.onEquipmentRepaired = (event) => {
@@ -494,18 +558,49 @@ export class Game {
       dialogueWindow.setGold(event.gold);
       inventoryPanel?.setGold(event.gold);
       toast.show(`Naprawiono ekwipunek · −${event.totalCost} g`);
+      logSystem(`Naprawiono ekwipunek za ${event.totalCost} g.`);
     };
     network.onEquipmentBroken = (event) => {
-      toast.show(
+      const msg =
         event.slotIds.length === 1
           ? "Element ekwipunku został uszkodzony!"
-          : `${event.slotIds.length} elementy ekwipunku zostały uszkodzone!`,
-      );
+          : `${event.slotIds.length} elementy ekwipunku zostały uszkodzone!`;
+      toast.show(msg);
+      logSystem(msg);
+    };
+
+    network.onChat = (event) => {
+      gameChat.append("chat", formatChatSay(event.name, event.text));
+    };
+    network.onLootDropped = (event) => {
+      const line = formatLootDropped(event.creatureKind, event.items);
+      if (line) gameChat.append(line.channel, line.text);
     };
 
     const combatText = new FloatingCombatText(app, world);
     combatText.start();
     network.onCombatText = (event) => {
+      const creatureKind =
+        event.creatureKind ||
+        (event.animalId ? animals.getKind(event.animalId) : null);
+
+      if (event.target === "player") {
+        if (event.kind === "heal") {
+          const line = formatCombatHeal(event.amount);
+          gameChat.append(line.channel, line.text);
+        } else {
+          const line = formatCombatTaken(event.amount, creatureKind);
+          gameChat.append(line.channel, line.text);
+        }
+      } else {
+        const line = formatCombatDealt(
+          event.amount,
+          creatureKind,
+          event.killed,
+        );
+        gameChat.append(line.channel, line.text);
+      }
+
       if (!settings.current.showDamageNumbers) return;
       if (event.target === "player") {
         const { x, y } = player.position;
@@ -520,6 +615,8 @@ export class Game {
       if (at) combatText.spawn(at.x, at.y - 20, event.amount, "dealt");
     };
     network.onXpGain = (event) => {
+      const line = formatXpGain(event.amount, event.kind);
+      gameChat.append(line.channel, line.text);
       const at = event.animalId ? animals.getPosition(event.animalId) : null;
       const pos = at ?? player.position;
       combatText.spawn(pos.x, pos.y - 36, event.amount, "xp");
@@ -720,6 +817,10 @@ export class Game {
     // This handler is registered before panel/gameplay hotkeys. Returning true
     // consumes input while the modal menu is open.
     input.onKeyDownPress((code, event) => {
+      if (gameChat.handleHotkey(code, event)) {
+        input.clear();
+        return true;
+      }
       if (systemMenu?.isOpen) {
         event.preventDefault();
         if (code === "Escape") systemMenu.close();
@@ -796,7 +897,7 @@ export class Game {
         icon: MICRO_ICONS.map,
         onClick: () => minimap.toggle(),
       },
-      { id: "social", label: "Społeczność", icon: MICRO_ICONS.social },
+      { id: "social", label: "Czat", hotkey: "Enter", icon: MICRO_ICONS.social, onClick: () => gameChat.focusInput() },
       {
         id: "settings",
         label: "Ustawienia",
