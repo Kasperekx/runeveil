@@ -1,4 +1,4 @@
-import { Container, Sprite } from "pixi.js";
+import { Container, Sprite, Text, TextStyle } from "pixi.js";
 import {
   PLAYER_ANIM_FPS,
   PLAYER_ATTACK_FPS,
@@ -11,9 +11,18 @@ import { PlayerSprites } from "./PlayerSprites";
 /** Default world spawn when no save exists (near animal hunting grounds). */
 const DEFAULT_SPAWN = { x: 640, y: 360 };
 
+const NAME_STYLE = new TextStyle({
+  fontFamily: "Cinzel, Georgia, serif",
+  fontSize: 8,
+  fill: 0xe8e0d0,
+  stroke: { color: 0x1a1510, width: 3 },
+});
+
 /** World entity: sprite lifecycle, movement pose, and sword swings. */
 export class Player {
+  private readonly root = new Container();
   private sprite!: Sprite;
+  private nameLabel!: Text;
   private sprites!: PlayerSprites;
   private facing: CreatureFacing = "down";
   private animTime = 0;
@@ -40,14 +49,15 @@ export class Player {
     world: Container,
     spawn: { x: number; y: number } = DEFAULT_SPAWN,
     classId = "warrior",
+    name = "Wędrowiec",
   ): Promise<Player> {
     const player = new Player(world, spawn);
-    await player.load(classId);
+    await player.load(classId, name);
     return player;
   }
 
   get position(): { x: number; y: number } {
-    return { x: this.sprite.position.x, y: this.sprite.position.y };
+    return { x: this.root.position.x, y: this.root.position.y };
   }
 
   get isAttacking(): boolean {
@@ -70,17 +80,24 @@ export class Player {
     this.walkSpeed = Math.max(1, speed);
   }
 
+  setName(name: string): void {
+    const trimmed = name.trim() || "Wędrowiec";
+    if (this.nameLabel.text === trimmed) return;
+    this.nameLabel.text = trimmed;
+  }
+
   moveBy(dx: number, dy: number): void {
     if (this.dead) return;
-    this.sprite.position.x += dx;
-    this.sprite.position.y += dy;
+    this.root.position.x += dx;
+    this.root.position.y += dy;
+    this.root.zIndex = Math.round(this.root.position.y);
     // Facing during a swing is owned by combat (toward the target).
     if (!this.attacking) this.setFacing(dx, dy);
   }
 
   faceToward(x: number, y: number): void {
-    const dx = x - this.sprite.position.x;
-    const dy = y - this.sprite.position.y;
+    const dx = x - this.root.position.x;
+    const dy = y - this.root.position.y;
     if (dx === 0 && dy === 0) return;
     this.setFacing(dx, dy);
     this.applyFrame();
@@ -146,8 +163,8 @@ export class Player {
   }
 
   setPosition(x: number, y: number): void {
-    this.sprite.position.set(x, y);
-    this.sprite.zIndex = Math.round(y);
+    this.root.position.set(x, y);
+    this.root.zIndex = Math.round(y);
   }
 
   setDead(dead: boolean): void {
@@ -159,12 +176,13 @@ export class Player {
     this.onAttackEnd = null;
     this.animTime = 0;
     this.lastFrameKey = "";
+    this.nameLabel.alpha = dead ? 0.55 : 1;
     this.applyFrame();
   }
 
   center(): void {
-    this.sprite.position.set(this.spawn.x, this.spawn.y);
-    this.sprite.zIndex = Math.round(this.spawn.y);
+    this.root.position.set(this.spawn.x, this.spawn.y);
+    this.root.zIndex = Math.round(this.spawn.y);
   }
 
   private updateAttack(deltaSeconds: number): void {
@@ -197,15 +215,26 @@ export class Player {
     this.applyFrame();
   }
 
-  private async load(classId: string): Promise<void> {
+  private async load(classId: string, name: string): Promise<void> {
     this.sprites = await PlayerSprites.loadForClass(classId);
 
     this.sprite = new Sprite(this.sprites.framesFor(this.facing).idle[0]);
     this.sprite.anchor.set(0.5);
     this.sprite.roundPixels = true;
+
+    this.nameLabel = new Text({
+      text: name.trim() || "Wędrowiec",
+      style: NAME_STYLE,
+    });
+    this.nameLabel.anchor.set(0.5, 1);
+    this.nameLabel.position.set(0, -36);
+    this.nameLabel.roundPixels = true;
+
+    this.root.addChild(this.sprite);
+    this.root.addChild(this.nameLabel);
     this.center();
     this.world.sortableChildren = true;
-    this.world.addChild(this.sprite);
+    this.world.addChild(this.root);
   }
 
   private advanceIdle(frameCount: number): void {

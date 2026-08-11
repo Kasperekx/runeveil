@@ -160,6 +160,7 @@ export class Game {
       world,
       map.spawns.player,
       access.classId,
+      access.characterName,
     );
     let lights = LightSystem.create(app, world, map);
     const bag = new Inventory();
@@ -337,6 +338,7 @@ export class Game {
       playerGold = snap.gold ?? 0;
       inventoryPanel?.setGold(playerGold);
       playerHud.setName(snap.name);
+      player.setName(snap.name);
       playerHud.setLevel(snap.level);
       playerHud.setPortrait(cls.portrait);
       playerHud.setVitals({ hp: snap.hp, maxHp: snap.maxHp });
