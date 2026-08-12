@@ -215,9 +215,8 @@
         "alpha": 0.38
       }
     },
-    "copper-ore": {
-      "texture": "/assets/props/copper-ore.png?v=2",
-      "depletedTexture": "/assets/props/copper-ore-depleted.png?v=1",
+    "copper-vein": {
+      "texture": "/assets/props/copper-vein.png?v=2",
       "anchorX": 0.5,
       "anchorY": 0.5,
       "scale": 0.5,
@@ -258,17 +257,17 @@
       "y": 558
     },
     {
-      "type": "copper-ore",
+      "type": "copper-vein",
       "x": 320,
       "y": 160
     },
     {
-      "type": "copper-ore",
+      "type": "copper-vein",
       "x": 880,
       "y": 180
     },
     {
-      "type": "copper-ore",
+      "type": "copper-vein",
       "x": 560,
       "y": 100
     },

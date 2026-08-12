@@ -60,14 +60,25 @@ export class QuestLog {
     root.setAttribute("aria-label", "Dziennik zadań");
     root.innerHTML = `
       <div class="quest-log__frame">
+        <span class="quest-log__corner quest-log__corner--tl" aria-hidden="true"></span>
+        <span class="quest-log__corner quest-log__corner--br" aria-hidden="true"></span>
         <header class="quest-log__header" data-header>
-          <span class="quest-log__sigil" aria-hidden="true">✦</span>
-          <h2>Dziennik zadań</h2>
-          <button type="button" class="quest-log__close" data-close aria-label="Zamknij">×</button>
+          <div class="quest-log__brand">
+            <span class="quest-log__sigil" aria-hidden="true"><span>✦</span></span>
+            <div>
+              <span class="quest-log__header-eyebrow">Kroniki wypraw</span>
+              <h2>Dziennik zadań</h2>
+            </div>
+          </div>
+          <div class="quest-log__header-rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="quest-log__close" data-close aria-label="Zamknij"><span>×</span></button>
         </header>
         <div class="quest-log__body">
           <section class="quest-log__list-wrap">
-            <div class="quest-log__heading"><span>Aktywne zadania</span><b data-quest-count>0</b></div>
+            <div class="quest-log__heading">
+              <div><span>Wyprawy</span><h3>Aktywne zadania</h3></div>
+              <b data-quest-count aria-label="Liczba aktywnych zadań">0</b>
+            </div>
             <div class="quest-log__list" data-quest-list></div>
           </section>
           <section class="quest-log__detail" data-quest-detail aria-live="polite"></section>
@@ -181,18 +192,20 @@ export class QuestLog {
     if (state.status === "completed") button.classList.add("is-completed");
     if (state.status === "ready_to_claim") button.classList.add("is-ready");
     if (state.status === "available") button.classList.add("is-available");
-    if (state.questId === this.selectedQuestId)
-      button.classList.add("is-active");
+    const selected = state.questId === this.selectedQuestId;
+    if (selected) button.classList.add("is-active");
+    button.setAttribute("aria-pressed", String(selected));
     const progress = progressFor(state, quest);
-    const mark =
-      state.status === "completed"
-        ? "✓"
-        : state.status === "ready_to_claim"
-          ? "!"
-          : state.status === "available"
-            ? "+"
-            : "◆";
-    button.innerHTML = `<span class="quest-log__row-mark" aria-hidden="true">${mark}</span><span><strong>${escapeHtml(quest.name)}</strong><small>${escapeHtml(quest.category)} · ${questStatusLabel(state.status)} · ${progress.current}/${progress.total}</small></span>`;
+    const percentage = Math.round((progress.current / progress.total) * 100);
+    button.innerHTML = `
+      <span class="quest-log__row-mark" aria-hidden="true">${questStatusMark(state.status)}</span>
+      <span class="quest-log__row-copy">
+        <strong>${escapeHtml(quest.name)}</strong>
+        <small><span>${escapeHtml(quest.category)}</span><em>${questStatusLabel(state.status)}</em></small>
+        <span class="quest-log__row-progress" aria-hidden="true"><i style="width:${percentage}%"></i></span>
+      </span>
+      <span class="quest-log__row-count">${progress.current}<i>/</i>${progress.total}</span>
+    `;
     button.addEventListener("click", () => {
       this.selectedQuestId = state.questId;
       this.render();
@@ -210,15 +223,26 @@ export class QuestLog {
     const percentage = Math.round((progress.current / progress.total) * 100);
 
     this.detailEl.innerHTML = `
-      <p class="quest-log__eyebrow">${escapeHtml(quest.category)} · ${questStatusLabel(state.status)}</p>
-      <h3>${escapeHtml(quest.name)}</h3>
-      <p class="quest-log__giver">Zleceniodawca: <b>${escapeHtml(quest.giver)}</b></p>
+      <div class="quest-log__detail-head">
+        <span class="quest-log__detail-mark" aria-hidden="true">${questStatusMark(state.status)}</span>
+        <div>
+          <p class="quest-log__eyebrow">${escapeHtml(quest.category)} · ${questStatusLabel(state.status)}</p>
+          <h3>${escapeHtml(quest.name)}</h3>
+          <p class="quest-log__giver">Zleceniodawca: <b>${escapeHtml(quest.giver)}</b></p>
+        </div>
+      </div>
       <p class="quest-log__description">${escapeHtml(quest.description)}</p>
       <section class="quest-log__objective ${complete || ready ? "is-complete" : ""}">
-        <div><span>${escapeHtml(quest.objective.label)}</span><b>${progress.current}/${progress.total}</b></div>
+        <div><span><small>Cel wyprawy</small>${escapeHtml(quest.objective.label)}</span><b>${progress.current}<i>/</i>${progress.total}</b></div>
         <div class="quest-log__progress"><span style="width:${percentage}%"></span></div>
       </section>
-      <section class="quest-log__rewards"><h4>Nagrody</h4><span>◈ ${quest.rewards.gold} złota</span><span>✦ ${quest.rewards.experience} PD</span></section>
+      <section class="quest-log__rewards">
+        <h4>Nagrody</h4>
+        <div class="quest-log__reward-list">
+          <span><i aria-hidden="true">◈</i><small>Złoto</small><b>${quest.rewards.gold}</b></span>
+          <span><i aria-hidden="true">✦</i><small>Doświadczenie</small><b>${quest.rewards.experience} PD</b></span>
+        </div>
+      </section>
       ${
         complete
           ? `<p class="quest-log__complete">Nagrody zostały odebrane.</p>`
@@ -275,10 +299,12 @@ export class QuestLog {
     this.trackerRoot.classList.toggle("is-collapsed", this.trackerCollapsed);
     this.trackerRoot.innerHTML = `
       <header class="quest-tracker__header">
-        <span aria-hidden="true">✦</span>
-        <p>Zadania</p>
-        <b>${tracked.length}</b>
-        <button type="button" data-tracker-toggle aria-label="${this.trackerCollapsed ? "Rozwiń tracker zadań" : "Zwiń tracker zadań"}" aria-expanded="${!this.trackerCollapsed}">${this.trackerCollapsed ? "+" : "−"}</button>
+        <div class="quest-tracker__brand">
+          <span aria-hidden="true">✦</span>
+          <p><small>Kronika</small><strong>Zadania</strong></p>
+        </div>
+        <b aria-label="Liczba śledzonych zadań">${tracked.length}</b>
+        <button type="button" data-tracker-toggle aria-label="${this.trackerCollapsed ? "Rozwiń tracker zadań" : "Zwiń tracker zadań"}" aria-expanded="${!this.trackerCollapsed}"><span>${this.trackerCollapsed ? "+" : "−"}</span></button>
       </header>
       <div class="quest-tracker__body">
         ${tracked.length > 0 ? tracked.map((state) => trackerQuestHtml(state)).join("") : `<p class="quest-tracker__empty">Brak śledzonych zadań</p>`}
@@ -291,14 +317,18 @@ function trackerQuestHtml(state: QuestSnapshot): string {
   const quest = getQuest(state.questId);
   const progress = progressFor(state, quest);
   const ready = state.status === "ready_to_claim";
+  const percentage = ready
+    ? 100
+    : Math.round((progress.current / progress.total) * 100);
   return `
     <article class="quest-tracker__quest">
-      <strong>${escapeHtml(quest.name)}</strong>
+      <div class="quest-tracker__quest-title"><span aria-hidden="true">◆</span><strong>${escapeHtml(quest.name)}</strong></div>
       <div class="quest-tracker__objective ${ready ? "is-complete" : ""}">
         <i aria-hidden="true"></i>
         <span>${escapeHtml(quest.objective.label)}</span>
         <b>${ready ? "✓" : `${progress.current} / ${progress.total}`}</b>
       </div>
+      <div class="quest-tracker__progress" aria-hidden="true"><span style="width:${percentage}%"></span></div>
       ${ready ? `<p class="quest-tracker__status"><span>Ukończono</span>${escapeHtml(quest.turnIn.label)}</p>` : ""}
     </article>
   `;
@@ -330,6 +360,15 @@ function questStatusLabel(status: QuestSnapshot["status"]): string {
     ready_to_claim: "gotowe do oddania",
     available: "dostępne",
     completed: "ukończone",
+  }[status];
+}
+
+function questStatusMark(status: QuestSnapshot["status"]): string {
+  return {
+    active: "◆",
+    ready_to_claim: "!",
+    available: "+",
+    completed: "✓",
   }[status];
 }
 

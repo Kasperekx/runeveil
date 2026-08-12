@@ -78,22 +78,35 @@ export class ProfessionsPanel {
     root.setAttribute("aria-label", "Profesje");
     root.innerHTML = `
       <div class="professions-panel__frame">
+        <span class="professions-panel__corner professions-panel__corner--tl" aria-hidden="true"></span>
+        <span class="professions-panel__corner professions-panel__corner--br" aria-hidden="true"></span>
         <header class="professions-panel__header" data-header>
-          <svg class="professions-panel__sigil" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m4 4 5-2 4 4-4 4-4-4z" />
-            <path d="m10 10 2.8 2.8-7.2 7.2-2.8-2.8z" />
-            <path d="M15.5 15.5h4.8l-1.6 1.8 1.6 1.8h-7.1z" />
-          </svg>
-          <h2 class="professions-panel__title">Profesje</h2>
-          <button type="button" class="professions-panel__close" data-close aria-label="Zamknij">×</button>
+          <div class="professions-panel__brand">
+            <span class="professions-panel__sigil-frame" aria-hidden="true">
+              <svg class="professions-panel__sigil" viewBox="0 0 24 24">
+                <path d="m4 4 5-2 4 4-4 4-4-4z" />
+                <path d="m10 10 2.8 2.8-7.2 7.2-2.8-2.8z" />
+                <path d="M15.5 15.5h4.8l-1.6 1.8 1.6 1.8h-7.1z" />
+              </svg>
+            </span>
+            <div>
+              <span class="professions-panel__header-eyebrow">Kroniki rzemiosła</span>
+              <h2 class="professions-panel__title">Księga profesji</h2>
+            </div>
+          </div>
+          <div class="professions-panel__header-rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="professions-panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
         </header>
         <div class="professions-panel__body">
           <nav class="professions-panel__master" aria-label="Lista profesji">
-            <h3 class="professions-panel__section-title">Zawody</h3>
+            <div class="professions-panel__rail-heading">
+              <span>Specjalizacje</span>
+              <h3>Zawody</h3>
+            </div>
             <div class="professions-panel__profession-list" data-profession-list></div>
-            <div class="professions-panel__station">
-              <span aria-hidden="true">⌖</span>
-              <p><strong>Stanowisko</strong>Przepisy wykonasz przy palenisku obok kuźni.</p>
+            <div class="professions-panel__station" data-station>
+              <span class="professions-panel__station-mark" aria-hidden="true">⌖</span>
+              <p><strong data-station-state>Wymagane stanowisko</strong><small data-station-copy>Przepisy wykonasz przy palenisku obok kuźni.</small></p>
             </div>
           </nav>
           <section class="professions-panel__workspace">
@@ -274,6 +287,23 @@ export class ProfessionsPanel {
     this.root.querySelector("[data-xp-label]")!.textContent = needed
       ? `${state.experience} / ${needed} PD do rangi ${state.level + 1}`
       : `${profession.maxLevel} / ${profession.maxLevel} · maksimum`;
+    const station = this.root.querySelector<HTMLElement>("[data-station]")!;
+    const usesCraftingStation = profession.recipes.length > 0;
+    station.classList.toggle(
+      "is-available",
+      usesCraftingStation && this.craftingAvailable,
+    );
+    station.classList.toggle("is-world", !usesCraftingStation);
+    station.querySelector("[data-station-state]")!.textContent =
+      !usesCraftingStation
+        ? "Praca w terenie"
+        : this.craftingAvailable
+          ? "Stanowisko aktywne"
+          : "Wymagane stanowisko";
+    station.querySelector("[data-station-copy]")!.textContent =
+      usesCraftingStation
+        ? "Przepisy wykonasz przy palenisku obok kuźni."
+        : "Surowce pozyskasz bezpośrednio z węzłów na mapie.";
 
     const professionList = this.root.querySelector<HTMLElement>(
       "[data-profession-list]",
@@ -283,8 +313,18 @@ export class ProfessionsPanel {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "professions-panel__profession";
-        if (definition.id === profession.id) button.classList.add("is-active");
-        button.innerHTML = `<span class="professions-panel__profession-icon" aria-hidden="true">${definition.icon}</span><span>${escapeHtml(definition.name)}</span>`;
+        const definitionState = this.state(definition.id);
+        const active = definition.id === profession.id;
+        if (active) button.classList.add("is-active");
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+        button.innerHTML = `
+          <span class="professions-panel__profession-icon" aria-hidden="true">${definition.icon}</span>
+          <span class="professions-panel__profession-copy">
+            <strong>${escapeHtml(definition.name)}</strong>
+            <small>Ranga ${definitionState.level}</small>
+          </span>
+          <span class="professions-panel__profession-chevron" aria-hidden="true">›</span>
+        `;
         button.addEventListener("click", () => {
           this.selectedProfessionId = definition.id;
           this.selectedRecipeId = null;
@@ -363,8 +403,8 @@ export class ProfessionsPanel {
         ? `×${node.output.quantityMin}`
         : `×${node.output.quantityMin}–${node.output.quantityMax}`;
     this.detailEl.innerHTML = `
-      <div class="professions-panel__detail-head"><p class="professions-panel__eyebrow">Węzeł wydobycia</p><h3>${escapeHtml(node.name)}</h3><p>${escapeHtml(node.description || "Szukaj tej żyły w świecie i użyj kilofa.")}</p></div>
-      <div class="professions-panel__output"><span>Łup</span><b>${escapeHtml(output.name)} ${qty}</b><em>+${node.xp} PD</em></div>
+      <div class="professions-panel__detail-head"><img src="/${output.icon}" alt="" /><div><p class="professions-panel__eyebrow">Węzeł wydobycia</p><h3>${escapeHtml(node.name)}</h3><p>${escapeHtml(node.description || "Szukaj tej żyły w świecie i użyj kilofa.")}</p></div></div>
+      <div class="professions-panel__output"><img src="/${output.icon}" alt="" /><span>Łup</span><b>${escapeHtml(output.name)} ${qty}</b><em>+${node.xp} PD</em></div>
       <h4>Wymagania</h4>
       <ul><li>Kilof w ekwipunku lub dłoni</li><li>Podejdź do żyły i naciśnij <b>E</b> albo kliknij skałę</li></ul>
       ${missingLevel ? `<p class="professions-panel__locked">Wymaga ${node.level}. poziomu ${escapeHtml(professionName)}.</p>` : `<p class="professions-panel__locked">Wydobywanie odbywa się w świecie — nie z tego okna.</p>`}
@@ -417,8 +457,8 @@ export class ProfessionsPanel {
       !missingLevel &&
       maxCraftable > 0;
     this.detailEl.innerHTML = `
-      <div class="professions-panel__detail-head"><p class="professions-panel__eyebrow">Wybrany przepis</p><h3>${escapeHtml(recipe.name)}</h3><p>${escapeHtml(recipe.description)}</p></div>
-      <div class="professions-panel__output"><span>Rezultat</span><b>${escapeHtml(output.name)} ×${recipe.output.quantity}</b><em>+${recipe.xp} PD</em></div>
+      <div class="professions-panel__detail-head"><img src="/${output.icon}" alt="" /><div><p class="professions-panel__eyebrow">Wybrany przepis</p><h3>${escapeHtml(recipe.name)}</h3><p>${escapeHtml(recipe.description)}</p></div></div>
+      <div class="professions-panel__output"><img src="/${output.icon}" alt="" /><span>Rezultat</span><b>${escapeHtml(output.name)} ×${recipe.output.quantity}</b><em>+${recipe.xp} PD</em></div>
       <h4>Składniki</h4><ul>${ingredients}</ul>
       ${missingLevel ? `<p class="professions-panel__locked">Wymaga ${recipe.level}. poziomu Gotowania.</p>` : ""}
       <div class="professions-panel__craft-actions">

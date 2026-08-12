@@ -216,9 +216,8 @@
         "alpha": 0.38
       }
     },
-    "copper-ore": {
-      "texture": "/assets/props/copper-ore.png?v=2",
-      "depletedTexture": "/assets/props/copper-ore-depleted.png?v=1",
+    "copper-vein": {
+      "texture": "/assets/props/copper-vein.png?v=2",
       "anchorX": 0.5,
       "anchorY": 0.5,
       "scale": 1,

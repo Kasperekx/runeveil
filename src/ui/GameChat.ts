@@ -9,6 +9,13 @@ import { formatTimestamp as formatTime } from "./chat/chatLogFormat";
 const MAX_LINES = 250;
 const STORAGE_FILTER = "mmo.chat.filter";
 const STORAGE_COLLAPSED = "mmo.chat.collapsed";
+const FILTER_MARKS: Record<ChatFilter, string> = {
+  all: "✦",
+  chat: "◌",
+  combat: "⚔",
+  loot: "◆",
+  system: "◇",
+};
 
 function loadFilter(): ChatFilter {
   try {
@@ -80,16 +87,26 @@ export class GameChat {
     root.setAttribute("aria-label", "Czat i dziennik zdarzeń");
     root.innerHTML = `
       <div class="game-chat__frame" data-chat-frame>
+        <span class="game-chat__corner game-chat__corner--tl" aria-hidden="true"></span>
+        <span class="game-chat__corner game-chat__corner--br" aria-hidden="true"></span>
         <header class="game-chat__header">
-          <span class="game-chat__sigil" aria-hidden="true">❖</span>
-          <strong class="game-chat__title">Czat</strong>
-          <div class="game-chat__tabs" data-chat-tabs role="tablist" aria-label="Filtry czatu"></div>
-          <button type="button" class="game-chat__collapse" data-chat-collapse aria-label="Zwiń czat" title="Zwiń">▾</button>
+          <div class="game-chat__brand">
+            <span class="game-chat__sigil" aria-hidden="true"><span>ᛟ</span></span>
+            <span class="game-chat__heading">
+              <small class="game-chat__eyebrow">Kroniki świata</small>
+              <strong class="game-chat__title">Czat</strong>
+            </span>
+          </div>
+          <span class="game-chat__header-rule" aria-hidden="true"><i>◆</i></span>
+          <span class="game-chat__presence" title="Połączenie aktywne"><i aria-hidden="true"></i> Aktywny</span>
+          <button type="button" class="game-chat__collapse" data-chat-collapse aria-label="Zwiń czat" title="Zwiń"><span data-collapse-icon>▾</span></button>
         </header>
+        <nav class="game-chat__tabs" data-chat-tabs role="tablist" aria-label="Filtry czatu"></nav>
         <div class="game-chat__body" data-chat-body>
           <div class="game-chat__list" data-chat-list role="log" aria-relevant="additions"></div>
           <form class="game-chat__form" data-chat-form autocomplete="off">
             <label class="visually-hidden" for="game-chat-input">Wiadomość</label>
+            <span class="game-chat__prompt" aria-hidden="true">›</span>
             <input
               id="game-chat-input"
               class="game-chat__input"
@@ -100,7 +117,8 @@ export class GameChat {
               autocomplete="off"
               placeholder="Enter — napisz wiadomość…"
             />
-            <button type="submit" class="game-chat__send" aria-label="Wyślij">➤</button>
+            <kbd class="game-chat__enter-hint" aria-hidden="true">ENTER</kbd>
+            <button type="submit" class="game-chat__send" aria-label="Wyślij"><span aria-hidden="true">➤</span></button>
           </form>
         </div>
       </div>
@@ -230,7 +248,13 @@ export class GameChat {
         "aria-selected",
         tab.id === this.filter ? "true" : "false",
       );
-      button.textContent = tab.label;
+      const mark = document.createElement("span");
+      mark.className = "game-chat__tab-mark";
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = FILTER_MARKS[tab.id];
+      const label = document.createElement("span");
+      label.textContent = tab.label;
+      button.append(mark, label);
       if (tab.id === this.filter) button.classList.add("is-active");
       button.addEventListener("click", () => this.setFilter(tab.id));
       this.tabsEl.appendChild(button);
@@ -255,18 +279,36 @@ export class GameChat {
 
   private renderLines(): void {
     this.listEl.replaceChildren();
+    let visibleLines = 0;
     for (const line of this.lines) {
       if (!this.matchesFilter(line.channel)) continue;
       this.appendDomLine(line);
+      visibleLines += 1;
+    }
+    if (visibleLines === 0) {
+      const empty = document.createElement("div");
+      empty.className = "game-chat__empty";
+      empty.innerHTML = `
+        <span aria-hidden="true">ᚷ</span>
+        <strong>Brak nowych wpisów</strong>
+        <small>Wieści z tego kanału pojawią się tutaj</small>
+      `;
+      this.listEl.appendChild(empty);
     }
     this.stickToBottom = true;
     this.scrollIfSticky();
   }
 
   private appendDomLine(line: ChatLine): void {
+    this.listEl.querySelector(".game-chat__empty")?.remove();
     const row = document.createElement("div");
     row.className = `game-chat__line game-chat__line--${line.channel}`;
     row.dataset.channel = line.channel;
+
+    const mark = document.createElement("span");
+    mark.className = "game-chat__line-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = FILTER_MARKS[line.channel];
 
     const time = document.createElement("span");
     time.className = "game-chat__time";
@@ -276,7 +318,7 @@ export class GameChat {
     body.className = "game-chat__text";
     body.textContent = line.text;
 
-    row.append(time, body);
+    row.append(mark, time, body);
     this.listEl.appendChild(row);
   }
 
@@ -290,8 +332,12 @@ export class GameChat {
     const btn = this.root.querySelector(
       "[data-chat-collapse]",
     ) as HTMLButtonElement;
-    btn.textContent = this.collapsed ? "▸" : "▾";
-    btn.setAttribute("aria-label", this.collapsed ? "Rozwiń czat" : "Zwiń czat");
+    const icon = btn.querySelector("[data-collapse-icon]");
+    if (icon) icon.textContent = this.collapsed ? "▸" : "▾";
+    btn.setAttribute(
+      "aria-label",
+      this.collapsed ? "Rozwiń czat" : "Zwiń czat",
+    );
     btn.title = this.collapsed ? "Rozwiń" : "Zwiń";
   }
 
@@ -306,11 +352,11 @@ export class GameChat {
 
 /** Trim, collapse whitespace, strip controls; empty → "". */
 export function sanitizeOutgoing(raw: string): string {
-  return raw
-    .replace(/[\u0000-\u001F\u007F]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  const withoutControls = Array.from(raw, (character) => {
+    const code = character.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f ? "" : character;
+  }).join("");
+  return withoutControls.replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
 export type { ChatChannel, ChatFilter, ChatLine };

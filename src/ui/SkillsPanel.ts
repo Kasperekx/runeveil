@@ -49,29 +49,37 @@ export class SkillsPanel {
     root.setAttribute("aria-label", "Umiejętności");
     root.innerHTML = `
       <div class="skills-panel__frame">
-        <div class="skills-panel__ornament skills-panel__ornament--tl" aria-hidden="true"></div>
-        <div class="skills-panel__ornament skills-panel__ornament--tr" aria-hidden="true"></div>
-        <div class="skills-panel__ornament skills-panel__ornament--bl" aria-hidden="true"></div>
-        <div class="skills-panel__ornament skills-panel__ornament--br" aria-hidden="true"></div>
+        <span class="skills-panel__corner skills-panel__corner--tl" aria-hidden="true"></span>
+        <span class="skills-panel__corner skills-panel__corner--br" aria-hidden="true"></span>
         <header class="skills-panel__header" data-header>
-          <span class="skills-panel__sigil" aria-hidden="true">ᚱ</span>
-          <h2 class="skills-panel__title">Umiejętności</h2>
-          <button type="button" class="skills-panel__close" data-close aria-label="Zamknij">×</button>
+          <div class="skills-panel__brand">
+            <span class="skills-panel__sigil" aria-hidden="true"><span>ᚱ</span></span>
+            <div>
+              <span class="skills-panel__header-eyebrow">Arsenał bohatera</span>
+              <h2 class="skills-panel__title">Księga umiejętności</h2>
+            </div>
+          </div>
+          <div class="skills-panel__header-rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="skills-panel__close" data-close aria-label="Zamknij"><span>×</span></button>
         </header>
         <div class="skills-panel__body">
-          <div class="skills-panel__list-wrap">
-            <h3 class="skills-panel__section-title">Księga</h3>
-            <p class="skills-panel__class" data-class></p>
+          <section class="skills-panel__list-wrap">
+            <div class="skills-panel__section-heading">
+              <div><span>Dyscyplina</span><h3>Znane techniki</h3></div>
+              <p class="skills-panel__class" data-class></p>
+            </div>
             <div class="skills-panel__list" data-list role="listbox" aria-label="Lista umiejętności"></div>
-          </div>
-          <div class="skills-panel__detail-wrap">
-            <h3 class="skills-panel__section-title">Szczegóły</h3>
+          </section>
+          <section class="skills-panel__detail-wrap">
+            <div class="skills-panel__section-heading">
+              <div><span>Arsenał</span><h3>Szczegóły techniki</h3></div>
+            </div>
             <div class="skills-panel__detail" data-detail>
               <p class="skills-panel__empty">Wybierz umiejętność.</p>
             </div>
-          </div>
+          </section>
         </div>
-        <p class="skills-panel__hint">Przeciągnij umiejętność na pasek akcji, aby ją przypisać.</p>
+        <p class="skills-panel__hint"><span aria-hidden="true">↗</span><strong>Przeciągnij technikę</strong> na pasek akcji, aby ją przypisać.</p>
       </div>
     `;
     host.appendChild(root);
@@ -183,6 +191,7 @@ export class SkillsPanel {
         <span class="skills-panel__row-name">${escapeHtml(skill.name)}</span>
         <span class="skills-panel__row-meta">Ranga ${skill.rank} · ${escapeHtml(skill.schoolLabel)}</span>
       </span>
+      <span class="skills-panel__row-chevron" aria-hidden="true">›</span>
     `;
 
     row.addEventListener("click", () => {
@@ -216,35 +225,34 @@ export class SkillsPanel {
         ? `+${this.stats.weaponDamageMin}`
         : `${this.stats.weaponDamageMin}–${this.stats.weaponDamageMax}`;
     const resourceKind = getClass(this.stats.classId).resource;
-    const costLabel =
+    const resourceLabel =
       skill.resourceCost > 0 && resourceKind !== "none"
-        ? `<span>${skill.resourceCost} ${RESOURCE_LABELS[parseResourceKind(resourceKind)]}</span>`
-        : "";
+        ? `${skill.resourceCost} ${RESOURCE_LABELS[parseResourceKind(resourceKind)]}`
+        : "Brak";
 
     this.detailEl.innerHTML = `
       <div class="skills-panel__detail-hero">
-        <img class="skills-panel__detail-icon" src="/${skill.icon}" alt="" />
+        <span class="skills-panel__detail-icon-wrap"><img class="skills-panel__detail-icon" src="/${skill.icon}" alt="" /></span>
         <div>
+          <p class="skills-panel__detail-eyebrow">Technika bojowa</p>
           <h3 class="skills-panel__detail-name">${escapeHtml(skill.name)}</h3>
           <p class="skills-panel__detail-tags">
             <span>${escapeHtml(skill.schoolLabel)}</span>
             <span>Ranga ${skill.rank}</span>
-            <span>${(skill.cooldownMs / 1000).toFixed(0)} s odnowienia</span>
-            ${skill.requiresTarget ? "<span>Wymaga celu</span>" : ""}
-            ${costLabel}
           </p>
         </div>
       </div>
       <p class="skills-panel__detail-desc">${escapeHtml(skill.description)}</p>
-
-
-      <p class="skills-panel__power">
-        Szacowane obrażenia:
-        <strong>${range.min}–${range.max}</strong>
-        <span class="skills-panel__power-sub">
-          (Siła ${this.stats.strength} · Broń ${weaponLabel})
-        </span>
-      </p>
+      <dl class="skills-panel__combat-stats">
+        <div><dt>Odnowienie</dt><dd>${(skill.cooldownMs / 1000).toFixed(0)} s</dd></div>
+        <div><dt>Koszt</dt><dd>${resourceLabel}</dd></div>
+        <div><dt>Cel</dt><dd>${skill.requiresTarget ? "Wymagany" : "Dowolny"}</dd></div>
+      </dl>
+      <div class="skills-panel__power">
+        <span class="skills-panel__power-mark" aria-hidden="true">⚔</span>
+        <span><small>Szacowane obrażenia</small><strong>${range.min}–${range.max}</strong></span>
+        <span class="skills-panel__power-sub">Siła ${this.stats.strength} · Broń ${weaponLabel}</span>
+      </div>
     `;
   }
 }

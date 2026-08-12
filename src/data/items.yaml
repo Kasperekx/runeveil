@@ -355,7 +355,7 @@ items:
     description: |
       Surowy kawałek miedzi wydarty ze skały.
       Przyda się przy kuźni, gdy nadejdzie czas wytopu.
-    icon: assets/items/copper-ore.png
+    icon: assets/props/copper-ore.png
     type: material
     typeLabel: Materiał
     rarity: common
