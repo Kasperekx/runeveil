@@ -213,6 +213,84 @@
                  "width":128,
                  "x":1076,
                  "y":652.8
+                },
+                {
+                 "gid":7,
+                 "height":128,
+                 "id":24,
+                 "name":"forest-spruce-north-west",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"prop",
+                 "visible":true,
+                 "width":128,
+                 "x":6,
+                 "y":107.8
+                },
+                {
+                 "gid":7,
+                 "height":128,
+                 "id":25,
+                 "name":"forest-spruce-north",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"prop",
+                 "visible":true,
+                 "width":128,
+                 "x":671,
+                 "y":82.8
+                },
+                {
+                 "gid":8,
+                 "height":128,
+                 "id":26,
+                 "name":"dead-tree-west",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"prop",
+                 "visible":true,
+                 "width":128,
+                 "x":6,
+                 "y":352.8
+                },
+                {
+                 "gid":8,
+                 "height":128,
+                 "id":27,
+                 "name":"dead-tree-north-east",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"prop",
+                 "visible":true,
+                 "width":128,
+                 "x":976,
+                 "y":92.8
+                },
+                {
+                 "gid":9,
+                 "height":128,
+                 "id":28,
+                 "name":"green-oak-east",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"prop",
+                 "visible":true,
+                 "width":128,
+                 "x":1146,
+                 "y":342.8
+                },
+                {
+                 "gid":9,
+                 "height":128,
+                 "id":29,
+                 "name":"green-oak-south",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"prop",
+                 "visible":true,
+                 "width":128,
+                 "x":736,
+                 "y":677.8
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -474,7 +552,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":24,
+ "nextobjectid":30,
  "orientation":"orthogonal",
  "properties":[
         {
@@ -536,7 +614,7 @@
          "name":"world-props",
          "objectalignment":"bottomleft",
          "spacing":0,
-         "tilecount":5,
+         "tilecount":8,
          "tileheight":240,
          "tiles":[
                 {
@@ -597,6 +675,42 @@
                          "name":"propType",
                          "type":"string",
                          "value":"medieval-tavern"
+                        }]
+                },
+                {
+                 "id":5,
+                 "image":"..\/assets\/environment\/tree-spike.png",
+                 "imageheight":128,
+                 "imagewidth":128,
+                 "properties":[
+                        {
+                         "name":"propType",
+                         "type":"string",
+                         "value":"forest-spruce"
+                        }]
+                },
+                {
+                 "id":6,
+                 "image":"..\/assets\/environment\/tree-alone.png",
+                 "imageheight":128,
+                 "imagewidth":128,
+                 "properties":[
+                        {
+                         "name":"propType",
+                         "type":"string",
+                         "value":"dead-tree"
+                        }]
+                },
+                {
+                 "id":7,
+                 "image":"..\/assets\/environment\/tree-oak.png",
+                 "imageheight":128,
+                 "imagewidth":128,
+                 "properties":[
+                        {
+                         "name":"propType",
+                         "type":"string",
+                         "value":"green-oak"
                         }]
                 }],
          "tilewidth":256

@@ -307,6 +307,26 @@ items:
     buyPrice: 75
     sellPrice: 25
 
+  steel_longsword:
+    name: Stalowy miecz długi
+    description: |
+      Prosta, obosieczna klinga ze stali kupieckiej.
+      Dłuższy od krótkiego miecza, a wciąż wygodny
+      w jednej dłoni — solidny wybór na szlak.
+    icon: assets/items/steel-longsword.png?v=1
+    type: weapon
+    typeLabel: Broń
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: false
+    maxStack: 1
+    slot: mainHand
+    damageMin: 9
+    damageMax: 14
+    maxDurability: 110
+    buyPrice: 120
+    sellPrice: 40
+
   iron_greatsword:
     name: Żelazny miecz dwuręczny
     description: |

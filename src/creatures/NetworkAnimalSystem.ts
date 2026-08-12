@@ -23,6 +23,7 @@ export class NetworkAnimalSystem {
   private readonly lootById = new Map<string, ItemSnapshot[]>();
   private readonly lootKeyById = new Map<string, string>();
   private selectedId: string | null = null;
+  private lootHoverId: string | null = null;
 
   constructor(
     private readonly app: Application,
@@ -53,6 +54,24 @@ export class NetworkAnimalSystem {
       this.views.get(id)?.setSelected(true);
     }
     this.onSelectionChange?.(this.getSelectedVitals());
+  }
+
+  /** Soft loot highlight under the mouse (corpse with remaining items). */
+  setLootHover(id: string | null): void {
+    if (this.lootHoverId === id) return;
+    if (this.lootHoverId) {
+      this.views.get(this.lootHoverId)?.setLootHover(false);
+    }
+    this.lootHoverId = id;
+    if (id) {
+      this.views.get(id)?.setLootHover(true);
+    }
+  }
+
+  hasLoot(id: string): boolean {
+    return this.getLoot(id).some(
+      (slot) => Boolean(slot.itemId) && slot.quantity > 0,
+    );
   }
 
   getSelectedVitals(): {
@@ -181,6 +200,28 @@ export class NetworkAnimalSystem {
     return best;
   }
 
+  /** Corpse under the cursor that still has loot to take. */
+  findNearestLootableCorpse(
+    worldX: number,
+    worldY: number,
+    maxDist: number,
+  ): { id: string; x: number; y: number; kind: string } | null {
+    let best: { id: string; x: number; y: number; kind: string } | null = null;
+    let bestDist = maxDist;
+
+    for (const view of this.views.values()) {
+      if (!view.isCorpse) continue;
+      if (!this.hasLoot(view.id)) continue;
+      const { x, y } = view.position;
+      const dist = Math.hypot(x - worldX, y - worldY);
+      if (dist > bestDist) continue;
+      bestDist = dist;
+      best = { id: view.id, x, y, kind: view.kind };
+    }
+
+    return best;
+  }
+
   /**
    * Slide move: full vector, then X-only, then Y-only against animal circles.
    */
@@ -248,6 +289,13 @@ export class NetworkAnimalSystem {
       view.setServerState(snap.x, snap.y, snap.alive, snap.hp, snap.maxHp);
       const lootKey = JSON.stringify(snap.loot);
       this.lootById.set(snap.id, snap.loot);
+      view.setLootable(
+        !snap.alive &&
+          snap.loot.some((slot) => Boolean(slot.itemId) && slot.quantity > 0),
+      );
+      if (this.lootHoverId === snap.id && !this.hasLoot(snap.id)) {
+        this.setLootHover(null);
+      }
       if (this.lootKeyById.get(snap.id) !== lootKey) {
         this.lootKeyById.set(snap.id, lootKey);
         this.onLootChange?.(snap.id, snap.kind, snap.loot);
@@ -258,6 +306,7 @@ export class NetworkAnimalSystem {
     for (const [id, view] of this.views) {
       if (seen.has(id)) continue;
       if (this.selectedId === id) this.selectedId = null;
+      if (this.lootHoverId === id) this.lootHoverId = null;
       view.destroy();
       this.views.delete(id);
       this.lootById.delete(id);

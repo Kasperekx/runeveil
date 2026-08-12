@@ -290,6 +290,11 @@ body {
   height: 100%;
 }
 
+/* Loot cursor from small-backpack icon (hotspot near top center of bag). */
+#pixi-container canvas.cursor-loot {
+  cursor: url("/assets/ui/cursor-loot.png") 16 6, pointer !important;
+}
+
 /*
  * HUD scale layer. The element is sized to viewport/scale and then scaled back
  * up from its top-left, so the scaled box still covers exactly one viewport.
@@ -3218,6 +3223,59 @@ body {
   overflow: hidden;
 }
 
+.player-hud__resource {
+  position: relative;
+  margin-top: 3px;
+  height: 13px;
+  background: linear-gradient(180deg, #050706 0%, #0c1210 100%);
+  border: 1px solid #2a332c;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.65),
+    inset 0 2px 4px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.player-hud__resource[hidden] {
+  display: none;
+}
+
+.player-hud__resource-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(180deg, #e05a3a 0%, #a02818 45%, #6a140c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 180, 140, 0.35);
+  transition: width 0.12s linear;
+}
+
+.player-hud__resource-fill[data-kind="mana"] {
+  background: linear-gradient(180deg, #5a8ae0 0%, #2848a0 45%, #14286a 100%);
+  box-shadow: inset 0 1px 0 rgba(160, 200, 255, 0.35);
+}
+
+.player-hud__resource-fill[data-kind="energy"] {
+  background: linear-gradient(180deg, #e0d05a 0%, #a08818 45%, #6a5a0c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 160, 0.35);
+}
+
+.player-hud__resource-text {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff6e8;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 0 2px #000,
+    0 1px 2px #000;
+  pointer-events: none;
+}
+
 /*
  * Lags behind the live fill after a hit, so the chunk just lost stays visible
  * for a moment. Delay first, then drain.
@@ -5816,6 +5874,16 @@ body {
 .action-bar__slot--denied {
   animation: action-bar-deny 180ms ease;
   border-color: #c86a58;
+}
+
+/* Not enough rage/mana — WoW-style desaturated icon. */
+.action-bar__slot--unusable .action-bar__icon {
+  filter: grayscale(1) brightness(0.55);
+  opacity: 0.72;
+}
+
+.action-bar__slot--unusable {
+  border-color: #4a4538;
 }
 
 .action-bar__xp {

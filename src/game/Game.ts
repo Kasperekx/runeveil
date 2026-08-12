@@ -6,6 +6,7 @@ import type { GameAccess } from "../auth/types";
 import { clearLastCharacter } from "../auth/lastCharacter";
 import { NetworkAnimalSystem } from "../creatures/NetworkAnimalSystem";
 import { Environment } from "../environment/Environment";
+import { parseResourceKind } from "../config/resource";
 import { KeyboardInput } from "../input/KeyboardInput";
 import { Inventory } from "../inventory/Inventory";
 import { getItem, hasItem, loadItemCatalog } from "../items/catalog";
@@ -112,6 +113,8 @@ const NOTICE_COPY: Record<string, string> = {
   respawn_too_soon: "Nie możesz jeszcze powrócić do schronienia.",
   repair_unavailable: "Ten NPC nie świadczy usług naprawy.",
   nothing_to_repair: "Twój ekwipunek nie wymaga naprawy.",
+  not_enough_resource: "Za mało zasobu.",
+  not_enough_rage: "Za mało wściekłości.",
   chat_rate_limited: "Piszesz zbyt szybko. Odczekaj chwilę.",
   chat_invalid: "Wiadomość jest pusta lub niedozwolona.",
 };
@@ -286,6 +289,11 @@ export class Game {
     let combat: PlayerCombat | null = null;
     let systemMenu: SystemMenu | null = null;
     let animalsRef: NetworkAnimalSystem | null = null;
+    let playerResource = {
+      kind: "none" as string,
+      resource: 0,
+      maxResource: 0,
+    };
     const actionBar = ActionBar.create(
       bag,
       (inventoryIndex) => network.useItem(inventoryIndex),
@@ -308,6 +316,18 @@ export class Game {
             toast.show(NOTICE_COPY.out_of_range);
             return false;
           }
+        }
+
+        if (
+          skill.resourceCost > 0 &&
+          playerResource.resource < skill.resourceCost
+        ) {
+          toast.show(
+            playerResource.kind === "rage"
+              ? NOTICE_COPY.not_enough_rage
+              : NOTICE_COPY.not_enough_resource,
+          );
+          return false;
         }
 
         if (target) player.faceToward(target.x, target.y);
@@ -342,6 +362,17 @@ export class Game {
       playerHud.setLevel(snap.level);
       playerHud.setPortrait(cls.portrait);
       playerHud.setVitals({ hp: snap.hp, maxHp: snap.maxHp });
+      playerHud.setResource({
+        kind: parseResourceKind(snap.resourceKind),
+        resource: snap.resource,
+        maxResource: snap.maxResource,
+      });
+      playerResource = {
+        kind: snap.resourceKind,
+        resource: snap.resource,
+        maxResource: snap.maxResource,
+      };
+      actionBar.setResource(snap.resource);
       setDeathState(snap.hp <= 0);
       actionBar.setProgress({
         level: snap.level,
@@ -429,6 +460,15 @@ export class Game {
     network.onVitalsChange = (hp, maxHp) => {
       playerHud.setVitals({ hp, maxHp });
       setDeathState(hp <= 0);
+    };
+    network.onResourceChange = (state) => {
+      playerResource = state;
+      playerHud.setResource({
+        kind: parseResourceKind(state.kind),
+        resource: state.resource,
+        maxResource: state.maxResource,
+      });
+      actionBar.setResource(state.resource);
     };
     network.onSheetChange = (snap) => applySheet(snap);
     network.onItemUsed = (event) => {
@@ -523,7 +563,10 @@ export class Game {
       if (CRAFT_REJECTION_NOTICES.has(event.kind)) {
         professionsPanel.cancelCraft();
       }
-      const message = NOTICE_COPY[event.kind];
+      const message =
+        event.kind === "not_enough_resource" && playerResource.kind === "rage"
+          ? NOTICE_COPY.not_enough_rage
+          : NOTICE_COPY[event.kind];
       if (message) {
         toast.show(message);
         logSystem(message);

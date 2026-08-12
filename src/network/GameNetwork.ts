@@ -46,6 +46,10 @@ export interface NetworkPlayerSnapshot {
   gold: number;
   /** Attribute points waiting to be spent after level-ups. */
   unspentAttrPoints: number;
+  /** Class combat resource kind (`none` / `rage` / `mana` / `energy`). */
+  resourceKind: string;
+  resource: number;
+  maxResource: number;
   professions: ProfessionSnapshot[];
   quests: QuestSnapshot[];
   slots: Array<ItemSnapshot>;
@@ -310,6 +314,9 @@ interface RoomPlayerLike {
   armor: number;
   gold: number;
   unspentAttrPoints: number;
+  resourceKind?: string;
+  resource?: number;
+  maxResource?: number;
   professions: ArrayLike<{
     professionId: string;
     level: number;
@@ -404,6 +411,7 @@ export class GameNetwork {
   private moveTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSlotsKey = "";
   private lastVitalsKey = "";
+  private lastResourceKey = "";
   private lastSheetKey = "";
   private lastBagsKey = "";
   /** Last observed own HP; used to detect soft-death revive teleports. */
@@ -423,6 +431,14 @@ export class GameNetwork {
 
   /** Fires when own HP / maxHP changes. */
   onVitalsChange: ((hp: number, maxHp: number) => void) | null = null;
+  /** Fires when class combat resource (rage/mana/energy) changes. */
+  onResourceChange:
+    | ((state: {
+        kind: string;
+        resource: number;
+        maxResource: number;
+      }) => void)
+    | null = null;
   /** Fires when character sheet fields change. */
   onSheetChange: ((snap: NetworkPlayerSnapshot) => void) | null = null;
   /** Fires after the server accepted a use and consumed the item. */
@@ -529,6 +545,7 @@ export class GameNetwork {
       this.pullServerInventory();
       this.pullOwnBags();
       this.pullOwnVitals();
+      this.pullOwnResource();
       this.pullOwnSheet();
     });
 
@@ -691,6 +708,7 @@ export class GameNetwork {
     this.applyServerBags(snapshot.bags);
     this.lastHp = snapshot.hp;
     this.lastVitalsKey = `${snapshot.hp}:${snapshot.maxHp}`;
+    this.lastResourceKey = `${snapshot.resourceKind}:${snapshot.resource}:${snapshot.maxResource}`;
     this.lastSheetKey = sheetKey(snapshot);
     if (!snapshot.isNew) {
       this.player.setPosition(snapshot.x, snapshot.y);
@@ -698,6 +716,11 @@ export class GameNetwork {
       this.scheduleSave();
     }
     this.onVitalsChange?.(snapshot.hp, snapshot.maxHp);
+    this.onResourceChange?.({
+      kind: snapshot.resourceKind,
+      resource: snapshot.resource,
+      maxResource: snapshot.maxResource,
+    });
     this.onSheetChange?.(snapshot);
   }
 
@@ -1093,6 +1116,19 @@ export class GameNetwork {
     this.lastHp = snap.hp;
   }
 
+  private pullOwnResource(): void {
+    const snap = this.readOwnSnapshot();
+    if (!snap) return;
+    const key = `${snap.resourceKind}:${snap.resource}:${snap.maxResource}`;
+    if (key === this.lastResourceKey) return;
+    this.lastResourceKey = key;
+    this.onResourceChange?.({
+      kind: snap.resourceKind,
+      resource: snap.resource,
+      maxResource: snap.maxResource,
+    });
+  }
+
   private pullOwnSheet(): void {
     const snap = this.readOwnSnapshot();
     if (!snap) return;
@@ -1292,6 +1328,9 @@ export class GameNetwork {
       armor: mine.armor ?? 0,
       gold: mine.gold ?? 0,
       unspentAttrPoints: mine.unspentAttrPoints ?? 0,
+      resourceKind: mine.resourceKind || "none",
+      resource: Math.max(0, Math.floor(mine.resource ?? 0)),
+      maxResource: Math.max(0, Math.floor(mine.maxResource ?? 0)),
       professions,
       quests,
       slots,
@@ -1317,6 +1356,9 @@ function sheetKey(snap: NetworkPlayerSnapshot): string {
     armor: snap.armor,
     gold: snap.gold,
     unspentAttrPoints: snap.unspentAttrPoints,
+    resourceKind: snap.resourceKind,
+    resource: snap.resource,
+    maxResource: snap.maxResource,
     strength: snap.strength,
     agility: snap.agility,
     stamina: snap.stamina,

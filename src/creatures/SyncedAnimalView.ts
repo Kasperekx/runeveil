@@ -25,6 +25,7 @@ export class SyncedAnimalView {
   private readonly root: Container;
   private readonly sprite: Sprite;
   private readonly selection: Graphics;
+  private readonly lootSparkles: Graphics;
   private readonly nameLabel: Text;
   private readonly hpBack: Graphics;
   private readonly hpFill: Graphics;
@@ -33,6 +34,9 @@ export class SyncedAnimalView {
   private readonly animFps: number;
   private alive = true;
   private selected = false;
+  private lootable = false;
+  private lootHovered = false;
+  private lootPulse = 0;
   private hp = 1;
   private maxHp = 1;
   private facing: CreatureFacing = "right";
@@ -84,6 +88,10 @@ export class SyncedAnimalView {
     this.sprite.anchor.set(0.5);
     this.sprite.roundPixels = true;
     this.root.addChild(this.sprite);
+
+    this.lootSparkles = new Graphics();
+    this.lootSparkles.visible = false;
+    this.root.addChild(this.lootSparkles);
 
     this.nameLabel = new Text({
       text: getCreatureName(kind),
@@ -155,6 +163,21 @@ export class SyncedAnimalView {
     this.redrawHp();
   }
 
+  /** True while corpse still has uncollected loot. */
+  setLootable(lootable: boolean): void {
+    if (this.lootable === lootable) return;
+    this.lootable = lootable;
+    if (!lootable) this.lootHovered = false;
+    this.syncLootVisuals();
+  }
+
+  /** Mouse over a lootable corpse — brighter sparkles. */
+  setLootHover(hovered: boolean): void {
+    if (this.lootHovered === hovered) return;
+    this.lootHovered = hovered;
+    this.syncLootVisuals();
+  }
+
   /** Push latest networked pose — does not snap the sprite. */
   setServerState(
     x: number,
@@ -179,6 +202,8 @@ export class SyncedAnimalView {
         this.lastTextureKey = "";
         this.moving = false;
         this.sprite.angle = 0;
+        this.lootable = false;
+        this.lootHovered = false;
       } else {
         this.selection.visible = false;
         this.moving = false;
@@ -196,6 +221,7 @@ export class SyncedAnimalView {
     this.selection.visible = this.selected && this.alive;
     this.redrawHp();
     this.syncNameVisibility();
+    this.syncLootVisuals();
   }
 
   /** Frame update: smooth toward server target + walk cycle. */
@@ -204,6 +230,10 @@ export class SyncedAnimalView {
 
     if (!this.alive) {
       this.moving = false;
+      if (this.lootable) {
+        this.lootPulse += dt;
+        this.redrawLootSparkles();
+      }
       return;
     }
 
@@ -260,6 +290,63 @@ export class SyncedAnimalView {
 
   private syncNameVisibility(): void {
     this.nameLabel.visible = this.alive;
+  }
+
+  private syncLootVisuals(): void {
+    const show = !this.alive && this.lootable;
+    this.lootSparkles.visible = show;
+    if (show) this.redrawLootSparkles();
+    else this.lootSparkles.clear();
+  }
+
+  private redrawLootSparkles(): void {
+    const hover = this.lootHovered;
+    const t = this.lootPulse;
+    // Body-centered sparkles (not a ground ring).
+    const sparks = hover
+      ? [
+          [-12, -18, 1.15],
+          [10, -22, 1.0],
+          [0, -28, 1.35],
+          [-16, -6, 0.9],
+          [14, -8, 1.05],
+          [4, -14, 0.8],
+        ]
+      : [
+          [-10, -18, 1.0],
+          [9, -24, 1.15],
+          [0, -12, 0.85],
+          [12, -8, 0.95],
+        ];
+
+    this.lootSparkles.clear();
+    for (const [sx, sy, size] of sparks) {
+      const twinkle = 0.45 + 0.55 * Math.sin(t * 4.2 + sx! * 0.35 + sy! * 0.2);
+      const alpha = (hover ? 0.95 : 0.72) * twinkle;
+      const arm = (hover ? 3.2 : 2.6) * size!;
+      this.drawLootSpark(sx!, sy!, arm, alpha);
+    }
+  }
+
+  /** Classic 4-point sparkle (WoW corpse glitter). */
+  private drawLootSpark(x: number, y: number, arm: number, alpha: number): void {
+    const color = 0xfff1b0;
+    const core = 0xffffff;
+    this.lootSparkles
+      .moveTo(x, y - arm)
+      .lineTo(x + arm * 0.28, y)
+      .lineTo(x, y + arm)
+      .lineTo(x - arm * 0.28, y)
+      .closePath()
+      .fill({ color, alpha })
+      .moveTo(x - arm, y)
+      .lineTo(x, y + arm * 0.28)
+      .lineTo(x + arm, y)
+      .lineTo(x, y - arm * 0.28)
+      .closePath()
+      .fill({ color, alpha: alpha * 0.9 })
+      .circle(x, y, Math.max(0.7, arm * 0.22))
+      .fill({ color: core, alpha: Math.min(1, alpha + 0.15) });
   }
 
   private redrawHp(): void {

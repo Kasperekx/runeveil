@@ -102,6 +102,17 @@ import {
   skillDamageRange,
   skillUsableByClass,
 } from "../world/skillConfig.js";
+import {
+  RAGE_DECAY_DELAY_MS,
+  RAGE_DECAY_PER_SEC,
+  RAGE_ON_AUTO_ATTACK,
+  RAGE_ON_DAMAGE_TAKEN,
+  RAGE_ON_SKILL_HIT,
+  clampResource,
+  maxResourceFor,
+  parseResourceKind,
+  type ResourceKind,
+} from "../world/resourceConfig.js";
 import { cloneShopStock, getNpcConfig } from "../world/npcConfig.js";
 import {
   markCharacterOffline,
@@ -362,6 +373,12 @@ export class WorldRoom extends Room {
   private readonly depletedNodes = new Map<string, number>();
   /** sessionId → last time the player took creature damage. */
   private readonly lastDamageAt = new Map<string, number>();
+  /** sessionId → last rage generation (combat clock for OOC decay). */
+  private readonly lastRageCombatAt = new Map<string, number>();
+  /** sessionId → last rage decay sample timestamp. */
+  private readonly lastRageDecayAt = new Map<string, number>();
+  /** sessionId → fractional rage debt waiting to be applied. */
+  private readonly rageDecayCarry = new Map<string, number>();
   /** sessionId → last OOC regen tick. */
   private readonly lastRegenTickAt = new Map<string, number>();
   /** Sessions whose zero-HP transition has already paid the death penalty. */
@@ -396,7 +413,10 @@ export class WorldRoom extends Room {
     this.animalAi.onPlayerDamaged = (sessionId, amount, animalId) => {
       this.lastDamageAt.set(sessionId, Date.now());
       const player = this.state.players.get(sessionId);
-      if (player) this.damageArmorFromHit(player, sessionId);
+      if (player) {
+        this.damageArmorFromHit(player, sessionId);
+        this.gainResource(player, sessionId, RAGE_ON_DAMAGE_TAKEN);
+      }
       const animal = this.state.animals.get(animalId);
       this.clients
         .find((c) => c.sessionId === sessionId)
@@ -439,6 +459,8 @@ export class WorldRoom extends Room {
           this.clearSkillCooldowns(sessionId);
           this.craftReadyAt.delete(sessionId);
           this.miningChannels.delete(sessionId);
+          this.lastRageCombatAt.delete(sessionId);
+          this.lastRageDecayAt.delete(sessionId);
           this.deadSessions.delete(sessionId);
           this.diedAt.delete(sessionId);
         }
@@ -496,6 +518,9 @@ export class WorldRoom extends Room {
     }
     this.attackReadyAt.delete(client.sessionId);
     this.lastDamageAt.delete(client.sessionId);
+    this.lastRageCombatAt.delete(client.sessionId);
+    this.lastRageDecayAt.delete(client.sessionId);
+    this.rageDecayCarry.delete(client.sessionId);
     this.lastRegenTickAt.delete(client.sessionId);
     this.clearItemUseCooldowns(client.sessionId);
     this.clearSkillCooldowns(client.sessionId);
@@ -718,6 +743,7 @@ export class WorldRoom extends Room {
         animal,
         rollDamageRange(player.damageMin, player.damageMax),
       );
+      this.gainResource(player, client.sessionId, RAGE_ON_AUTO_ATTACK);
       this.damageWeaponFromAction(player, client.sessionId);
     },
 
@@ -756,6 +782,13 @@ export class WorldRoom extends Room {
       const now = Date.now();
       const cdKey = `${client.sessionId}:${data.skillId}`;
       if (now < (this.skillReadyAt.get(cdKey) ?? 0)) return;
+
+      // Spend resource before committing cooldown / swing (fail closed).
+      if (!this.trySpendResource(player, client.sessionId, skill.resourceCost)) {
+        client.send("notice", { kind: "not_enough_resource" });
+        return;
+      }
+
       this.skillReadyAt.set(cdKey, now + skill.cooldownMs);
 
       let aimX: number;
@@ -806,14 +839,19 @@ export class WorldRoom extends Room {
         victims.push(animal);
       }
 
+      let hitAny = false;
       for (const animal of victims) {
         if (!animal.alive) continue;
+        hitAny = true;
         this.applyAnimalHit(
           client,
           player,
           animal,
           rollDamageRange(skillRange.min, skillRange.max),
         );
+      }
+      if (hitAny) {
+        this.gainResource(player, client.sessionId, RAGE_ON_SKILL_HIT);
       }
       this.damageWeaponFromAction(player, client.sessionId);
     },
@@ -1842,6 +1880,7 @@ export class WorldRoom extends Room {
       );
     }
     this.tickPlayerRegen(now);
+    this.tickResourceDecay(now);
     this.resolvePlayerDeaths(now);
     this.tickMiningRespawns(now);
     this.tickFoodBuffs(now);
@@ -1907,6 +1946,103 @@ export class WorldRoom extends Room {
     });
   }
 
+  private initPlayerResource(player: PlayerState, classId: string): void {
+    const kind = parseResourceKind(getClass(classId).resource);
+    player.resourceKind = kind;
+    player.maxResource = maxResourceFor(kind);
+    player.resource = 0;
+  }
+
+  private gainResource(
+    player: PlayerState,
+    sessionId: string,
+    amount: number,
+  ): void {
+    const kind = parseResourceKind(player.resourceKind) as ResourceKind;
+    if (kind !== "rage" || amount <= 0) return;
+    if (player.hp <= 0) return;
+
+    const max = Math.max(0, player.maxResource || maxResourceFor(kind));
+    const next = clampResource(player.resource + amount, max);
+    if (next === player.resource) {
+      // Still refresh combat clock at cap so decay doesn't start mid-fight.
+      this.lastRageCombatAt.set(sessionId, Date.now());
+      return;
+    }
+    player.resource = next;
+    this.lastRageCombatAt.set(sessionId, Date.now());
+    this.lastRageDecayAt.delete(sessionId);
+    this.rageDecayCarry.delete(sessionId);
+  }
+
+  private trySpendResource(
+    player: PlayerState,
+    sessionId: string,
+    cost: number,
+  ): boolean {
+    const need = Math.max(0, Math.floor(cost));
+    if (need <= 0) return true;
+    const kind = parseResourceKind(player.resourceKind);
+    if (kind === "none") return need <= 0;
+    if (player.resource < need) return false;
+    player.resource = clampResource(player.resource - need, player.maxResource);
+    // Spending is a combat action — delay OOC decay.
+    if (kind === "rage") {
+      this.lastRageCombatAt.set(sessionId, Date.now());
+      this.lastRageDecayAt.delete(sessionId);
+      this.rageDecayCarry.delete(sessionId);
+    }
+    return true;
+  }
+
+  private clearResource(player: PlayerState, sessionId: string): void {
+    if (player.resource !== 0) player.resource = 0;
+    this.lastRageCombatAt.delete(sessionId);
+    this.lastRageDecayAt.delete(sessionId);
+    this.rageDecayCarry.delete(sessionId);
+  }
+
+  /**
+   * WoW-style trickle: after an OOC delay, drain a few points per second.
+   * Fractional carry avoids dumping whole points every sim tick.
+   */
+  private tickResourceDecay(now: number): void {
+    for (const [sessionId, player] of this.state.players) {
+      if (parseResourceKind(player.resourceKind) !== "rage") continue;
+      if (player.resource <= 0 || player.hp <= 0) {
+        this.rageDecayCarry.delete(sessionId);
+        continue;
+      }
+
+      const lastCombat = this.lastRageCombatAt.get(sessionId) ?? 0;
+      if (now - lastCombat < RAGE_DECAY_DELAY_MS) {
+        this.rageDecayCarry.delete(sessionId);
+        this.lastRageDecayAt.delete(sessionId);
+        continue;
+      }
+
+      const lastTick = this.lastRageDecayAt.get(sessionId) ?? now;
+      this.lastRageDecayAt.set(sessionId, now);
+      const elapsedSec = Math.max(0, (now - lastTick) / 1000);
+      if (elapsedSec <= 0) continue;
+
+      const carry =
+        (this.rageDecayCarry.get(sessionId) ?? 0) +
+        elapsedSec * RAGE_DECAY_PER_SEC;
+      const loss = Math.floor(carry);
+      if (loss <= 0) {
+        this.rageDecayCarry.set(sessionId, carry);
+        continue;
+      }
+
+      this.rageDecayCarry.set(sessionId, carry - loss);
+      player.resource = clampResource(player.resource - loss, player.maxResource);
+      if (player.resource <= 0) {
+        this.rageDecayCarry.delete(sessionId);
+        this.lastRageDecayAt.delete(sessionId);
+      }
+    }
+  }
   private sendLootDropped(
     client: Client,
     animal: AnimalState,
@@ -2070,6 +2206,7 @@ export class WorldRoom extends Room {
       this.clearSkillCooldowns(sessionId);
       this.craftReadyAt.delete(sessionId);
       this.miningChannels.delete(sessionId);
+      this.clearResource(player, sessionId);
 
       const lostExperience = deathExperienceLoss(
         player.experience,
@@ -2228,6 +2365,7 @@ export class WorldRoom extends Room {
       saved.level,
       getClass(saved.classId).derived,
     );
+    this.initPlayerResource(player, saved.classId);
     player.hp =
       saved.hp <= 0 ? 0 : Math.min(Math.max(1, saved.hp), derived.maxHp);
     player.isNew = isNew;

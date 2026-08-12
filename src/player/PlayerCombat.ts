@@ -17,6 +17,7 @@ import type { Player } from "./Player";
 
 /** Must match server lootCorpse range (PICKUP_RADIUS + 16). */
 const LOOT_RANGE = PICKUP_RADIUS + 16;
+const LOOT_CURSOR_CLASS = "cursor-loot";
 
 /**
  * WoW-lite tab-target sticky autoattack.
@@ -25,6 +26,7 @@ const LOOT_RANGE = PICKUP_RADIUS + 16;
 export class PlayerCombat {
   private targetId: string | null = null;
   private cooldownUntil = 0;
+  private lootCursorActive = false;
 
   constructor(
     private readonly app: Application,
@@ -40,6 +42,8 @@ export class PlayerCombat {
 
   start(): void {
     this.app.canvas.addEventListener("pointerdown", this.onPointerDown);
+    this.app.canvas.addEventListener("pointermove", this.onPointerMove);
+    this.app.canvas.addEventListener("pointerleave", this.onPointerLeave);
     this.app.ticker.add(this.update);
     this.input.onKeyDownPress(this.onKeyDown);
     this.lootWindow.setTakeHandler((animalId, slotIndex) => {
@@ -109,6 +113,64 @@ export class PlayerCombat {
     this.trySwing();
   }
 
+  private onPointerLeave = (): void => {
+    this.clearLootHover();
+  };
+
+  private onPointerMove = (event: PointerEvent): void => {
+    if (this.isGameplayDisabled()) {
+      this.clearLootHover();
+      return;
+    }
+    if (
+      event.target instanceof Element &&
+      (event.target.closest("#inventory") ||
+        event.target.closest("#loot-window") ||
+        event.target.closest("#character-panel") ||
+        event.target.closest("#dialogue-window"))
+    ) {
+      this.clearLootHover();
+      return;
+    }
+
+    const world = screenToWorld(
+      this.app,
+      this.camera,
+      event.clientX,
+      event.clientY,
+    );
+    const corpse = this.animals.findNearestLootableCorpse(
+      world.x,
+      world.y,
+      ATTACK_CLICK_RADIUS,
+    );
+    if (corpse) {
+      this.animals.setLootHover(corpse.id);
+      this.setLootCursor(true);
+      return;
+    }
+    this.clearLootHover();
+  };
+
+  private clearLootHover(): void {
+    this.animals.setLootHover(null);
+    this.setLootCursor(false);
+  }
+
+  private setLootCursor(active: boolean): void {
+    const canvas = this.app.canvas;
+    if (active) {
+      // Re-apply every move: other handlers may overwrite style.cursor with "pointer".
+      this.lootCursorActive = true;
+      canvas.style.removeProperty("cursor");
+      canvas.classList.add(LOOT_CURSOR_CLASS);
+      return;
+    }
+    if (!this.lootCursorActive) return;
+    this.lootCursorActive = false;
+    canvas.classList.remove(LOOT_CURSOR_CLASS);
+  }
+
   private onPointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
     if (this.isGameplayDisabled()) return;
@@ -161,6 +223,7 @@ export class PlayerCombat {
   private update = (): void => {
     if (this.isGameplayDisabled()) {
       this.clearTarget();
+      this.clearLootHover();
       return;
     }
     if (this.lootWindow.isOpen) {

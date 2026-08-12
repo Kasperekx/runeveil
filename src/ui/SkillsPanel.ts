@@ -1,5 +1,6 @@
 import { CHARACTER_PANEL_CLOSE_MS, DRAG_SKILL_MIME } from "../config/constants";
-import { getClassName } from "../classes/catalog";
+import { RESOURCE_LABELS, parseResourceKind } from "../config/resource";
+import { getClass, getClassName } from "../classes/catalog";
 import {
   listSkillsForClass,
   skillDamageRange,
@@ -214,6 +215,11 @@ export class SkillsPanel {
       this.stats.weaponDamageMin === this.stats.weaponDamageMax
         ? `+${this.stats.weaponDamageMin}`
         : `${this.stats.weaponDamageMin}–${this.stats.weaponDamageMax}`;
+    const resourceKind = getClass(this.stats.classId).resource;
+    const costLabel =
+      skill.resourceCost > 0 && resourceKind !== "none"
+        ? `<span>${skill.resourceCost} ${RESOURCE_LABELS[parseResourceKind(resourceKind)]}</span>`
+        : "";
 
     this.detailEl.innerHTML = `
       <div class="skills-panel__detail-hero">
@@ -225,6 +231,7 @@ export class SkillsPanel {
             <span>Ranga ${skill.rank}</span>
             <span>${(skill.cooldownMs / 1000).toFixed(0)} s odnowienia</span>
             ${skill.requiresTarget ? "<span>Wymaga celu</span>" : ""}
+            ${costLabel}
           </p>
         </div>
       </div>

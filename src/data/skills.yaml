@@ -4,7 +4,7 @@
 skills:
   sweeping_strike:
     name: Zamaszysty cios
-    description: "Tnie szerokim łukiem przed sobą, raniąc wszystkich wrogów w zasięgu. Wymaga wybranego celu. Siła i obrażenia broni zwiększają moc ciosu."
+    description: "Tnie szerokim łukiem przed sobą, raniąc wszystkich wrogów w zasięgu. Wymaga wybranego celu. Siła i obrażenia broni zwiększają moc ciosu. Koszt: 25 wściekłości."
     icon: assets/skills/sweeping-strike.png?v=2
     classes:
       - warrior
@@ -18,4 +18,5 @@ skills:
     coneDegrees: 170
     strengthScale: 1.25
     weaponScale: 1.4
+    resourceCost: 25
     vfx: sweeping_strike

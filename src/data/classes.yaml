@@ -35,6 +35,8 @@ classes:
       Nieustępliwy wojownik pierwszej linii. Łączy potężne uderzenia
       z mobilnością potrzebną do prowadzenia natarcia.
     portrait: assets/ui/player-portrait.png
+    # Combat resource: builds on hits, decays out of combat (WoW-style).
+    resource: rage
     selection:
       epithet: Ostrze pogranicza
       role: Natarcie
@@ -43,7 +45,7 @@ classes:
       playstyle: Bezpośredni · ofensywny
       rune: ᛏ
       accent: copper
-      preview: assets/players/human-warrior-v2/warrior-idle-down-1.png
+      preview: assets/players/human-warrior-v2/new-warrior-human.png
       strengths:
         - Silne obrażenia wręcz
         - Szerokie ataki obszarowe
@@ -68,6 +70,7 @@ classes:
       Zaprzysiężony obrońca, który wygrywa walki cierpliwością. Znosi więcej
       obrażeń i utrzymuje linię tam, gdzie inni muszą się wycofać.
     portrait: assets/players/leather-knight/knight-idle-down.png
+    resource: rage
     selection:
       epithet: Strażnik przysięgi
       role: Obrona

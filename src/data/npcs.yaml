@@ -58,6 +58,8 @@ npcs:
         stock: 1
       - item: iron_shortsword
         stock: 2
+      - item: steel_longsword
+        stock: 2
       - item: copper_pickaxe
         stock: 4
 

@@ -27,6 +27,8 @@ export interface ClassDefinition {
   name: string;
   description: string;
   portrait: string;
+  /** Combat resource for this class (`none` until mana/energy arrive). */
+  resource: "none" | "rage" | "mana" | "energy";
   base: PlayerAttributes;
   derived: ClassDerivedConfig;
 }
@@ -35,6 +37,7 @@ interface ClassYamlEntry {
   name: string;
   description?: string;
   portrait: string;
+  resource?: string;
   base: PlayerAttributes;
   derived: ClassDerivedConfig;
 }
@@ -86,11 +89,19 @@ export const CLASSES: Record<string, ClassDefinition> = Object.fromEntries(
       name: entry.name,
       description: (entry.description ?? "").trim(),
       portrait: entry.portrait,
+      resource: parseClassResource(entry.resource),
       base: { ...entry.base },
       derived: { ...entry.derived },
     },
   ]),
 );
+
+function parseClassResource(
+  raw: string | undefined,
+): ClassDefinition["resource"] {
+  if (raw === "rage" || raw === "mana" || raw === "energy") return raw;
+  return "none";
+}
 
 export function getClass(id: string): ClassDefinition {
   const def = CLASSES[id] ?? CLASSES[DEFAULT_CLASS_ID];

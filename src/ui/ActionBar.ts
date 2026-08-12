@@ -20,6 +20,8 @@ import {
   skillUsableByClass,
   type SkillId,
 } from "../skills/catalog";
+import { getClass } from "../classes/catalog";
+import { RESOURCE_LABELS, parseResourceKind } from "../config/resource";
 import type { ItemCooldowns } from "./ItemCooldowns";
 import type { SkillCooldowns } from "./SkillCooldowns";
 import { ItemTooltip } from "./inventory/ItemTooltip";
@@ -101,6 +103,7 @@ export class ActionBar {
   private strength = 0;
   private weaponDamageMin = 0;
   private weaponDamageMax = 0;
+  private resourceCurrent = 0;
 
   private constructor(
     private readonly root: HTMLElement,
@@ -269,6 +272,14 @@ export class ActionBar {
         this.showTooltip(this.hoverIndex, rect.left + rect.width / 2, rect.top);
       }
     }
+  }
+
+  /** Keep skill affordability (rage/mana) in sync with the HUD bar. */
+  setResource(resource: number): void {
+    const next = Math.max(0, Math.floor(resource));
+    if (next === this.resourceCurrent) return;
+    this.resourceCurrent = next;
+    this.renderAffordability();
   }
 
   dispose(): void {
@@ -551,6 +562,7 @@ export class ActionBar {
         view.root.classList.remove(
           "action-bar__slot--filled",
           "action-bar__slot--empty-stack",
+          "action-bar__slot--unusable",
         );
         view.root.setAttribute("aria-label", `Pusty slot ${KEY_CAPS[index]}`);
         return;
@@ -565,10 +577,13 @@ export class ActionBar {
           view.root.classList.remove(
             "action-bar__slot--filled",
             "action-bar__slot--empty-stack",
+            "action-bar__slot--unusable",
           );
           return;
         }
         const skill = getSkill(assignment.id);
+        const unaffordable =
+          skill.resourceCost > 0 && this.resourceCurrent < skill.resourceCost;
         view.root.draggable = true;
         view.icon.hidden = false;
         view.icon.src = `/${skill.icon}`;
@@ -576,7 +591,11 @@ export class ActionBar {
         view.qty.textContent = "";
         view.root.classList.add("action-bar__slot--filled");
         view.root.classList.remove("action-bar__slot--empty-stack");
-        view.root.setAttribute("aria-label", skill.name);
+        view.root.classList.toggle("action-bar__slot--unusable", unaffordable);
+        view.root.setAttribute(
+          "aria-label",
+          unaffordable ? `${skill.name} — za mało zasobu` : skill.name,
+        );
         return;
       }
 
@@ -588,6 +607,7 @@ export class ActionBar {
         view.root.classList.remove(
           "action-bar__slot--filled",
           "action-bar__slot--empty-stack",
+          "action-bar__slot--unusable",
         );
         view.root.setAttribute("aria-label", `Pusty slot ${KEY_CAPS[index]}`);
         return;
@@ -602,6 +622,7 @@ export class ActionBar {
       view.icon.alt = item.name;
       view.qty.textContent = count > 1 ? String(count) : "";
       view.root.classList.add("action-bar__slot--filled");
+      view.root.classList.remove("action-bar__slot--unusable");
       view.root.classList.toggle("action-bar__slot--empty-stack", count === 0);
       view.root.setAttribute(
         "aria-label",
@@ -610,6 +631,7 @@ export class ActionBar {
     });
 
     this.renderCooldowns();
+    this.renderAffordability();
 
     if (this.hoverIndex !== null) {
       const assignment = this.assignments[this.hoverIndex];
@@ -654,6 +676,21 @@ export class ActionBar {
     });
   }
 
+  /** Grey out skills the player cannot afford right now. */
+  private renderAffordability(): void {
+    this.slots.forEach((view, index) => {
+      const assignment = this.assignments[index];
+      if (!assignment || assignment.type !== "skill" || !hasSkill(assignment.id)) {
+        view.root.classList.remove("action-bar__slot--unusable");
+        return;
+      }
+      const skill = getSkill(assignment.id);
+      const unaffordable =
+        skill.resourceCost > 0 && this.resourceCurrent < skill.resourceCost;
+      view.root.classList.toggle("action-bar__slot--unusable", unaffordable);
+    });
+  }
+
   private flashSlot(index: number): void {
     const view = this.slots[index];
     if (!view) return;
@@ -681,12 +718,18 @@ export class ActionBar {
         this.weaponDamageMin,
         this.weaponDamageMax,
       );
+      const lines = [
+        `Obrażenia: ${range.min}–${range.max}`,
+        `Odnowienie: ${(skill.cooldownMs / 1000).toFixed(0)} s`,
+      ];
+      if (skill.resourceCost > 0) {
+        const kind = parseResourceKind(getClass(this.classId).resource);
+        const label = RESOURCE_LABELS[kind] || "zasób";
+        lines.push(`Koszt: ${skill.resourceCost} ${label}`);
+      }
       this.tooltip.showInfo(
         skill.name,
-        [
-          `Obrażenia: ${range.min}–${range.max}`,
-          `Odnowienie: ${(skill.cooldownMs / 1000).toFixed(0)} s`,
-        ],
+        lines,
         skill.description,
         clientX,
         clientY,

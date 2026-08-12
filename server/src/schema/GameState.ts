@@ -85,6 +85,13 @@ export const PlayerState = schema({
   moveSpeed: { type: "number", default: 110 },
   /** Sum of equipped gear armor; reduces incoming damage. */
   armor: { type: "number", default: 0 },
+  /**
+   * Class combat resource (rage / mana / energy).
+   * Kind is "none" for classes without a bar; value is ephemeral (not DB-persisted).
+   */
+  resourceKind: { type: "string", default: "none" },
+  resource: { type: "number", default: 0 },
+  maxResource: { type: "number", default: 0 },
   /** True when no save exists yet — client should keep local spawn and persist. */
   isNew: { type: "boolean", default: false },
   slots: { array: InventorySlotState },

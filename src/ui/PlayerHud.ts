@@ -1,31 +1,48 @@
 import { formatHp, hpRatio, hpTier } from "./vitals";
+import {
+  parseResourceKind,
+  RESOURCE_LABELS,
+  type ResourceKind,
+} from "../config/resource";
 
 export interface PlayerVitals {
   hp: number;
   maxHp: number;
 }
 
+export interface PlayerResourceState {
+  kind: ResourceKind;
+  resource: number;
+  maxResource: number;
+}
+
 const DEFAULT_NAME = "Wędrowiec";
 const DEFAULT_PORTRAIT = "/assets/ui/player-portrait.png";
 
 /**
- * WoW-style player unit frame (top-left): portrait, level, name and HP.
+ * WoW-style player unit frame (top-left): portrait, level, name, HP + resource.
  *
- * The bar is drawn as two stacked fills — the live one, and a "ghost" that
+ * The HP bar is drawn as two stacked fills — the live one, and a "ghost" that
  * lags behind after a hit so the player can see how much was just taken off.
  */
 export class PlayerHud {
   private lastKey = "";
+  private lastResourceKey = "";
   private lastRatio = 1;
   private lastLevel: number | null = null;
+  private resourceKind: ResourceKind = "none";
 
   private constructor(
+    private readonly root: HTMLElement,
     private readonly fillEl: HTMLElement,
     private readonly ghostEl: HTMLElement,
     private readonly textEl: HTMLElement,
     private readonly nameEl: HTMLElement,
     private readonly levelEl: HTMLElement,
     private readonly avatarEl: HTMLImageElement,
+    private readonly resourceWrap: HTMLElement,
+    private readonly resourceFill: HTMLElement,
+    private readonly resourceText: HTMLElement,
   ) {}
 
   static create(
@@ -51,17 +68,25 @@ export class PlayerHud {
           <div class="player-hud__fill" data-fill></div>
           <div class="player-hud__hp" data-hp></div>
         </div>
+        <div class="player-hud__resource" data-resource-wrap hidden>
+          <div class="player-hud__resource-fill" data-resource-fill></div>
+          <div class="player-hud__resource-text" data-resource-text></div>
+        </div>
       </div>
     `;
     host.appendChild(root);
 
     const hud = new PlayerHud(
+      root,
       root.querySelector("[data-fill]")!,
       root.querySelector("[data-ghost]")!,
       root.querySelector("[data-hp]")!,
       root.querySelector("[data-name]")!,
       root.querySelector("[data-level]")!,
       root.querySelector("[data-avatar]")!,
+      root.querySelector("[data-resource-wrap]")!,
+      root.querySelector("[data-resource-fill]")!,
+      root.querySelector("[data-resource-text]")!,
     );
     // Set through the DOM rather than interpolated above: player names are
     // server data and must not reach innerHTML.
@@ -114,5 +139,32 @@ export class PlayerHud {
     }
 
     this.lastRatio = ratio;
+  }
+
+  setResource(state: PlayerResourceState): void {
+    const kind = parseResourceKind(state.kind);
+    const resource = Math.max(0, Math.floor(state.resource));
+    const maxResource = Math.max(0, Math.floor(state.maxResource));
+    const key = `${kind}:${resource}:${maxResource}`;
+    if (key === this.lastResourceKey) return;
+    this.lastResourceKey = key;
+    this.resourceKind = kind;
+
+    const show = kind !== "none" && maxResource > 0;
+    this.resourceWrap.hidden = !show;
+    this.root.classList.toggle("player-hud--has-resource", show);
+    if (!show) return;
+
+    const ratio = Math.max(0, Math.min(1, resource / Math.max(1, maxResource)));
+    this.resourceFill.style.width = `${ratio * 100}%`;
+    this.resourceWrap.dataset.kind = kind;
+    this.resourceFill.dataset.kind = kind;
+    const label = RESOURCE_LABELS[kind] || "Zasób";
+    this.resourceText.textContent = `${resource} / ${maxResource}`;
+    this.resourceWrap.setAttribute("aria-label", `${label}: ${resource} z ${maxResource}`);
+  }
+
+  getResourceKind(): ResourceKind {
+    return this.resourceKind;
   }
 }

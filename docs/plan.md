@@ -14,9 +14,12 @@ Date: 2026-08-11_15-25
 - Meats + hunter stew food buff HUD
 - Iron greatsword (2H, lvl 10, boar loot + affixes)
 - Chat + combat/system/loot log (Say map-local, filters, rate limits)
+- Warrior walk-down (4 frames, transparent) from `new-warrior-human.png`
 
 ## Next
+- Mage mana + hunter energy (hooks already in schema / HUD)
 - Smelting / blacksmithing from copper ore
 - More ore tiers and veins
 - Tool durability loss on gather (optional)
 - Whisper / party chat channels
+- Walk up/side + idle breathing dla nowego warriora

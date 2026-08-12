@@ -19,6 +19,8 @@ export interface SkillConfig {
   coneDegrees: number;
   strengthScale: number;
   weaponScale: number;
+  /** Combat resource spent on a successful cast (0 = free). */
+  resourceCost: number;
   vfx: string;
 }
 
@@ -36,6 +38,7 @@ interface SkillYamlEntry {
   coneDegrees: number;
   strengthScale: number;
   weaponScale: number;
+  resourceCost?: number;
   vfx: string;
 }
 
@@ -73,6 +76,7 @@ function normalize(id: string, entry: SkillYamlEntry): SkillConfig {
     coneDegrees: Math.max(0, Math.min(360, entry.coneDegrees)),
     strengthScale: Math.max(0, entry.strengthScale),
     weaponScale: Math.max(0, entry.weaponScale),
+    resourceCost: Math.max(0, Math.floor(entry.resourceCost ?? 0)),
     vfx: entry.vfx,
   };
 }

@@ -122,6 +122,45 @@
         "alpha": 0.35
       }
     },
+    "forest-spruce": {
+      "texture": "/assets/environment/tree-spike.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 11,
+      "shadow": {
+        "radiusX": 15,
+        "radiusY": 5,
+        "alpha": 0.3
+      }
+    },
+    "dead-tree": {
+      "texture": "/assets/environment/tree-alone.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 18,
+      "shadow": {
+        "radiusX": 23,
+        "radiusY": 8,
+        "alpha": 0.32
+      }
+    },
+    "green-oak": {
+      "texture": "/assets/environment/tree-oak.png?v=1",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "scale": 1,
+      "filter": "nearest",
+      "collisionRadius": 17,
+      "shadow": {
+        "radiusX": 29,
+        "radiusY": 9,
+        "alpha": 0.34
+      }
+    },
     "medieval-tavern": {
       "texture": "/assets/props/medieval-tavern.png?v=6",
       "anchorX": 0.5,
@@ -234,17 +273,17 @@
       "y": 100
     },
     {
-      "type": "oak",
+      "type": "green-oak",
       "x": 160,
       "y": 180
     },
     {
-      "type": "oak",
+      "type": "green-oak",
       "x": 280,
       "y": 120
     },
     {
-      "type": "oak",
+      "type": "green-oak",
       "x": 980,
       "y": 150
     },
@@ -254,24 +293,54 @@
       "y": 240
     },
     {
-      "type": "oak",
+      "type": "forest-spruce",
       "x": 200,
       "y": 420
     },
     {
-      "type": "oak",
+      "type": "forest-spruce",
       "x": 1080,
       "y": 400
     },
     {
-      "type": "oak",
+      "type": "dead-tree",
       "x": 140,
       "y": 620
     },
     {
-      "type": "oak",
+      "type": "dead-tree",
       "x": 1140,
       "y": 640
+    },
+    {
+      "type": "forest-spruce",
+      "x": 70,
+      "y": 95
+    },
+    {
+      "type": "forest-spruce",
+      "x": 735,
+      "y": 70
+    },
+    {
+      "type": "dead-tree",
+      "x": 70,
+      "y": 340
+    },
+    {
+      "type": "dead-tree",
+      "x": 1040,
+      "y": 80
+    },
+    {
+      "type": "green-oak",
+      "x": 1210,
+      "y": 330
+    },
+    {
+      "type": "green-oak",
+      "x": 800,
+      "y": 665
     }
   ],
   "spawns": {

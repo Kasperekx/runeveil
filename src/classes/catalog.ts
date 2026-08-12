@@ -17,6 +17,7 @@ export interface ClassDefinition {
   name: string;
   description: string;
   portrait: string;
+  resource: "none" | "rage" | "mana" | "energy";
   base: PlayerAttributes;
   derived: {
     baseHp: number;
@@ -56,6 +57,7 @@ interface ClassesYamlFile {
       name: string;
       description?: string;
       portrait: string;
+      resource?: string;
       base: PlayerAttributes;
       derived: ClassDefinition["derived"];
       selection?: Partial<ClassDefinition["selection"]>;
@@ -117,6 +119,12 @@ export async function loadClassCatalog(): Promise<void> {
       name: entry.name,
       description: (entry.description ?? "").trim(),
       portrait: entry.portrait,
+      resource:
+        entry.resource === "rage" ||
+        entry.resource === "mana" ||
+        entry.resource === "energy"
+          ? entry.resource
+          : "none",
       base: { ...entry.base },
       derived: { ...entry.derived },
       selection: {
