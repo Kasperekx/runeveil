@@ -92,25 +92,34 @@ export class CreatureSprites {
 export function creatureSpritePaths(
   folder: string,
   prefix: string,
-  layout: "animated-side" | "cardinal-static" = "animated-side",
+  layout: "animated-side" | "cardinal-static" | "cardinal-animated" = "animated-side",
 ): CreatureSpritePaths {
   const base = `assets/creatures/${folder}`;
-  if (layout === "cardinal-static") {
+  if (layout === "cardinal-static" || layout === "cardinal-animated") {
     const east = `${base}/${prefix}-east.png`;
     const west = `${base}/${prefix}-west.png`;
     const south = `${base}/${prefix}-south.png`;
     const north = `${base}/${prefix}-north.png`;
+    const walk = (dir: string) =>
+      layout === "cardinal-animated"
+        ? [1, 2, 3, 4].map(
+            (n) => `${base}/${prefix}-walk-${dir}-${n}.png?v=2`,
+          )
+        : undefined;
     return {
       idleSide: east,
-      walkSide: [east],
+      walkSide: walk("east") ?? [east],
       idleLeft: west,
-      walkLeft: [west],
+      walkLeft: walk("west") ?? [west],
       idleDown: south,
-      walkDown: [south],
+      walkDown: walk("south") ?? [south],
       idleUp: north,
-      walkUp: [north],
-      dead: south,
-      deadAngle: 90,
+      walkUp: walk("north") ?? [north],
+      dead:
+        layout === "cardinal-animated"
+          ? `${base}/${prefix}-dead.png?v=2`
+          : south,
+      deadAngle: layout === "cardinal-animated" ? 0 : 90,
     };
   }
   return {

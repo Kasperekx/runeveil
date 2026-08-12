@@ -100,7 +100,7 @@ creatures:
     sprites:
       folder: skeleton
       filePrefix: skeleton
-      layout: cardinal-static
+      layout: cardinal-animated
     renderScale: 0.72
     speed: 48
     animFps: 6

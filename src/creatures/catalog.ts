@@ -53,7 +53,7 @@ interface CreatureYamlEntry {
   sprites: {
     folder: string;
     filePrefix: string;
-    layout?: "animated-side" | "cardinal-static";
+    layout?: "animated-side" | "cardinal-static" | "cardinal-animated";
   };
   renderScale?: number;
   speed: number;

@@ -1,25 +1,9 @@
 # Improvements plan
 
-Date: 2026-08-11_15-25
+## Active
+- (none)
 
-## Done / in progress
-- Player attributes + class defaults
-- SQLite / Postgres persistence
-- Character detail panel (C)
-- Level / XP + free attr points
-- Equip items into paper-doll slots
-- Cooking profession + campfire craft
-- Mining profession (Górnictwo): copper veins, pickaxe required, WoW-style channel + pickaxe FX
-- Map transitions (tavern interior)
-- Meats + hunter stew food buff HUD
-- Iron greatsword (2H, lvl 10, boar loot + affixes)
-- Chat + combat/system/loot log (Say map-local, filters, rate limits)
+## Done / prior
+- Skeleton dead sprite (`skeleton-dead.png`, cardinal-animated deadAngle 0)
+- Skeleton walk cycles (4 dirs × 4 frames) from original cardinal idles; layout `cardinal-animated`
 - Warrior walk-down (4 frames, transparent) from `new-warrior-human.png`
-
-## Next
-- Mage mana + hunter energy (hooks already in schema / HUD)
-- Smelting / blacksmithing from copper ore
-- More ore tiers and veins
-- Tool durability loss on gather (optional)
-- Whisper / party chat channels
-- Walk up/side + idle breathing dla nowego warriora
