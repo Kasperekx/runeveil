@@ -296,18 +296,21 @@ export class QuestLog {
         this.trackedQuestIds.has(quest.questId) &&
         (quest.status === "active" || quest.status === "ready_to_claim"),
     );
+    this.trackerRoot.hidden = tracked.length === 0;
     this.trackerRoot.classList.toggle("is-collapsed", this.trackerCollapsed);
     this.trackerRoot.innerHTML = `
       <header class="quest-tracker__header">
-        <div class="quest-tracker__brand">
-          <span aria-hidden="true">✦</span>
-          <p><small>Kronika</small><strong>Zadania</strong></p>
-        </div>
-        <b aria-label="Liczba śledzonych zadań">${tracked.length}</b>
-        <button type="button" data-tracker-toggle aria-label="${this.trackerCollapsed ? "Rozwiń tracker zadań" : "Zwiń tracker zadań"}" aria-expanded="${!this.trackerCollapsed}"><span>${this.trackerCollapsed ? "+" : "−"}</span></button>
+        <strong class="quest-tracker__title">Zadania</strong>
+        <button
+          type="button"
+          class="quest-tracker__toggle"
+          data-tracker-toggle
+          aria-label="${this.trackerCollapsed ? "Rozwiń tracker zadań" : "Zwiń tracker zadań"}"
+          aria-expanded="${!this.trackerCollapsed}"
+        >${this.trackerCollapsed ? "+" : "−"}</button>
       </header>
       <div class="quest-tracker__body">
-        ${tracked.length > 0 ? tracked.map((state) => trackerQuestHtml(state)).join("") : `<p class="quest-tracker__empty">Brak śledzonych zadań</p>`}
+        ${tracked.map((state) => trackerQuestHtml(state)).join("")}
       </div>
     `;
   }
@@ -317,19 +320,18 @@ function trackerQuestHtml(state: QuestSnapshot): string {
   const quest = getQuest(state.questId);
   const progress = progressFor(state, quest);
   const ready = state.status === "ready_to_claim";
-  const percentage = ready
-    ? 100
-    : Math.round((progress.current / progress.total) * 100);
   return `
     <article class="quest-tracker__quest">
-      <div class="quest-tracker__quest-title"><span aria-hidden="true">◆</span><strong>${escapeHtml(quest.name)}</strong></div>
+      <strong class="quest-tracker__quest-name">${escapeHtml(quest.name)}</strong>
       <div class="quest-tracker__objective ${ready ? "is-complete" : ""}">
-        <i aria-hidden="true"></i>
         <span>${escapeHtml(quest.objective.label)}</span>
-        <b>${ready ? "✓" : `${progress.current} / ${progress.total}`}</b>
+        <b>${ready ? "Gotowe" : `${progress.current}/${progress.total}`}</b>
       </div>
-      <div class="quest-tracker__progress" aria-hidden="true"><span style="width:${percentage}%"></span></div>
-      ${ready ? `<p class="quest-tracker__status"><span>Ukończono</span>${escapeHtml(quest.turnIn.label)}</p>` : ""}
+      ${
+        ready
+          ? `<p class="quest-tracker__hint">${escapeHtml(quest.turnIn.label)}</p>`
+          : ""
+      }
     </article>
   `;
 }

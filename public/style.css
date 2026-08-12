@@ -2962,21 +2962,24 @@ body {
   background: linear-gradient(180deg, #6c4e25, #372814);
 }
 
+/* ——— Quest tracker (WoW-style transparent HUD) ——— */
+
 .quest-tracker {
   position: absolute;
-  top: 300px;
-  right: 14px;
+  top: 210px;
+  right: 18px;
   z-index: 5;
-  width: 244px;
-  padding: 0 3px 7px 12px;
+  width: 240px;
+  padding: 2px 0 4px 10px;
   background: linear-gradient(
     90deg,
-    rgba(7, 11, 8, 0.82) 0%,
-    rgba(7, 11, 8, 0.58) 66%,
+    rgba(7, 11, 9, 0.42) 0%,
+    rgba(7, 11, 9, 0.12) 55%,
     transparent 100%
   );
-  border-left: 2px solid rgba(184, 149, 74, 0.62);
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.7));
+  border: 0;
+  outline: 0;
+  filter: none;
   pointer-events: auto;
 }
 
@@ -2987,77 +2990,48 @@ body {
 .quest-tracker__header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 24px;
-  border-bottom: 1px solid transparent;
-  border-image: linear-gradient(
-      90deg,
-      rgba(184, 149, 74, 0.72),
-      transparent 94%
-    )
-    1;
+  gap: 8px;
+  min-height: 18px;
+  margin-bottom: 2px;
+  border: 0;
+  background: transparent;
 }
 
-.quest-tracker__header > span {
-  color: #d7aa50;
-  font-size: 11px;
-  text-shadow: 0 0 7px rgba(225, 171, 69, 0.42);
-}
-
-.quest-tracker__header p {
+.quest-tracker__title {
   flex: 1;
   margin: 0;
-  color: #c6a45e;
-  font-family: var(--font-display);
-  font-size: 10px;
+  color: var(--brass);
+  font-family: var(--font-ui);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-shadow: 1px 2px 2px #000;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
-.quest-tracker__header > b {
-  color: #8f805e;
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.quest-tracker__header > button {
-  display: grid;
-  width: 18px;
-  height: 18px;
-  padding: 0 0 2px;
-  place-items: center;
-  border: 1px solid rgba(143, 111, 54, 0.68);
-  background: rgba(14, 20, 15, 0.78);
-  color: #d5b469;
-  font-family: var(--font-ui);
-  font-size: 13px;
-  line-height: 1;
+.quest-tracker__toggle {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--parchment-dim);
   cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1;
+  text-shadow: 0 1px 2px #000;
 }
 
-.quest-tracker__header > button:hover {
-  border-color: #e7c36e;
-  color: #fff0bd;
-  background: rgba(45, 54, 37, 0.92);
+.quest-tracker__toggle:hover {
+  color: var(--brass-hi);
 }
 
 .quest-tracker__body {
-  max-height: min(48vh, 330px);
+  max-height: min(48vh, 320px);
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-.quest-tracker.is-collapsed {
-  padding-bottom: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(7, 11, 8, 0.82) 0%,
-    rgba(7, 11, 8, 0.46) 76%,
-    transparent 100%
-  );
+  scrollbar-width: thin;
+  scrollbar-color: rgba(110, 84, 40, 0.55) transparent;
 }
 
 .quest-tracker.is-collapsed .quest-tracker__body {
@@ -3065,50 +3039,38 @@ body {
 }
 
 .quest-tracker__quest {
-  padding: 8px 7px 3px 2px;
+  padding: 6px 4px 4px 0;
 }
 
 .quest-tracker__quest + .quest-tracker__quest {
-  margin-top: 3px;
-  border-top: 1px solid rgba(128, 102, 51, 0.25);
+  margin-top: 2px;
 }
 
-.quest-tracker__quest > strong {
+.quest-tracker__quest-name {
   display: block;
   overflow: hidden;
-  color: #f3d783;
-  font-family: var(--font-display);
+  color: var(--brass-hi);
+  font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.025em;
-  line-height: 1.2;
+  line-height: 1.25;
   text-overflow: ellipsis;
-  text-shadow:
-    1px 2px 2px #000,
-    0 0 5px rgba(0, 0, 0, 0.8);
-  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
   white-space: nowrap;
 }
 
 .quest-tracker__objective {
   display: grid;
-  grid-template-columns: 7px minmax(0, 1fr) auto;
-  gap: 6px;
-  align-items: center;
-  margin-top: 7px;
-  color: #ede5cb;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 3px;
+  padding-left: 8px;
+  color: var(--parchment);
   font-family: var(--font-body);
-  font-size: 11px;
-  line-height: 1.25;
-  text-shadow: 1px 2px 2px #000;
-}
-
-.quest-tracker__objective i {
-  width: 4px;
-  height: 4px;
-  border: 1px solid #b99344;
-  background: #352817;
-  transform: rotate(45deg);
+  font-size: 12px;
+  line-height: 1.3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 .quest-tracker__objective span {
@@ -3118,50 +3080,27 @@ body {
 }
 
 .quest-tracker__objective b {
-  min-width: 33px;
-  color: #efc75e;
+  color: var(--brass);
   font-family: var(--font-ui);
-  font-size: 10px;
-  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.quest-tracker__objective.is-complete {
-  color: #9ecb83;
-}
-
+.quest-tracker__objective.is-complete,
 .quest-tracker__objective.is-complete b {
-  color: #a9d88d;
+  color: var(--moss-lit);
 }
 
-.quest-tracker__status {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 7px 0 0 13px;
-  color: #d8ceb1;
+.quest-tracker__hint {
+  margin: 2px 0 0;
+  padding-left: 8px;
+  color: var(--parchment-dim);
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.3;
-  text-shadow: 1px 2px 2px #000;
-}
-
-.quest-tracker__status > span {
-  color: #9fd181;
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.quest-tracker__empty {
-  margin: 0;
-  padding: 9px 6px 5px 2px;
-  color: #8f8976;
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-style: italic;
-  text-shadow: 1px 2px 2px #000;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 @media (max-width: 700px) {
@@ -3175,9 +3114,8 @@ body {
 
   .quest-tracker {
     top: 168px;
-    right: 8px;
-    transform: scale(0.82);
-    transform-origin: top right;
+    right: 10px;
+    width: min(220px, calc(100vw - 24px));
   }
 }
 
@@ -9303,54 +9241,37 @@ body {
   z-index: 12;
   width: min(420px, calc(100% - 28px));
   pointer-events: auto;
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.55));
 }
 
 .game-chat__frame {
   overflow: hidden;
-  border: 1px solid #8d713b;
-  background:
-    linear-gradient(135deg, rgba(244, 209, 122, 0.08), transparent 42%),
-    linear-gradient(180deg, rgba(28, 34, 28, 0.92), rgba(9, 12, 10, 0.94));
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.72),
-    inset 0 1px 0 rgba(255, 233, 163, 0.12);
+  background: linear-gradient(
+    180deg,
+    rgba(7, 11, 9, 0.55) 0%,
+    rgba(7, 11, 9, 0.42) 100%
+  );
+  border: 0;
+  outline: 0;
+  box-shadow: none;
 }
 
 .game-chat.is-focused .game-chat__frame {
-  border-color: #c4a45a;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.72),
-    inset 0 1px 0 rgba(255, 233, 163, 0.2),
-    0 0 0 1px rgba(196, 164, 90, 0.25);
+  background: linear-gradient(
+    180deg,
+    rgba(7, 11, 9, 0.72) 0%,
+    rgba(7, 11, 9, 0.58) 100%
+  );
 }
 
 .game-chat__header {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 26px;
-  padding: 0 4px 0 8px;
-  border-bottom: 1px solid rgba(185, 151, 74, 0.45);
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.18), transparent 70%),
-    linear-gradient(180deg, #3a3c2c, #21281e);
-}
-
-.game-chat__sigil {
-  color: #dfbf6d;
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
-}
-
-.game-chat__title {
-  color: #f0dfaa;
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  min-height: 22px;
+  padding: 2px 4px 2px 6px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(184, 149, 74, 0.22);
 }
 
 .game-chat__tabs {
@@ -9358,51 +9279,48 @@ body {
   flex: 1;
   flex-wrap: wrap;
   gap: 2px;
-  justify-content: flex-end;
   min-width: 0;
-  padding: 2px 0;
 }
 
 .game-chat__tab {
   padding: 2px 6px;
-  border: 1px solid transparent;
-  border-radius: 2px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  color: #b7a87a;
+  color: var(--parchment-dim);
   cursor: pointer;
   font-family: var(--font-ui);
-  font-size: 9px;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  letter-spacing: 0.02em;
   line-height: 1.2;
-  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 .game-chat__tab:hover {
-  color: #f0dfaa;
-  border-color: rgba(185, 151, 74, 0.35);
+  color: var(--parchment);
 }
 
 .game-chat__tab.is-active {
-  color: #1a160c;
-  border-color: #c4a45a;
-  background: linear-gradient(180deg, #e8d08a, #c4a45a);
+  color: var(--brass-hi);
 }
 
 .game-chat__collapse {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #dfbf6d;
+  color: var(--parchment-dim);
   cursor: pointer;
-  font-size: 12px;
+  font-family: var(--font-ui);
+  font-size: 14px;
   line-height: 1;
+  text-shadow: 0 1px 2px #000;
 }
 
 .game-chat__collapse:hover {
-  color: #fff1c2;
+  color: var(--brass-hi);
 }
 
 .game-chat__body {
@@ -9415,36 +9333,36 @@ body {
 }
 
 .game-chat__list {
-  height: 168px;
+  height: 160px;
   overflow-x: hidden;
   overflow-y: auto;
   padding: 6px 8px 4px;
-  scrollbar-color: #8d713b transparent;
+  scrollbar-color: rgba(110, 84, 40, 0.55) transparent;
   scrollbar-width: thin;
 }
 
 .game-chat__line {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr);
   gap: 6px;
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   font-family: var(--font-body);
   font-size: 12px;
   line-height: 1.35;
   word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 .game-chat__time {
-  color: #7d7460;
+  color: rgba(168, 144, 96, 0.72);
   font-family: var(--font-ui);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
   user-select: none;
 }
 
 .game-chat__text {
-  color: #e8e0cc;
+  color: var(--parchment);
 }
 
 .game-chat__line--chat .game-chat__text {
@@ -9452,7 +9370,7 @@ body {
 }
 
 .game-chat__line--combat .game-chat__text {
-  color: #f0d78a;
+  color: var(--brass-hi);
 }
 
 .game-chat__line--loot .game-chat__text {
@@ -9460,645 +9378,60 @@ body {
 }
 
 .game-chat__line--system .game-chat__text {
-  color: #a8c4a0;
+  color: var(--moss-lit);
+}
+
+.game-chat__empty {
+  margin: 8px 0 0;
+  color: var(--parchment-dim);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-style: italic;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 .game-chat__form {
   display: flex;
   gap: 4px;
   padding: 4px 6px 6px;
-  border-top: 1px solid rgba(185, 151, 74, 0.28);
-  background: rgba(0, 0, 0, 0.28);
+  border-top: 1px solid rgba(184, 149, 74, 0.18);
+  background: transparent;
 }
 
 .game-chat__input {
   flex: 1;
   min-width: 0;
-  height: 28px;
+  height: 26px;
   padding: 0 8px;
-  border: 1px solid #6a5730;
-  border-radius: 2px;
-  background: #0c100e;
-  color: #f4f0e4;
+  border: 1px solid rgba(110, 84, 40, 0.45);
+  border-radius: 0;
+  background: rgba(7, 11, 9, 0.55);
+  color: var(--parchment);
   font-family: var(--font-body);
   font-size: 12px;
   outline: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
 }
 
 .game-chat__input::placeholder {
-  color: #7a7260;
-}
-
-.game-chat__input:focus {
-  border-color: #c4a45a;
-}
-
-.game-chat__send {
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid #8d713b;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #3a3c2c, #21281e);
-  color: #dfbf6d;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.game-chat__send:hover {
-  color: #fff1c2;
-  border-color: #c4a45a;
-}
-
-@media (max-width: 720px) {
-  .game-chat {
-    width: min(360px, calc(100% - 28px));
-  }
-
-  .game-chat__list {
-    height: 132px;
-  }
-
-  .game-chat__title {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .game-chat__frame {
-    transition: none;
-  }
-}
-
-/* ——— Game chat: heraldic journal redesign ——— */
-
-.game-chat {
-  left: 16px;
-  bottom: 16px;
-  width: min(470px, calc(100% - 32px));
-  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.58));
-}
-
-.game-chat__frame {
-  position: relative;
-  overflow: visible;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.008) 0 1px,
-      transparent 1px 6px
-    ),
-    radial-gradient(
-      circle at 8% 0%,
-      rgba(106, 154, 124, 0.15),
-      transparent 34%
-    ),
-    linear-gradient(145deg, rgba(21, 32, 25, 0.97), rgba(7, 11, 9, 0.98));
-  border: 1px solid #755c2d;
-  outline: 1px solid rgba(3, 6, 4, 0.94);
-  outline-offset: 3px;
-  box-shadow:
-    0 0 0 4px rgba(16, 25, 19, 0.92),
-    0 0 0 5px rgba(110, 84, 40, 0.45),
-    inset 0 1px 0 rgba(230, 200, 120, 0.14),
-    inset 0 0 36px rgba(0, 0, 0, 0.28);
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.game-chat.is-focused .game-chat__frame {
-  border-color: var(--brass);
-  box-shadow:
-    0 0 0 4px rgba(16, 25, 19, 0.94),
-    0 0 0 5px rgba(184, 149, 74, 0.58),
-    0 0 18px rgba(184, 149, 74, 0.16),
-    inset 0 1px 0 rgba(230, 200, 120, 0.22);
-}
-
-.game-chat__corner {
-  position: absolute;
-  z-index: 4;
-  width: 11px;
-  height: 11px;
-  border-color: #b8954a;
-  border-style: solid;
-  opacity: 0.72;
-  pointer-events: none;
-}
-
-.game-chat__corner--tl {
-  top: -5px;
-  left: -5px;
-  border-width: 1px 0 0 1px;
-}
-
-.game-chat__corner--br {
-  right: -5px;
-  bottom: -5px;
-  border-width: 0 1px 1px 0;
-}
-
-.game-chat__header {
-  position: relative;
-  min-height: 48px;
-  padding: 0 11px 0 13px;
-  gap: 12px;
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.08), transparent 30%),
-    linear-gradient(180deg, rgba(38, 53, 42, 0.98), rgba(16, 24, 19, 0.98));
-  border-bottom: 1px solid #5c4927;
-  box-shadow:
-    inset 0 1px 0 rgba(230, 200, 120, 0.12),
-    0 3px 12px rgba(0, 0, 0, 0.4);
-}
-
-.game-chat__header::before,
-.game-chat__header::after {
-  content: "";
-  position: absolute;
-  bottom: -3px;
-  width: 38px;
-  height: 5px;
-  border-top: 1px solid rgba(184, 149, 74, 0.48);
-}
-
-.game-chat__header::before {
-  left: 0;
-  transform: skewX(42deg);
-}
-
-.game-chat__header::after {
-  right: 0;
-  transform: skewX(-42deg);
-}
-
-.game-chat__brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: none;
-}
-
-.game-chat__sigil {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  color: #e8ca78;
-  background:
-    radial-gradient(circle, rgba(184, 149, 74, 0.18), transparent 64%), #090e0b;
-  border: 1px solid #755d2d;
-  transform: rotate(45deg);
-  box-shadow:
-    inset 0 0 0 2px #121a15,
-    0 4px 10px rgba(0, 0, 0, 0.5);
-  font-size: 13px;
-}
-
-.game-chat__sigil > span,
-.game-chat__collapse > span,
-.game-chat__send > span {
-  display: block;
-  transform: rotate(-45deg);
-}
-
-.game-chat__heading {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.game-chat__eyebrow {
-  color: #8f8058;
-  font-family: var(--font-ui);
-  font-size: 7px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.game-chat__title {
-  color: #eee2bf;
-  font-family: var(--font-display);
-  font-size: 12px;
-  line-height: 1;
-  letter-spacing: 0.09em;
-  text-transform: none;
-  text-shadow: 0 2px 3px #000;
-}
-
-.game-chat__header-rule {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex: 1;
-  min-width: 18px;
-  color: #66502a;
-}
-
-.game-chat__header-rule::before,
-.game-chat__header-rule::after {
-  content: "";
-  height: 1px;
-  flex: 1;
-  background: linear-gradient(90deg, transparent, rgba(184, 149, 74, 0.38));
-}
-
-.game-chat__header-rule::after {
-  background: linear-gradient(90deg, rgba(184, 149, 74, 0.38), transparent);
-}
-
-.game-chat__header-rule i {
-  font-size: 5px;
+  color: rgba(168, 144, 96, 0.55);
   font-style: normal;
 }
 
-.game-chat__presence {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: none;
-  color: #7f9278;
-  font: 700 7px var(--font-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.game-chat__presence i {
-  width: 5px;
-  height: 5px;
-  background: #6f9c72;
-  border-radius: 50%;
-  box-shadow: 0 0 7px rgba(111, 156, 114, 0.65);
-}
-
-.game-chat__collapse {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  color: #b8a978;
-  background: #090e0b;
-  border: 1px solid #584724;
-  transform: rotate(45deg);
-  font-size: 11px;
-}
-
-.game-chat__collapse:hover {
-  color: #fff0ba;
-  background: #243027;
-  border-color: var(--brass-hi);
-}
-
-.game-chat__tabs {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0;
-  padding: 0 8px;
-  background: rgba(5, 8, 6, 0.82);
-  border-bottom: 1px solid rgba(110, 84, 40, 0.4);
-}
-
-.game-chat.is-collapsed .game-chat__tabs {
-  display: none;
-}
-
-.game-chat.is-collapsed .game-chat__header {
-  border-bottom: 0;
-}
-
-.game-chat__tab {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 0;
-  height: 31px;
-  padding: 0 5px;
-  color: #80785e;
-  background: transparent;
-  border: 0;
-  border-right: 1px solid rgba(62, 72, 63, 0.36);
-  border-radius: 0;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  transition:
-    color 120ms ease,
-    background 120ms ease;
-}
-
-.game-chat__tab:last-child {
-  border-right: 0;
-}
-
-.game-chat__tab::after {
-  content: "";
-  position: absolute;
-  right: 12px;
-  bottom: 0;
-  left: 12px;
-  height: 1px;
-  background: transparent;
-}
-
-.game-chat__tab:hover {
-  color: #d2c59e;
-  background: rgba(106, 154, 124, 0.06);
-  border-color: rgba(62, 72, 63, 0.36);
-}
-
-.game-chat__tab.is-active {
-  color: #eddfb2;
-  background: linear-gradient(180deg, rgba(184, 149, 74, 0.12), transparent);
-  border-color: rgba(62, 72, 63, 0.36);
-}
-
-.game-chat__tab.is-active::after {
-  background: linear-gradient(90deg, transparent, var(--brass), transparent);
-  box-shadow: 0 0 6px rgba(184, 149, 74, 0.35);
-}
-
-.game-chat__tab-mark {
-  color: #766136;
-  font-size: 8px;
-}
-
-.game-chat__tab.is-active .game-chat__tab-mark {
-  color: var(--brass-hi);
-}
-
-.game-chat__body {
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.025) 1px, transparent 1px),
-    linear-gradient(rgba(184, 149, 74, 0.025) 1px, transparent 1px),
-    rgba(4, 7, 5, 0.52);
-  background-size: 18px 18px;
-}
-
-.game-chat__list {
-  height: 184px;
-  padding: 9px 8px 7px;
-  scrollbar-color: var(--brass-lo) rgba(4, 7, 5, 0.7);
-}
-
-.game-chat__list::-webkit-scrollbar {
-  width: 7px;
-}
-
-.game-chat__list::-webkit-scrollbar-track {
-  background: rgba(4, 7, 5, 0.72);
-  border-left: 1px solid #1f2821;
-}
-
-.game-chat__list::-webkit-scrollbar-thumb {
-  background: #554525;
-  border: 1px solid #171d18;
-}
-
-.game-chat__line {
-  position: relative;
-  grid-template-columns: 18px 45px minmax(0, 1fr);
-  gap: 6px;
-  align-items: baseline;
-  min-height: 26px;
-  margin: 0 0 2px;
-  padding: 4px 6px 4px 3px;
-  background: rgba(5, 8, 6, 0.34);
-  border-left: 1px solid transparent;
-  font-size: 12px;
-  line-height: 1.35;
-  animation: game-chat-line-in 160ms ease both;
-}
-
-.game-chat__line:nth-child(even) {
-  background: rgba(21, 30, 24, 0.34);
-}
-
-.game-chat__line:hover {
-  background: rgba(51, 68, 55, 0.28);
-  border-left-color: rgba(184, 149, 74, 0.4);
-}
-
-.game-chat__line-mark {
-  align-self: center;
-  color: #72643d;
-  font-family: var(--font-ui);
-  font-size: 8px;
-  text-align: center;
-  user-select: none;
-}
-
-.game-chat__time {
-  color: #625e4f;
-  font-size: 8px;
-  letter-spacing: 0.04em;
-}
-
-.game-chat__text {
-  color: #cfc7ae;
-}
-
-.game-chat__line--chat .game-chat__line-mark,
-.game-chat__line--chat .game-chat__text {
-  color: #e9e2cd;
-}
-
-.game-chat__line--combat .game-chat__line-mark,
-.game-chat__line--combat .game-chat__text {
-  color: #d9b866;
-}
-
-.game-chat__line--loot .game-chat__line-mark,
-.game-chat__line--loot .game-chat__text {
-  color: #e6c878;
-}
-
-.game-chat__line--system .game-chat__line-mark,
-.game-chat__line--system .game-chat__text {
-  color: #8faf8c;
-}
-
-.game-chat__empty {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  height: 100%;
-  color: #595846;
-  text-align: center;
-}
-
-.game-chat__empty > span {
-  margin-bottom: 6px;
-  color: rgba(184, 149, 74, 0.25);
-  font-family: var(--font-display);
-  font-size: 30px;
-}
-
-.game-chat__empty strong {
-  color: #857b5d;
-  font-family: var(--font-ui);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.game-chat__empty small {
-  margin-top: 3px;
-  color: #58594d;
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-style: italic;
-}
-
-.game-chat__form {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto 30px;
-  align-items: center;
-  gap: 5px;
-  min-height: 43px;
-  padding: 6px 8px;
-  background: linear-gradient(
-    180deg,
-    rgba(21, 30, 24, 0.86),
-    rgba(7, 10, 8, 0.94)
-  );
-  border-top: 1px solid rgba(110, 84, 40, 0.48);
-}
-
-.game-chat__prompt {
-  color: #9d8546;
-  font-family: var(--font-display);
-  font-size: 20px;
-  line-height: 1;
-  text-align: center;
-  text-shadow: 0 0 8px rgba(184, 149, 74, 0.28);
-}
-
-.game-chat__input {
-  height: 29px;
-  padding: 0 8px;
-  color: #efe7d2;
-  background: rgba(4, 7, 5, 0.8);
-  border: 1px solid #333d34;
-  border-radius: 0;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
-  font-size: 11px;
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.game-chat__input::placeholder {
-  color: #615f50;
-  font-style: italic;
-}
-
 .game-chat__input:focus {
-  border-color: #846a36;
-  box-shadow:
-    inset 0 0 8px rgba(0, 0, 0, 0.5),
-    0 0 7px rgba(184, 149, 74, 0.12);
-}
-
-.game-chat__enter-hint {
-  padding: 2px 4px;
-  color: #605a46;
-  background: rgba(5, 8, 6, 0.55);
-  border: 1px solid #30362e;
-  border-bottom-color: #171c18;
-  font: 700 6px var(--font-ui);
-  letter-spacing: 0.08em;
-}
-
-.game-chat__send {
-  display: grid;
-  place-items: center;
-  width: 23px;
-  height: 23px;
-  margin: 0 3px;
-  color: #bfa45c;
-  background: #101712;
-  border: 1px solid #6a542b;
-  border-radius: 0;
-  transform: rotate(45deg);
-  font-size: 10px;
-}
-
-.game-chat__send:hover {
-  color: #fff0b8;
-  background: #29352b;
-  border-color: var(--brass-hi);
-  box-shadow: 0 0 8px rgba(184, 149, 74, 0.2);
-}
-
-@keyframes game-chat-line-in {
-  from {
-    opacity: 0;
-    transform: translateX(-3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  border-color: rgba(184, 149, 74, 0.7);
+  background: rgba(7, 11, 9, 0.72);
 }
 
 @media (max-width: 720px) {
   .game-chat {
     left: 10px;
     bottom: 10px;
-    width: min(410px, calc(100% - 20px));
+    width: min(360px, calc(100% - 20px));
   }
 
   .game-chat__list {
-    height: 138px;
-  }
-
-  .game-chat__title {
-    display: block;
-  }
-
-  .game-chat__presence,
-  .game-chat__header-rule {
-    display: none;
-  }
-}
-
-@media (max-width: 460px) {
-  .game-chat__header {
-    min-height: 44px;
-  }
-
-  .game-chat__eyebrow,
-  .game-chat__enter-hint {
-    display: none;
-  }
-
-  .game-chat__tabs {
-    padding-inline: 3px;
-  }
-
-  .game-chat__tab {
-    gap: 3px;
-    padding-inline: 2px;
-    font-size: 7px;
-  }
-
-  .game-chat__form {
-    grid-template-columns: 16px minmax(0, 1fr) 28px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .game-chat__line {
-    animation: none;
+    height: 128px;
   }
 }
 
@@ -11552,214 +10885,6 @@ body {
   text-align: center;
 }
 
-/* ——— Tracked quests: compact heraldic ledger ——— */
-
-.quest-tracker {
-  top: 292px;
-  right: 16px;
-  width: 270px;
-  padding: 0;
-  overflow: visible;
-  background:
-    radial-gradient(
-      circle at 8% 0%,
-      rgba(106, 154, 124, 0.13),
-      transparent 36%
-    ),
-    linear-gradient(145deg, rgba(19, 29, 22, 0.94), rgba(6, 10, 7, 0.9));
-  border: 1px solid rgba(117, 92, 45, 0.75);
-  outline: 1px solid rgba(3, 6, 4, 0.7);
-  outline-offset: 2px;
-  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.5));
-}
-
-.quest-tracker__header {
-  min-height: 42px;
-  padding: 0 8px 0 10px;
-  gap: 8px;
-  background: linear-gradient(
-    180deg,
-    rgba(38, 53, 42, 0.96),
-    rgba(14, 21, 16, 0.96)
-  );
-  border: 0;
-  border-bottom: 1px solid #594723;
-}
-
-.quest-tracker__brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.quest-tracker__brand > span {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  color: #d5ad55;
-  background: #080d0a;
-  border: 1px solid #67532b;
-  transform: rotate(45deg);
-  font-size: 9px;
-}
-
-.quest-tracker__brand p {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin: 0;
-}
-
-.quest-tracker__brand small {
-  color: #796e50;
-  font: 700 6px var(--font-ui);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.quest-tracker__brand strong {
-  color: #e3d5ad;
-  font: 700 10px var(--font-display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-shadow: 0 2px 2px #000;
-}
-
-.quest-tracker__header > b {
-  display: grid;
-  min-width: 20px;
-  height: 20px;
-  place-items: center;
-  color: #a99765;
-  background: rgba(5, 8, 6, 0.55);
-  border: 1px solid #403c2b;
-  font-size: 8px;
-}
-
-.quest-tracker__header > button {
-  display: grid;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  place-items: center;
-  color: #b9aa7c;
-  background: #090e0b;
-  border: 1px solid #584724;
-  transform: rotate(45deg);
-  font-size: 12px;
-}
-
-.quest-tracker__header > button span {
-  display: block;
-  transform: rotate(-45deg);
-}
-
-.quest-tracker__header > button:hover {
-  color: #fff0bd;
-  background: #263128;
-  border-color: #d4af5c;
-}
-
-.quest-tracker__body {
-  max-height: min(46vh, 340px);
-  padding: 4px 8px 8px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--brass-lo) #080c0a;
-}
-
-.quest-tracker.is-collapsed {
-  padding: 0;
-  background: linear-gradient(
-    145deg,
-    rgba(19, 29, 22, 0.94),
-    rgba(6, 10, 7, 0.9)
-  );
-}
-
-.quest-tracker__quest {
-  padding: 10px 3px 7px;
-}
-
-.quest-tracker__quest + .quest-tracker__quest {
-  margin-top: 0;
-  border-top-color: rgba(128, 102, 51, 0.3);
-}
-
-.quest-tracker__quest-title {
-  display: grid;
-  grid-template-columns: 9px minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
-}
-
-.quest-tracker__quest-title > span {
-  color: #95783d;
-  font-size: 6px;
-}
-
-.quest-tracker__quest-title > strong {
-  overflow: hidden;
-  color: #e7cf89;
-  font: 700 10px var(--font-display);
-  letter-spacing: 0.045em;
-  text-overflow: ellipsis;
-  text-shadow: 1px 2px 2px #000;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.quest-tracker__objective {
-  margin-top: 6px;
-  color: #c5bfaa;
-  font-size: 10px;
-}
-
-.quest-tracker__objective i {
-  width: 4px;
-  height: 4px;
-  border-color: #826b39;
-  background: #2d2518;
-}
-
-.quest-tracker__objective b {
-  color: #d5b967;
-  font-size: 9px;
-}
-
-.quest-tracker__progress {
-  height: 3px;
-  margin: 6px 0 0 13px;
-  overflow: hidden;
-  background: #020403;
-  border: 1px solid #2c3027;
-}
-
-.quest-tracker__progress span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #667246, #b8954a);
-}
-
-.quest-tracker__status {
-  margin-left: 13px;
-  color: #9f9a88;
-  font-size: 9px;
-}
-
-.quest-tracker__status > span {
-  color: #8db47f;
-  font-size: 7px;
-}
-
-.quest-tracker__empty {
-  padding: 12px 4px 8px;
-  color: #777262;
-  font-size: 9px;
-}
-
 /* ——— Skills panel: heraldic combat codex redesign ——— */
 
 .skills-panel {
@@ -12170,7 +11295,7 @@ body {
 
   .quest-tracker {
     right: 10px;
-    width: min(270px, calc(100vw - 20px));
+    width: min(220px, calc(100vw - 20px));
   }
 }
 
