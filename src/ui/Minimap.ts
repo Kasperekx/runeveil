@@ -276,7 +276,12 @@ export class Minimap {
 
   private drawAnimals(context: CanvasRenderingContext2D): void {
     for (const animal of this.animals.listAlivePositions()) {
-      const color = animal.kind === "deer" ? "#cfad65" : "#bb5e51";
+      const color =
+        animal.kind === "deer"
+          ? "#cfad65"
+          : animal.kind === "skeleton"
+            ? "#a8b8ad"
+            : "#bb5e51";
       this.drawCircle(context, this.project(animal.x, animal.y), color, 1.9);
     }
   }

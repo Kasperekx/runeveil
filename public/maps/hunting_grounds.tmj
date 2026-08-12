@@ -428,6 +428,44 @@
                          "width":0,
                          "x":420,
                          "y":280
+                        },
+                        {
+                         "height":0,
+                         "id":30,
+                         "name":"skeleton-0",
+                         "opacity":1,
+                         "point":true,
+                         "properties":[
+                                {
+                                 "name":"kind",
+                                 "type":"string",
+                                 "value":"skeleton"
+                                }],
+                         "rotation":0,
+                         "type":"spawn",
+                         "visible":true,
+                         "width":0,
+                         "x":1040,
+                         "y":600
+                        },
+                        {
+                         "height":0,
+                         "id":31,
+                         "name":"skeleton-1",
+                         "opacity":1,
+                         "point":true,
+                         "properties":[
+                                {
+                                 "name":"kind",
+                                 "type":"string",
+                                 "value":"skeleton"
+                                }],
+                         "rotation":0,
+                         "type":"spawn",
+                         "visible":true,
+                         "width":0,
+                         "x":1160,
+                         "y":560
                         }],
                  "opacity":1,
                  "type":"objectgroup",
@@ -552,7 +590,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":30,
+ "nextobjectid":32,
  "orientation":"orthogonal",
  "properties":[
         {

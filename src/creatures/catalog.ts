@@ -23,6 +23,8 @@ export interface CreatureDefinition {
   name: string;
   description: string;
   sprites: CreatureSpritePaths;
+  /** Client-only world sprite scale; combat collision remains unchanged. */
+  renderScale: number;
   speed: number;
   animFps: number;
   hitRadius: number;
@@ -48,7 +50,12 @@ interface LootYamlEntry {
 interface CreatureYamlEntry {
   name: string;
   description?: string;
-  sprites: { folder: string; filePrefix: string };
+  sprites: {
+    folder: string;
+    filePrefix: string;
+    layout?: "animated-side" | "cardinal-static";
+  };
+  renderScale?: number;
   speed: number;
   animFps: number;
   hitRadius: number;
@@ -130,7 +137,9 @@ export async function loadCreatureCatalog(): Promise<void> {
       sprites: creatureSpritePaths(
         entry.sprites.folder,
         entry.sprites.filePrefix,
+        entry.sprites.layout,
       ),
+      renderScale: Math.max(0.1, entry.renderScale ?? 1),
       speed: entry.speed,
       animFps: entry.animFps,
       hitRadius: entry.hitRadius,
@@ -182,6 +191,7 @@ export function wanderingConfig(id: CreatureId): WanderingAnimalConfig {
   return {
     speed: c.speed,
     animFps: c.animFps,
+    renderScale: c.renderScale,
     respawnMs: c.respawnMs,
     hitRadius: c.hitRadius,
     dropItem: first?.itemId ?? "deer_meat",

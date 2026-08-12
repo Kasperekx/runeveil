@@ -32,6 +32,7 @@ export class SyncedAnimalView {
   private readonly hpLabel: Text;
   private readonly sprites: CreatureSprites;
   private readonly animFps: number;
+  private readonly renderScale: number;
   private alive = true;
   private selected = false;
   private lootable = false;
@@ -54,6 +55,7 @@ export class SyncedAnimalView {
     kind: string,
     sprites: CreatureSprites,
     animFps: number,
+    renderScale: number,
     x: number,
     y: number,
     alive: boolean,
@@ -64,6 +66,7 @@ export class SyncedAnimalView {
     this.kind = kind;
     this.sprites = sprites;
     this.animFps = animFps;
+    this.renderScale = renderScale;
     this.serverX = x;
     this.serverY = y;
     this.alive = alive;
@@ -86,6 +89,7 @@ export class SyncedAnimalView {
 
     this.sprite = new Sprite(sprites.framesFor("right").idle);
     this.sprite.anchor.set(0.5);
+    this.sprite.scale.set(this.renderScale);
     this.sprite.roundPixels = true;
     this.root.addChild(this.sprite);
 
@@ -277,8 +281,8 @@ export class SyncedAnimalView {
 
   private showCorpsePose(): void {
     this.sprite.texture = this.sprites.dead;
-    this.sprite.scale.x = 1;
-    this.sprite.angle = 0;
+    this.sprite.scale.set(this.renderScale);
+    this.sprite.angle = this.sprites.deadAngle;
     this.lastTextureKey = "dead";
     this.syncNameVisibility();
   }
@@ -329,7 +333,12 @@ export class SyncedAnimalView {
   }
 
   /** Classic 4-point sparkle (WoW corpse glitter). */
-  private drawLootSpark(x: number, y: number, arm: number, alpha: number): void {
+  private drawLootSpark(
+    x: number,
+    y: number,
+    arm: number,
+    alpha: number,
+  ): void {
     const color = 0xfff1b0;
     const core = 0xffffff;
     this.lootSparkles
@@ -358,8 +367,7 @@ export class SyncedAnimalView {
 
     const ratio = Math.max(0, Math.min(1, this.hp / this.maxHp));
     const fillW = Math.max(0, HP_BAR_W * ratio);
-    const color =
-      ratio > 0.55 ? 0x6b8f5c : ratio > 0.3 ? 0xb8944a : 0xa04a42;
+    const color = ratio > 0.55 ? 0x6b8f5c : ratio > 0.3 ? 0xb8944a : 0xa04a42;
 
     const trackX = -HP_BAR_W / 2;
     const trackY = HP_BAR_Y;
@@ -407,7 +415,9 @@ export class SyncedAnimalView {
 
     const frames = this.sprites.framesFor(this.facing);
     const texture = this.moving ? frames.walk[this.walkFrame]! : frames.idle;
-    const flip = this.facing === "left" ? -1 : 1;
+    const direction =
+      this.facing === "left" && this.sprites.mirrorLeft ? -1 : 1;
+    const scaleX = this.renderScale * direction;
     const key = `${this.facing}:${this.moving ? `w${this.walkFrame}` : "idle"}`;
 
     if (key !== this.lastTextureKey) {
@@ -415,8 +425,11 @@ export class SyncedAnimalView {
       this.sprite.texture = texture;
     }
 
-    if (this.sprite.scale.x !== flip) {
-      this.sprite.scale.x = flip;
+    if (this.sprite.scale.x !== scaleX) {
+      this.sprite.scale.x = scaleX;
+    }
+    if (this.sprite.scale.y !== this.renderScale) {
+      this.sprite.scale.y = this.renderScale;
     }
   }
 }

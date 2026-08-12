@@ -17,6 +17,7 @@ const CARDINAL: ReadonlyArray<{
 export interface WanderingAnimalConfig {
   speed: number;
   animFps: number;
+  renderScale: number;
   respawnMs: number;
   hitRadius: number;
   dropItem: ItemId;
@@ -67,6 +68,7 @@ export class WanderingAnimal {
   ): Promise<WanderingAnimal> {
     const sprite = new Sprite(sprites.framesFor("right").idle);
     sprite.anchor.set(0.5);
+    sprite.scale.set(config.renderScale);
     sprite.roundPixels = true;
     sprite.position.set(x, y);
     app.stage.addChild(sprite);
@@ -200,7 +202,9 @@ export class WanderingAnimal {
   private applyFrame(): void {
     const frames = this.sprites.framesFor(this.facing);
     const texture = this.moving ? frames.walk[this.walkFrame]! : frames.idle;
-    const flip = this.facing === "left" ? -1 : 1;
+    const direction =
+      this.facing === "left" && this.sprites.mirrorLeft ? -1 : 1;
+    const scaleX = this.config.renderScale * direction;
     const key = `${this.facing}:${this.moving ? `w${this.walkFrame}` : "idle"}`;
 
     if (key !== this.lastTextureKey) {
@@ -208,8 +212,11 @@ export class WanderingAnimal {
       this.sprite.texture = texture;
     }
 
-    if (this.sprite.scale.x !== flip) {
-      this.sprite.scale.x = flip;
+    if (this.sprite.scale.x !== scaleX) {
+      this.sprite.scale.x = scaleX;
+    }
+    if (this.sprite.scale.y !== this.config.renderScale) {
+      this.sprite.scale.y = this.config.renderScale;
     }
   }
 }

@@ -334,6 +334,7 @@ export class NetworkAnimalSystem {
       snap.kind,
       sprites,
       def.animFps,
+      def.renderScale,
       snap.x,
       snap.y,
       snap.alive,

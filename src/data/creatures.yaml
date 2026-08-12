@@ -91,3 +91,37 @@ creatures:
     attackRange: 44
     attackCooldownMs: 1100
     aggroRange: 170
+
+  skeleton:
+    name: Szkielet
+    description: |
+      Nieumarły wojownik błąkający się po obrzeżach obozowiska.
+      Powolny, lecz nieustępliwy, gdy już wyczuje żywą ofiarę.
+    sprites:
+      folder: skeleton
+      filePrefix: skeleton
+      layout: cardinal-static
+    renderScale: 0.72
+    speed: 48
+    animFps: 6
+    hitRadius: 38
+    collisionRadius: 18
+    maxHp: 75
+    respawnMs: 7000
+    xp: 35
+    loot:
+      - item: health_potion_v2
+        chance: 6
+      - item: iron_shortsword
+        chance: 2
+        group: skeleton_gear
+      - item: steel_longsword
+        chance: 0.6
+        group: skeleton_gear
+      - item: leather_chest
+        chance: 1
+        group: skeleton_gear
+    attackDamage: 14
+    attackRange: 45
+    attackCooldownMs: 1150
+    aggroRange: 220

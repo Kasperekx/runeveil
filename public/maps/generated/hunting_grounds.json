@@ -220,7 +220,7 @@
       "texture": "/assets/props/copper-vein.png?v=2",
       "anchorX": 0.5,
       "anchorY": 0.5,
-      "scale": 1,
+      "scale": 0.5,
       "filter": "nearest",
       "collisionRadius": 14,
       "interaction": {
@@ -352,6 +352,18 @@
         "kind": "deer",
         "x": 420,
         "y": 280
+      },
+      {
+        "id": "skeleton-0",
+        "kind": "skeleton",
+        "x": 1040,
+        "y": 600
+      },
+      {
+        "id": "skeleton-1",
+        "kind": "skeleton",
+        "x": 1160,
+        "y": 560
       }
     ]
   },

@@ -371,6 +371,18 @@
         "kind": "deer",
         "x": 420,
         "y": 280
+      },
+      {
+        "id": "skeleton-0",
+        "kind": "skeleton",
+        "x": 1040,
+        "y": 600
+      },
+      {
+        "id": "skeleton-1",
+        "kind": "skeleton",
+        "x": 1160,
+        "y": 560
       }
     ]
   },
