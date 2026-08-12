@@ -136,6 +136,14 @@ export class LootWindow {
   }
 
   open(animalId: string, title: string, slots: LootSlotView[]): void {
+    // Empty corpses are scenery, not an interaction target. Keep this guard at
+    // the window boundary as well as in combat hit-testing so stale network
+    // snapshots cannot flash an empty loot dialog.
+    if (!slots.some((slot) => slot.itemId && slot.quantity > 0)) {
+      if (this.animalId === animalId) this.close();
+      return;
+    }
+
     if (this.closeTimer !== null) {
       window.clearTimeout(this.closeTimer);
       this.closeTimer = null;

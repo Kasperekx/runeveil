@@ -123,8 +123,8 @@ export const AnimalState = schema({
   maxHp: { type: "number", default: 1 },
   alive: { type: "boolean", default: true },
   /**
-   * Legacy field (no longer used for revive). New living animals get a new id;
-   * corpses stay until looted or despawned.
+   * New living animals get a new id. A corpse remains visible until this
+   * timestamp, when its spawn slot replaces it with a living animal.
    */
   respawnAt: { type: "number", default: 0 },
   /** Corpse loot (only meaningful while dead). */

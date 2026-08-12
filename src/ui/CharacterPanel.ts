@@ -152,30 +152,65 @@ export class CharacterPanel {
     root.setAttribute("aria-label", "Postać");
     root.innerHTML = `
       <div class="character-panel__frame">
-        <div class="character-panel__ornament character-panel__ornament--tl" aria-hidden="true"></div>
-        <div class="character-panel__ornament character-panel__ornament--tr" aria-hidden="true"></div>
-        <div class="character-panel__ornament character-panel__ornament--bl" aria-hidden="true"></div>
-        <div class="character-panel__ornament character-panel__ornament--br" aria-hidden="true"></div>
         <header class="character-panel__header" data-header>
-          <span class="character-panel__sigil" aria-hidden="true">ᚱ</span>
-          <h2 class="character-panel__title">Postać</h2>
-          <button type="button" class="character-panel__close" data-close aria-label="Zamknij">×</button>
+          <div class="character-panel__brand">
+            <span class="character-panel__sigil" aria-hidden="true"><span>ᚱ</span></span>
+            <div>
+              <span class="character-panel__eyebrow">Kroniki bohatera</span>
+              <h2 class="character-panel__title">Karta postaci</h2>
+            </div>
+          </div>
+          <div class="character-panel__header-rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="character-panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
         </header>
         <div class="character-panel__body">
           <div class="character-panel__identity">
             <div class="character-panel__portrait-wrap">
               <img class="character-panel__portrait" data-portrait src="" alt="" draggable="false" />
+              <span class="character-panel__portrait-corner character-panel__portrait-corner--tl" aria-hidden="true"></span>
+              <span class="character-panel__portrait-corner character-panel__portrait-corner--br" aria-hidden="true"></span>
             </div>
-            <div class="character-panel__identity-text" data-identity></div>
+            <div class="character-panel__identity-copy">
+              <span class="character-panel__identity-label">Profil bohatera</span>
+              <div class="character-panel__identity-text" data-identity></div>
+            </div>
+            <div class="character-panel__identity-seal" aria-hidden="true">
+              <span>✦</span>
+              <small>CHWAŁA</small>
+            </div>
           </div>
           <div class="character-panel__columns">
-            <div class="character-panel__doll" data-doll></div>
+            <section class="character-panel__equipment">
+              <div class="character-panel__section-heading">
+                <div>
+                  <span class="character-panel__section-kicker">Ekwipunek</span>
+                  <h3>Wyposażenie</h3>
+                </div>
+                <span class="character-panel__section-mark" aria-hidden="true">❖</span>
+              </div>
+              <div class="character-panel__doll" data-doll></div>
+              <p class="character-panel__equipment-hint">Przeciągnij przedmiot na slot · PPM, aby zdjąć</p>
+            </section>
             <div class="character-panel__stats">
-              <h3 class="character-panel__section-title">Atrybuty</h3>
-              <div class="character-panel__points" data-points hidden></div>
-              <div class="character-panel__attrs" data-attrs></div>
-              <h3 class="character-panel__section-title">Pochodne</h3>
-              <div class="character-panel__derived" data-derived></div>
+              <section class="character-panel__stat-card character-panel__stat-card--attributes">
+                <div class="character-panel__section-heading character-panel__section-heading--compact">
+                  <div>
+                    <span class="character-panel__section-kicker">Rozwój</span>
+                    <h3>Atrybuty</h3>
+                  </div>
+                  <div class="character-panel__points" data-points hidden></div>
+                </div>
+                <div class="character-panel__attrs" data-attrs></div>
+              </section>
+              <section class="character-panel__stat-card character-panel__stat-card--combat">
+                <div class="character-panel__section-heading character-panel__section-heading--compact">
+                  <div>
+                    <span class="character-panel__section-kicker">Gotowość</span>
+                    <h3>Parametry bojowe</h3>
+                  </div>
+                </div>
+                <div class="character-panel__derived" data-derived></div>
+              </section>
             </div>
           </div>
         </div>
@@ -256,10 +291,12 @@ export class CharacterPanel {
     );
     if (figure) figure.src = figureSrc(data.classId);
     this.portraitEl.src = `/${data.portrait}`;
+    this.portraitEl.alt = `Portret: ${data.name}`;
     this.identityEl.innerHTML = `
       <div class="character-panel__name">${escapeHtml(data.name)}</div>
       <div class="character-panel__meta">
-        <span class="character-panel__level">${data.level}</span>
+        <span class="character-panel__level"><small>Poziom</small>${data.level}</span>
+        <span class="character-panel__meta-divider" aria-hidden="true"></span>
         <span class="character-panel__class">${escapeHtml(getClassName(data.classId))}</span>
       </div>
     `;
@@ -272,19 +309,26 @@ export class CharacterPanel {
     this.unspentAttrPoints = Math.max(0, data.unspentAttrPoints);
     if (this.unspentAttrPoints > 0) {
       this.pointsEl.hidden = false;
-      this.pointsEl.textContent = `Wolne punkty: ${this.unspentAttrPoints}`;
+      this.pointsEl.innerHTML = `<span>${this.unspentAttrPoints}</span><small>wolne</small>`;
     } else {
       this.pointsEl.hidden = true;
-      this.pointsEl.textContent = "";
+      this.pointsEl.replaceChildren();
     }
 
-    this.attrsEl.innerHTML = ATTR_ORDER.map((key) => {
+    this.attrsEl.innerHTML = ATTR_ORDER.map((key, index) => {
       const value = data[key];
       const plus =
         this.unspentAttrPoints > 0
           ? `<button type="button" class="character-panel__attr-plus" data-attr="${key}" aria-label="Dodaj punkt do ${ATTR_LABELS[key]}">+</button>`
           : "";
-      return `<div class="character-panel__stat-row character-panel__stat-row--attr" data-attr-tip="${key}"><span>${ATTR_LABELS[key]}</span><strong>${value}</strong>${plus}</div>`;
+      return `
+        <div class="character-panel__stat-row character-panel__stat-row--attr" data-attr-tip="${key}">
+          <span class="character-panel__attr-index">${String(index + 1).padStart(2, "0")}</span>
+          <span class="character-panel__attr-name">${ATTR_LABELS[key]}</span>
+          <strong>${value}</strong>
+          ${plus}
+        </div>
+      `;
     }).join("");
 
     const ratio = hpRatio(data.hp, data.maxHp);
@@ -317,18 +361,44 @@ export class CharacterPanel {
 
     this.derivedEl.innerHTML = `
       <div class="character-panel__vitality">
-        <div class="character-panel__stat-row"><span>Życie</span><strong>${formatHp(data.hp, data.maxHp)}</strong></div>
+        <div class="character-panel__vitality-heading">
+          <span><i aria-hidden="true">✚</i> Życie</span>
+          <strong>${formatHp(data.hp, data.maxHp)}</strong>
+        </div>
         <div class="character-panel__hp-track">
           <div class="character-panel__hp-fill" data-tier="${hpTier(ratio)}" style="width:${ratio * 100}%"></div>
         </div>
       </div>
-      <div class="character-panel__stat-row"><span>Obrażenia</span><strong>${data.damageMin}–${data.damageMax}</strong></div>
-      <div class="character-panel__stat-row"><span>Szybkość</span><strong>${data.moveSpeed}</strong></div>
-      <div class="character-panel__stat-row"><span>Pancerz</span><strong>${data.armor}</strong></div>
-      <div class="character-panel__stat-row"><span>Redukcja obrażeń</span><strong>${armorReductionLabel(data.armor)}</strong></div>
+      <div class="character-panel__metrics">
+        <div class="character-panel__metric character-panel__metric--wide">
+          <span class="character-panel__metric-icon" aria-hidden="true">⚔</span>
+          <span>Obrażenia</span>
+          <strong>${data.damageMin}–${data.damageMax}</strong>
+        </div>
+        <div class="character-panel__metric">
+          <span class="character-panel__metric-icon" aria-hidden="true">◆</span>
+          <span>Siła ataku</span>
+          <strong>${data.attackPower}</strong>
+        </div>
+        <div class="character-panel__metric">
+          <span class="character-panel__metric-icon" aria-hidden="true">➶</span>
+          <span>Szybkość</span>
+          <strong>${data.moveSpeed}</strong>
+        </div>
+        <div class="character-panel__metric">
+          <span class="character-panel__metric-icon" aria-hidden="true">◈</span>
+          <span>Pancerz</span>
+          <strong>${data.armor}</strong>
+        </div>
+        <div class="character-panel__metric">
+          <span class="character-panel__metric-icon" aria-hidden="true">◇</span>
+          <span>Redukcja</span>
+          <strong>${armorReductionLabel(data.armor)}</strong>
+        </div>
+      </div>
       <div class="character-panel__gear-condition" data-tier="${durabilityTier}">
         <div class="character-panel__gear-condition-heading">
-          <span>Stan wyposażenia</span><strong>${durabilityPercent}%</strong>
+          <span><i aria-hidden="true">⬡</i> Stan wyposażenia</span><strong>${durabilityPercent}%</strong>
         </div>
         <div class="character-panel__gear-condition-track"><span style="width:${durabilityPercent}%"></span></div>
         <small>${brokenCount > 0 ? `${brokenCount} ${brokenCount === 1 ? "przedmiot uszkodzony" : "przedmioty uszkodzone"} — odwiedź kowala` : `${durabilityCurrent} / ${durabilityMaximum || 0} trwałości`}</small>
@@ -520,6 +590,7 @@ export class CharacterPanel {
         text.className = "character-panel__slot-label";
         text.textContent = shortLabel(slotId);
         btn.appendChild(text);
+        btn.appendChild(createSlotName(label));
         continue;
       }
 
@@ -539,6 +610,7 @@ export class CharacterPanel {
       icon.alt = "";
       icon.draggable = false;
       btn.appendChild(icon);
+      btn.appendChild(createSlotName(label));
       if (instance.maxDurability > 0) {
         const track = document.createElement("span");
         track.className = "character-panel__durability";
@@ -560,8 +632,12 @@ export class CharacterPanel {
       <div class="character-panel__doll-col character-panel__doll-col--left">
         ${DOLL_LEFT.map(slotMarkup).join("")}
       </div>
-      <div class="character-panel__figure" aria-hidden="true">
-        <img class="character-panel__figure-sprite" src="${figureSrc(this.classId)}" alt="" draggable="false" />
+      <div class="character-panel__figure">
+        <span class="character-panel__figure-rune" aria-hidden="true">ᛉ</span>
+        <div class="character-panel__figure-stage" aria-hidden="true">
+          <img class="character-panel__figure-sprite" src="${figureSrc(this.classId)}" alt="" draggable="false" />
+        </div>
+        <span class="character-panel__figure-caption">Sylwetka</span>
       </div>
       <div class="character-panel__doll-col character-panel__doll-col--right">
         ${DOLL_RIGHT.map(slotMarkup).join("")}
@@ -578,8 +654,16 @@ function slotMarkup(slotId: string): string {
   return `
     <button type="button" class="character-panel__slot" data-slot="${slotId}" aria-label="${escapeHtml(label)}">
       <span class="character-panel__slot-label">${shortLabel(slotId)}</span>
+      <span class="character-panel__slot-name">${escapeHtml(label)}</span>
     </button>
   `;
+}
+
+function createSlotName(label: string): HTMLSpanElement {
+  const name = document.createElement("span");
+  name.className = "character-panel__slot-name";
+  name.textContent = label;
+  return name;
 }
 
 /** Mirrors damageReduction() in the server's armorConfig. */

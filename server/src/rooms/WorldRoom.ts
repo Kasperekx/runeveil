@@ -278,8 +278,6 @@ const CHAT_RATE_WINDOW_MS = 10_000;
 const CHAT_DUPLICATE_MS = 1_500;
 
 const RECONNECT_SECONDS = 60;
-/** Unlooted corpses are removed after this (replacement already uses spawn slots). */
-const CORPSE_DESPAWN_MS = 90_000;
 /** Must match client NPC_TALK_RANGE. */
 const NPC_TALK_RANGE = 128;
 /** Players must stand at a configured cooking node to craft. */
@@ -330,6 +328,8 @@ interface AnimalSpawnSlot {
   homeY: number;
   /** Living animal occupying this slot; null while waiting to respawn. */
   livingId: string | null;
+  /** Dead animal kept in the world until this slot spawns its replacement. */
+  corpseId: string | null;
   /** Unix ms when a new living animal should spawn; 0 when occupied. */
   respawnAt: number;
 }
@@ -342,7 +342,6 @@ export class WorldRoom extends Room {
   private readonly spawnSlots: AnimalSpawnSlot[] = [];
   private animalSeq = 0;
   private pickupSeq = 0;
-  private readonly corpseDespawnAt = new Map<string, number>();
   /** sessionId → unix ms when the next melee hit is allowed. */
   private readonly attackReadyAt = new Map<string, number>();
   /** `${sessionId}:${itemId}` → unix ms when the next use is allowed. */
@@ -1159,10 +1158,6 @@ export class WorldRoom extends Room {
       clearItem(slot);
       player.isNew = false;
       this.persistPlayer(player);
-
-      if (this.isLootEmpty(animal)) {
-        this.removeAnimal(animal.id);
-      }
     },
 
     /** Take every corpse slot that fits; stop on first that does not. */
@@ -1199,9 +1194,6 @@ export class WorldRoom extends Room {
       }
       if (full) {
         client.send("notice", { kind: "inventory_full" });
-      }
-      if (this.isLootEmpty(animal)) {
-        this.removeAnimal(animal.id);
       }
     },
 
@@ -1860,7 +1852,6 @@ export class WorldRoom extends Room {
     const dt = Math.min(deltaTime, 50) / 1000;
     const now = Date.now();
     this.processSpawnSlots(now);
-    this.despawnExpiredCorpses(now);
 
     // Players are not solid — walking into a creature must not shove it around.
     // Combat still uses `state.players` for aggro / chase / attacks.
@@ -2240,18 +2231,6 @@ export class WorldRoom extends Room {
     }
   }
 
-  private despawnExpiredCorpses(now: number): void {
-    for (const [id, at] of this.corpseDespawnAt) {
-      if (now < at) continue;
-      const animal = this.state.animals.get(id);
-      if (animal && !animal.alive) {
-        this.removeAnimal(id);
-      } else {
-        this.corpseDespawnAt.delete(id);
-      }
-    }
-  }
-
   private spawnAnimals(): void {
     for (const map of this.maps.values()) {
       for (const spawn of map.spawns.animals) {
@@ -2263,6 +2242,7 @@ export class WorldRoom extends Room {
           homeX: spawn.x,
           homeY: spawn.y,
           livingId: null,
+          corpseId: null,
           respawnAt: 0,
         };
         this.spawnSlots.push(slot);
@@ -2272,6 +2252,11 @@ export class WorldRoom extends Room {
   }
 
   private spawnLivingAnimal(slot: AnimalSpawnSlot, preferredId?: string): void {
+    if (slot.corpseId) {
+      this.removeAnimal(slot.corpseId);
+      slot.corpseId = null;
+    }
+
     const config = CREATURE_KINDS[slot.kind];
     const id = preferredId ?? `${slot.mapId}:${slot.kind}-n${++this.animalSeq}`;
     const animal = new AnimalState();
@@ -2294,15 +2279,6 @@ export class WorldRoom extends Room {
   private removeAnimal(id: string): void {
     this.state.animals.delete(id);
     this.animalAi.unregister(id);
-    this.corpseDespawnAt.delete(id);
-    this.refreshAllClientViews();
-  }
-
-  private isLootEmpty(animal: AnimalState): boolean {
-    for (const slot of animal.loot) {
-      if (slot.itemId && slot.quantity > 0) return false;
-    }
-    return true;
   }
 
   private fillCorpseLoot(
@@ -3093,9 +3069,7 @@ export class WorldRoom extends Room {
     if (!killed) return;
 
     animal.alive = false;
-    animal.respawnAt = 0;
     this.fillCorpseLoot(animal, rollLootTable(config.loot));
-    this.corpseDespawnAt.set(animal.id, Date.now() + CORPSE_DESPAWN_MS);
     this.sendLootDropped(client, animal);
 
     this.grantExperience(client, player, config.xp, {
@@ -3109,8 +3083,11 @@ export class WorldRoom extends Room {
 
     const slot = this.spawnSlots.find((s) => s.livingId === animal.id);
     if (slot) {
+      const respawnAt = Date.now() + config.respawnMs;
       slot.livingId = null;
-      slot.respawnAt = Date.now() + config.respawnMs;
+      slot.corpseId = animal.id;
+      slot.respawnAt = respawnAt;
+      animal.respawnAt = respawnAt;
     }
   }
 

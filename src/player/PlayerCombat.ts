@@ -52,13 +52,14 @@ export class PlayerCombat {
     this.lootWindow.setTakeAllHandler((animalId) => {
       this.network.lootAllCorpse(animalId);
     });
-    this.animals.onLootChange = (animalId, kind, loot) => {
+    this.animals.onLootChange = (animalId, _kind, loot) => {
       if (this.lootWindow.openAnimalId !== animalId) return;
-      this.lootWindow.updateIfOpen(animalId, loot);
       const empty = !loot.some((s) => s.itemId && s.quantity > 0);
-      if (empty && this.lootWindow.isOpen) {
-        this.lootWindow.open(animalId, `Łup — ${getCreatureName(kind)}`, loot);
+      if (empty) {
+        this.lootWindow.close();
+        return;
       }
+      this.lootWindow.updateIfOpen(animalId, loot);
     };
   }
 
@@ -191,7 +192,7 @@ export class PlayerCombat {
       event.clientY,
     );
 
-    const corpse = this.animals.findNearestCorpse(
+    const corpse = this.animals.findNearestLootableCorpse(
       world.x,
       world.y,
       ATTACK_CLICK_RADIUS,
@@ -228,7 +229,12 @@ export class PlayerCombat {
     }
     if (this.lootWindow.isOpen) {
       const id = this.lootWindow.openAnimalId;
-      if (id && (!this.animals.has(id) || this.animals.getAlive(id))) {
+      if (
+        id &&
+        (!this.animals.has(id) ||
+          this.animals.getAlive(id) ||
+          !this.animals.hasLoot(id))
+      ) {
         this.lootWindow.close();
       } else if (id) {
         const corpse = this.animals.getPosition(id);

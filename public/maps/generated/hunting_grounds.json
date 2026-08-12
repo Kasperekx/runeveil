@@ -111,7 +111,7 @@
       }
     },
     "oak": {
-      "texture": "/assets/props/trees/oak.png?v=1",
+      "texture": "/assets/environment/tree-oak.png?v=1",
       "anchorX": 0.5,
       "anchorY": 0.5,
       "scale": 1,
