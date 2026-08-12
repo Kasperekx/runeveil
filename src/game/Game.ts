@@ -97,10 +97,10 @@ const NOTICE_COPY: Record<string, string> = {
   food_buff_expired: "Efekt posiłku dobiegł końca.",
   food_buff_cancelled: "Anulowano efekt posiłku.",
   equip_level_too_low: "Twój poziom jest za niski, by założyć ten przedmiot.",
-  cooking_station_required: "Podejdź do paleniska przy kuźni, aby gotować.",
+  cooking_station_required: "Podejdź do paleniska lub kuźni, aby wytwarzać.",
   profession_level_too_low:
     "Twój poziom profesji jest za niski dla tej czynności.",
-  missing_ingredients: "Brakuje składników do przygotowania tego posiłku.",
+  missing_ingredients: "Brakuje składników do tego przepisu.",
   mining_pickaxe_required: "Potrzebujesz kilofa, aby wydobywać rudę.",
   mining_too_far: "Podejdź bliżej do żyły, aby kopać.",
   mining_node_depleted: "Ta żyła jest już wyczerpana.",

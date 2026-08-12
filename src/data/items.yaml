@@ -355,7 +355,7 @@ items:
     description: |
       Surowy kawałek miedzi wydarty ze skały.
       Przyda się przy kuźni, gdy nadejdzie czas wytopu.
-    icon: assets/props/copper-ore.png
+    icon: assets/items/copper-ore.png
     type: material
     typeLabel: Materiał
     rarity: common
@@ -364,6 +364,21 @@ items:
     maxStack: 20
     buyPrice: 6
     sellPrice: 2
+
+  copper_ingot:
+    name: Sztabka miedzi
+    description: |
+      Czysta miedziana sztabka gotowa do dalszej obróbki.
+      Ciepła w dłoni, z wyraźnym połyskiem metalu.
+    icon: assets/items/copper-ingot.png
+    type: material
+    typeLabel: Materiał
+    rarity: common
+    rarityLabel: Pospolity
+    stackable: true
+    maxStack: 20
+    buyPrice: 14
+    sellPrice: 5
 
   copper_pickaxe:
     name: Miedziany kilof

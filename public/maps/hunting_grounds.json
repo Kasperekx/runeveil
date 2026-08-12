@@ -78,6 +78,12 @@
           "radius": 20
         }
       ],
+      "interaction": {
+        "kind": "cooking",
+        "radius": 96,
+        "stationId": "hunting-grounds-forge",
+        "offsetY": 44
+      },
       "light": {
         "color": 16750413,
         "radius": 90,
@@ -414,6 +420,13 @@
       "x": 634,
       "y": 558,
       "radius": 96
+    },
+    {
+      "id": "hunting-grounds-forge",
+      "name": "Kuźnia",
+      "x": 900,
+      "y": 522,
+      "radius": 160
     }
   ],
   "homes": [

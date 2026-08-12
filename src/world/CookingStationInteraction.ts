@@ -6,9 +6,9 @@ import type { MapWorldInteraction } from "../maps/types";
 import type { GameToast } from "../ui/GameToast";
 import type { ProfessionsPanel } from "../ui/ProfessionsPanel";
 
-const TOO_FAR_MESSAGE = "Podejdź bliżej do paleniska, aby gotować.";
+const TOO_FAR_MESSAGE = "Podejdź bliżej do stanowiska, aby wytwarzać.";
 const CRAFT_INTERRUPTED_MESSAGE =
-  "Przerwano przygotowywanie — oddaliłeś się od paleniska.";
+  "Przerwano wytwarzanie — oddaliłeś się od stanowiska.";
 
 /**
  * Native-canvas interaction for cooking props. The prop's hit radius controls

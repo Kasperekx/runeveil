@@ -58,7 +58,19 @@ professions:
     xp:
       base: 30
       step: 12
-    recipes: {}
+    recipes:
+      copper_ingot:
+        name: Sztabka miedzi
+        description: Wytop rudę miedzi w żarze kuźni, aż powstanie czysta sztabka.
+        level: 1
+        xp: 12
+        craftTimeMs: 1800
+        output:
+          item: copper_ingot
+          quantity: 1
+        ingredients:
+          - item: copper_ore
+            quantity: 2
     nodes:
       copper_vein:
         name: Żyła miedzi

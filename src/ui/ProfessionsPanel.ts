@@ -302,7 +302,9 @@ export class ProfessionsPanel {
           : "Wymagane stanowisko";
     station.querySelector("[data-station-copy]")!.textContent =
       usesCraftingStation
-        ? "Przepisy wykonasz przy palenisku obok kuźni."
+        ? profession.id === "mining"
+          ? "Wytopisz rudę przy kuźni lub palenisku."
+          : "Przepisy wykonasz przy palenisku obok kuźni."
         : "Surowce pozyskasz bezpośrednio z węzłów na mapie.";
 
     const professionList = this.root.querySelector<HTMLElement>(
@@ -430,6 +432,7 @@ export class ProfessionsPanel {
   }
 
   private renderDetail(recipe: ProfessionRecipe, level: number): void {
+    const profession = getProfession(recipe.professionId);
     const output = getItem(recipe.output.itemId);
     const missingLevel = level < recipe.level;
     const ingredients = recipe.ingredients
@@ -456,19 +459,27 @@ export class ProfessionsPanel {
       this.craftingAvailable &&
       !missingLevel &&
       maxCraftable > 0;
+    const craftLabel =
+      profession.id === "mining"
+        ? quantity === 1
+          ? "Wytop"
+          : `Wytop ×${quantity}`
+        : quantity === 1
+          ? "Przygotuj"
+          : `Przygotuj ×${quantity}`;
     this.detailEl.innerHTML = `
       <div class="professions-panel__detail-head"><img src="/${output.icon}" alt="" /><div><p class="professions-panel__eyebrow">Wybrany przepis</p><h3>${escapeHtml(recipe.name)}</h3><p>${escapeHtml(recipe.description)}</p></div></div>
       <div class="professions-panel__output"><img src="/${output.icon}" alt="" /><span>Rezultat</span><b>${escapeHtml(output.name)} ×${recipe.output.quantity}</b><em>+${recipe.xp} PD</em></div>
       <h4>Składniki</h4><ul>${ingredients}</ul>
-      ${missingLevel ? `<p class="professions-panel__locked">Wymaga ${recipe.level}. poziomu Gotowania.</p>` : ""}
+      ${missingLevel ? `<p class="professions-panel__locked">Wymaga ${recipe.level}. poziomu ${escapeHtml(profession.name)}.</p>` : ""}
       <div class="professions-panel__craft-actions">
-        <div class="professions-panel__quantity" aria-label="Liczba posiłków">
+        <div class="professions-panel__quantity" aria-label="Ilość wytwarzania">
           <button type="button" data-quantity-step="-1" aria-label="Zmniejsz ilość" ${maxCraftable > 0 && !this.craftQueue ? "" : "disabled"}>−</button>
           <label><span>Ilość</span><input type="number" data-quantity min="1" max="${Math.max(1, maxCraftable)}" value="${quantity}" inputmode="numeric" ${maxCraftable > 0 && !this.craftQueue ? "" : "disabled"} /></label>
           <button type="button" data-quantity-step="1" aria-label="Zwiększ ilość" ${maxCraftable > 0 && !this.craftQueue ? "" : "disabled"}>+</button>
           <button type="button" class="professions-panel__quantity-max" data-quantity-max ${maxCraftable > 0 && !this.craftQueue ? "" : "disabled"}>Maks.</button>
         </div>
-        <button type="button" class="professions-panel__craft-submit" data-craft ${canCraft ? "" : "disabled"}>${quantity === 1 ? "Przygotuj" : `Przygotuj ×${quantity}`}</button>
+        <button type="button" class="professions-panel__craft-submit" data-craft ${canCraft ? "" : "disabled"}>${craftLabel}</button>
       </div>
     `;
     const input =
