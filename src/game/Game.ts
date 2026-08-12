@@ -79,6 +79,8 @@ import { SystemMenu } from "../ui/SystemMenu";
 import { TargetFrame } from "../ui/TargetFrame";
 import { NetworkPickupSystem } from "../world/NetworkPickupSystem";
 import { CookingStationInteraction } from "../world/CookingStationInteraction";
+import { CampfirePlacementMode } from "../world/CampfirePlacementMode";
+import { PLACEABLE_CAMPFIRE } from "../world/placeableCampfire";
 import { BuildingEnterInteraction } from "../world/BuildingEnterInteraction";
 import { MiningInteraction } from "../world/MiningInteraction";
 import { LightSystem } from "../lighting/LightSystem";
@@ -98,6 +100,8 @@ const NOTICE_COPY: Record<string, string> = {
   food_buff_cancelled: "Anulowano efekt posiłku.",
   equip_level_too_low: "Twój poziom jest za niski, by założyć ten przedmiot.",
   cooking_station_required: "Podejdź do paleniska lub kuźni, aby wytwarzać.",
+  campfire_too_far: "Podejdź bliżej, aby postawić palenisko.",
+  campfire_blocked: "Nie możesz tu postawić paleniska.",
   profession_level_too_low:
     "Twój poziom profesji jest za niski dla tej czynności.",
   missing_ingredients: "Brakuje składników do tego przepisu.",
@@ -201,6 +205,10 @@ export class Game {
       bag,
       (recipeId, quantity) => network.craftRecipe(recipeId, quantity),
     );
+    let campfirePlacement: CampfirePlacementMode | null = null;
+    professionsPanel.setPlaceCampfireHandler(() => {
+      void campfirePlacement?.start();
+    });
     const questLog = QuestLog.create();
     questLog.bindActions({
       onAccept: (questId) => network.acceptQuest(questId),
@@ -678,6 +686,59 @@ export class Game {
       () => player.position,
       toast,
     );
+    campfirePlacement = new CampfirePlacementMode(
+      app,
+      camera,
+      world,
+      environment,
+      () => player.position,
+      toast,
+      (x, y) => network.placeCampfire(x, y),
+      () =>
+        Boolean(systemMenu?.isOpen) ||
+        isPlayerDead ||
+        dialogueWindow.isOpen ||
+        lootWindow.isOpen,
+    );
+    const upsertCampfireLight = (id: string, x: number, y: number): void => {
+      const light = PLACEABLE_CAMPFIRE.prop.light;
+      if (!light) return;
+      lights.upsertLight(id, x, y, light);
+    };
+    const applyCampfiresState = async (campfires: Array<{
+      id: string;
+      x: number;
+      y: number;
+    }>): Promise<void> => {
+      environment.clearRuntimeCampfires();
+      lights.clearDynamicLights();
+      for (const campfire of campfires) {
+        await environment.upsertRuntimeCampfire(
+          campfire.id,
+          campfire.x,
+          campfire.y,
+        );
+        upsertCampfireLight(campfire.id, campfire.x, campfire.y);
+      }
+      cookingStationInteraction.setEnvironment(environment);
+    };
+    network.onCampfiresState = (event) => {
+      void applyCampfiresState(event.campfires);
+    };
+    network.onCampfirePlaced = (event) => {
+      void environment
+        .upsertRuntimeCampfire(event.id, event.x, event.y)
+        .then(() => {
+          upsertCampfireLight(event.id, event.x, event.y);
+          cookingStationInteraction.setEnvironment(environment);
+        });
+    };
+    network.onCampfireRemoved = (event) => {
+      environment.removeRuntimeCampfire(event.id);
+      lights.removeLight(event.id);
+      cookingStationInteraction.setEnvironment(environment);
+    };
+    network.requestCampfiresState();
     const miningInteraction = new MiningInteraction(
       app,
       camera,
@@ -792,11 +853,14 @@ export class Game {
       cookingStationInteraction.setEnvironment(environment);
       buildingEnterInteraction.setEnvironment(environment);
       miningInteraction.setEnvironment(environment);
+      campfirePlacement?.cancel();
+      campfirePlacement?.setEnvironment(environment);
       camera.setMapSize(map.width, map.height);
       minimap.setMap(map);
 
       player.setPosition(transition.x, transition.y);
       camera.snap();
+      network.requestCampfiresState();
       toast.show(
         map.id === "hunters-tavern"
           ? "Witaj w Karczmie Łowców"

@@ -33,6 +33,7 @@ export class LightSystem {
   private readonly veil = new Graphics();
   private readonly lightTexture: Texture;
   private readonly staticLights: StaticLight[] = [];
+  private readonly dynamicLights = new Map<string, StaticLight>();
   private readonly layer: Container;
   private readonly isInterior: boolean;
   private readonly interiorAmbientAlpha: number;
@@ -126,7 +127,80 @@ export class LightSystem {
 
   dispose(): void {
     this.app.ticker.remove(this.update);
+    this.dynamicLights.clear();
     this.layer.destroy({ children: true });
+  }
+
+  /**
+   * Runtime light for placed props (e.g. player campfires). Replaces any
+   * existing light with the same id. Options mirror map `propTypes[].light`.
+   */
+  upsertLight(
+    id: string,
+    x: number,
+    y: number,
+    light: {
+      color: number;
+      radius: number;
+      intensity: number;
+      flicker?: boolean;
+      offsetX?: number;
+      offsetY?: number;
+    },
+  ): void {
+    this.removeLight(id);
+    if (light.radius <= 0 || light.intensity <= 0) return;
+
+    const centerX = x + (light.offsetX ?? 0);
+    const centerY = y + (light.offsetY ?? 0);
+    const haloScale = (light.radius * 2) / LIGHT_TEXTURE_SIZE;
+    const coreScale = haloScale * 0.48;
+    const haloAlpha = light.intensity * 0.48;
+    const coreAlpha = light.intensity * 0.82;
+
+    const halo = createLightSprite(
+      this.lightTexture,
+      centerX,
+      centerY,
+      haloScale,
+      light.color,
+      haloAlpha,
+    );
+    const core = createLightSprite(
+      this.lightTexture,
+      centerX,
+      centerY,
+      coreScale,
+      mixColor(light.color, 0xffcf72, 0.42),
+      coreAlpha,
+    );
+    this.layer.addChild(halo, core);
+
+    this.dynamicLights.set(id, {
+      halo,
+      core,
+      haloAlpha,
+      coreAlpha,
+      haloScale,
+      coreScale,
+      flicker: light.flicker ?? false,
+      phase: Math.random() * Math.PI * 2,
+    });
+    this.updateLocalLights();
+  }
+
+  removeLight(id: string): void {
+    const light = this.dynamicLights.get(id);
+    if (!light) return;
+    this.dynamicLights.delete(id);
+    light.halo.destroy();
+    light.core.destroy();
+  }
+
+  clearDynamicLights(): void {
+    for (const id of [...this.dynamicLights.keys()]) {
+      this.removeLight(id);
+    }
   }
 
   private update = (): void => {
@@ -163,7 +237,7 @@ export class LightSystem {
   }
 
   private updateLocalLights(): void {
-    for (const light of this.staticLights) {
+    for (const light of [...this.staticLights, ...this.dynamicLights.values()]) {
       const slowPulse = light.flicker
         ? Math.sin(this.elapsed * 3.7 + light.phase)
         : 0;

@@ -1,0 +1,38 @@
+# Placeable cooking campfire (client + server).
+# Author once; Environment / placement / LightSystem / WorldRoom all read this.
+
+id: player-campfire
+# Prop pivot — must stay 0.5 / 0.5 (see .cursor/rules/prop-anchors.mdc).
+anchorX: 0.5
+anchorY: 0.5
+scale: 1
+filter: nearest
+# Tight stone-ring blocker; player body radius stacks on top.
+collisionRadius: 16
+# How far from the player the ghost may be confirmed.
+placeRange: 160
+# Craft / open-cooking distance from the prop centre.
+cookingActivationRadius: 96
+interaction:
+  kind: cooking
+  radius: 48
+idleAnimation:
+  fps: 8
+  frames:
+    - assets/props/campfire/campfire-1.png
+    - assets/props/campfire/campfire-2.png
+    - assets/props/campfire/campfire-3.png
+    - assets/props/campfire/campfire-4.png
+    - assets/props/campfire/campfire-5.png
+    - assets/props/campfire/campfire-6.png
+    - assets/props/campfire/campfire-7.png
+    - assets/props/campfire/campfire-8.png
+    - assets/props/campfire/campfire-9.png
+# Ghost / UI icon uses the first idle frame.
+light:
+  # 0xffa34d — matches map cooking-campfire
+  color: 16750413
+  radius: 162
+  intensity: 0.6
+  flicker: true
+  offsetY: 18

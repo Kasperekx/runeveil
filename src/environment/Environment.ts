@@ -3,17 +3,20 @@ import {
   Container,
   Graphics,
   Sprite,
+  Texture,
   TilingSprite,
   type Application,
-  type Texture,
 } from "pixi.js";
 import {
+  collidersForProp,
   collidersFromMap,
   type MapCircleCollider,
   type MapDocument,
+  type MapPlayableBounds,
   type MapWorldInteraction,
 } from "../maps/types";
 import { loadTiledTerrain } from "../maps/TiledMapRenderer";
+import { PLACEABLE_CAMPFIRE } from "../world/placeableCampfire";
 
 /** Stable id shared with the server for deplete/respawn sync. */
 export function miningNodeKey(
@@ -58,19 +61,37 @@ interface CampfireEffect {
  * Props live on `world` with Y-based zIndex so tall trees sort with the player.
  */
 export class Environment {
-  readonly colliders: readonly MapCircleCollider[];
+  colliders: MapCircleCollider[];
   /** Clickable world props, separate from their physical collision. */
-  readonly interactions: readonly MapWorldInteraction[];
+  interactions: MapWorldInteraction[];
+  readonly playableBounds: MapPlayableBounds;
   private readonly ownedLayers: Container[] = [];
   private readonly worldObjects: Container[] = [];
   private readonly propSprites = new Map<
     string,
     { sprite: Sprite; live: Texture; depleted: Texture | null }
   >();
+  private readonly runtimeCampfires = new Map<
+    string,
+    {
+      sprite: Sprite;
+      interaction: MapWorldInteraction;
+      colliders: MapCircleCollider[];
+    }
+  >();
+  private readonly runtimeAnimations: Array<{
+    sprite: Sprite;
+    frames: Texture[];
+    fps: number;
+    elapsed: number;
+    frameIndex: number;
+  }> = [];
   private tickHandler: (() => void) | null = null;
   private app: Application | null = null;
+  private world: Container | null = null;
 
   private constructor(map: MapDocument) {
+    this.playableBounds = { ...map.playable };
     this.colliders = collidersFromMap(map);
     this.interactions = map.props.flatMap((prop): MapWorldInteraction[] => {
       const interaction = map.propTypes[prop.type]?.interaction;
@@ -143,6 +164,9 @@ export class Environment {
     }
     this.tickHandler = null;
     this.app = null;
+    this.world = null;
+    this.runtimeCampfires.clear();
+    this.runtimeAnimations.length = 0;
     for (const node of this.worldObjects) {
       node.destroy({ children: true });
     }
@@ -152,6 +176,112 @@ export class Environment {
       node.destroy({ children: true });
     }
     this.ownedLayers.length = 0;
+  }
+
+  /** Add or replace a server-synced player campfire (cooking station). */
+  async upsertRuntimeCampfire(
+    id: string,
+    x: number,
+    y: number,
+  ): Promise<void> {
+    this.removeRuntimeCampfire(id);
+    if (!this.world || !this.app) return;
+
+    const def = PLACEABLE_CAMPFIRE.prop;
+    const framePaths = def.idleAnimation?.frames ?? [def.texture];
+    await Assets.load(framePaths);
+    const frames = framePaths.map((path) => {
+      const texture = Texture.from(path);
+      texture.source.scaleMode = def.filter === "linear" ? "linear" : "nearest";
+      return texture;
+    });
+
+    const sprite = new Sprite(frames[0]);
+    const scale = def.scale ?? 1;
+    sprite.anchor.set(def.anchorX, def.anchorY);
+    sprite.scale.set(scale);
+    sprite.position.set(x, y);
+    // World-layer prop: Y-sort with entities (same as map trees / campfires).
+    sprite.zIndex = Math.round(y);
+    sprite.roundPixels = true;
+    this.world.addChild(sprite);
+    this.worldObjects.push(sprite);
+
+    const interactionDef = def.interaction;
+    if (!interactionDef || interactionDef.kind !== "cooking") {
+      throw new Error("placeableCampfire missing cooking interaction");
+    }
+    const interaction: MapWorldInteraction = {
+      kind: "cooking",
+      x: x + (interactionDef.offsetX ?? 0),
+      y: y + (interactionDef.offsetY ?? 0),
+      activationRadius: PLACEABLE_CAMPFIRE.cookingActivationRadius,
+      radius: interactionDef.radius,
+      stationId: id,
+    };
+    this.interactions.push(interaction);
+
+    const colliders = collidersForProp(def, x, y);
+    this.colliders.push(...colliders);
+
+    this.runtimeCampfires.set(id, { sprite, interaction, colliders });
+    if (frames.length > 1) {
+      this.runtimeAnimations.push({
+        sprite,
+        frames,
+        fps: def.idleAnimation?.fps ?? 8,
+        elapsed: 0,
+        frameIndex: 0,
+      });
+      this.ensureTicker();
+    }
+  }
+
+  removeRuntimeCampfire(id: string): void {
+    const entry = this.runtimeCampfires.get(id);
+    if (!entry) return;
+    this.runtimeCampfires.delete(id);
+
+    const interactionIndex = this.interactions.indexOf(entry.interaction);
+    if (interactionIndex >= 0) this.interactions.splice(interactionIndex, 1);
+    for (const collider of entry.colliders) {
+      const colliderIndex = this.colliders.indexOf(collider);
+      if (colliderIndex >= 0) this.colliders.splice(colliderIndex, 1);
+    }
+
+    const animIndex = this.runtimeAnimations.findIndex(
+      (animation) => animation.sprite === entry.sprite,
+    );
+    if (animIndex >= 0) this.runtimeAnimations.splice(animIndex, 1);
+
+    const worldIndex = this.worldObjects.indexOf(entry.sprite);
+    if (worldIndex >= 0) this.worldObjects.splice(worldIndex, 1);
+    entry.sprite.destroy();
+  }
+
+  clearRuntimeCampfires(): void {
+    for (const id of [...this.runtimeCampfires.keys()]) {
+      this.removeRuntimeCampfire(id);
+    }
+  }
+
+  private ensureTicker(): void {
+    if (!this.app || this.tickHandler) return;
+    const tickHandler = (): void => {
+      const deltaSeconds = Math.min(this.app!.ticker.deltaMS, 100) / 1000;
+      for (const animation of this.runtimeAnimations) {
+        animation.elapsed += deltaSeconds;
+        const frameDuration = 1 / animation.fps;
+        while (animation.elapsed >= frameDuration) {
+          animation.elapsed -= frameDuration;
+          animation.frameIndex =
+            (animation.frameIndex + 1) % animation.frames.length;
+          animation.sprite.texture = animation.frames[animation.frameIndex]!;
+        }
+      }
+    };
+    this.tickHandler = tickHandler;
+    this.app.ticker.add(tickHandler);
   }
 
   /** Closest interactive prop under a world-space pointer, any kind. */
@@ -213,6 +343,7 @@ export class Environment {
 
     const env = new Environment(map);
     env.app = app;
+    env.world = world;
     env.ownedLayers.push(groundLayer, shadowLayer);
     const animatedProps: Array<{
       sprite: Sprite;
@@ -300,6 +431,16 @@ export class Environment {
       const tickHandler = (): void => {
         const deltaSeconds = Math.min(app.ticker.deltaMS, 100) / 1000;
         for (const animation of animatedProps) {
+          animation.elapsed += deltaSeconds;
+          const frameDuration = 1 / animation.fps;
+          while (animation.elapsed >= frameDuration) {
+            animation.elapsed -= frameDuration;
+            animation.frameIndex =
+              (animation.frameIndex + 1) % animation.frames.length;
+            animation.sprite.texture = animation.frames[animation.frameIndex]!;
+          }
+        }
+        for (const animation of env.runtimeAnimations) {
           animation.elapsed += deltaSeconds;
           const frameDuration = 1 / animation.fps;
           while (animation.elapsed >= frameDuration) {

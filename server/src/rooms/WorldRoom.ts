@@ -26,6 +26,7 @@ import {
   getClass,
 } from "../world/classConfig.js";
 import { AnimalAi, type CircleBlocker } from "../world/AnimalAi.js";
+import { PLACEABLE_CAMPFIRE } from "../world/placeableCampfire.js";
 import {
   collidersFromMap,
   knownMapIds,
@@ -33,10 +34,7 @@ import {
   type MapCircleCollider,
   type MapDocument,
 } from "../maps/loadMap.js";
-import {
-  findMapTransition,
-  resolveMapArrival,
-} from "../maps/mapTransition.js";
+import { findMapTransition, resolveMapArrival } from "../maps/mapTransition.js";
 import {
   addItemToPlayer,
   moveInventorySlot,
@@ -370,6 +368,17 @@ export class WorldRoom extends Room {
   >();
   /** nodeKey → unix ms when the vein respawns. */
   private readonly depletedNodes = new Map<string, number>();
+  /** Runtime player-placed cooking campfires (in-memory). */
+  private readonly placedCampfires = new Map<
+    string,
+    {
+      id: string;
+      mapId: string;
+      ownerPlayerId: string;
+      x: number;
+      y: number;
+    }
+  >();
   /** sessionId → last time the player took creature damage. */
   private readonly lastDamageAt = new Map<string, number>();
   /** sessionId → last rage generation (combat clock for OOC decay). */
@@ -395,10 +404,7 @@ export class WorldRoom extends Room {
   /** sessionId → recent say timestamps (rate limit). */
   private readonly chatSentAt = new Map<string, number[]>();
   /** sessionId → last say text + time (anti-duplicate). */
-  private readonly chatLast = new Map<
-    string,
-    { text: string; at: number }
-  >();
+  private readonly chatLast = new Map<string, { text: string; at: number }>();
 
   onCreate(): void {
     this.maxClients = 50;
@@ -491,6 +497,7 @@ export class WorldRoom extends Room {
       if (player.hp <= 0) this.deadSessions.add(client.sessionId);
       client.userData = { playerId, accountId: auth.accountId };
       this.sendMiningNodesState(client);
+      this.sendCampfiresState(client);
       this.sendFoodBuffState(client);
     } catch (error) {
       markCharacterOffline(playerId);
@@ -588,11 +595,102 @@ export class WorldRoom extends Room {
         y: player.y,
       });
       this.sendMiningNodesState(client);
+      this.sendCampfiresState(client);
     },
 
     /** Client re-requests depleted veins after UI is ready (join race). */
     requestMiningNodesState: (client: Client) => {
       this.sendMiningNodesState(client);
+    },
+
+    /** Client re-requests placed campfires after UI / map load. */
+    requestCampfiresState: (client: Client) => {
+      this.sendCampfiresState(client);
+    },
+
+    /** Place or replace a personal cooking campfire near the player. */
+    placeCampfire: (
+      client: Client,
+      data: {
+        x?: number;
+        y?: number;
+        playerX?: number;
+        playerY?: number;
+      },
+    ) => {
+      const player = this.livingPlayer(client);
+      if (!player) return;
+      if (
+        typeof data?.x !== "number" ||
+        typeof data?.y !== "number" ||
+        !Number.isFinite(data.x) ||
+        !Number.isFinite(data.y)
+      ) {
+        return;
+      }
+
+      this.applyClientPosition(player, data.playerX, data.playerY);
+      const x = Math.round(data.x);
+      const y = Math.round(data.y);
+      const map = this.mapForPlayer(player);
+      const placeRange = PLACEABLE_CAMPFIRE.placeRange;
+      const campfireRadius = PLACEABLE_CAMPFIRE.collisionRadius;
+
+      if (Math.hypot(x - player.x, y - player.y) > placeRange) {
+        client.send("notice", { kind: "campfire_too_far" });
+        return;
+      }
+      if (
+        x < map.playable.minX + campfireRadius ||
+        x > map.playable.maxX - campfireRadius ||
+        y < map.playable.minY + campfireRadius ||
+        y > map.playable.maxY - campfireRadius
+      ) {
+        client.send("notice", { kind: "campfire_blocked" });
+        return;
+      }
+
+      const colliders = this.mapColliders.get(map.id) ?? [];
+      for (const collider of colliders) {
+        if (
+          Math.hypot(x - collider.x, y - collider.y) <
+          collider.radius + campfireRadius
+        ) {
+          client.send("notice", { kind: "campfire_blocked" });
+          return;
+        }
+      }
+      for (const campfire of this.placedCampfires.values()) {
+        if (
+          campfire.mapId !== map.id ||
+          campfire.ownerPlayerId === player.playerId
+        )
+          continue;
+        if (
+          Math.hypot(x - campfire.x, y - campfire.y) < campfireRadius * 2
+        ) {
+          client.send("notice", { kind: "campfire_blocked" });
+          return;
+        }
+      }
+
+      // One personal fire: replace the previous one anywhere.
+      for (const [id, campfire] of [...this.placedCampfires.entries()]) {
+        if (campfire.ownerPlayerId !== player.playerId) continue;
+        this.placedCampfires.delete(id);
+        this.broadcast("campfireRemoved", { id });
+      }
+
+      const id = `campfire-${player.playerId}`;
+      const placed = {
+        id,
+        mapId: map.id,
+        ownerPlayerId: player.playerId,
+        x,
+        y,
+      };
+      this.placedCampfires.set(id, placed);
+      this.broadcast("campfirePlaced", placed);
     },
 
     /** Client re-requests active food buff after UI is ready. */
@@ -783,7 +881,9 @@ export class WorldRoom extends Room {
       if (now < (this.skillReadyAt.get(cdKey) ?? 0)) return;
 
       // Spend resource before committing cooldown / swing (fail closed).
-      if (!this.trySpendResource(player, client.sessionId, skill.resourceCost)) {
+      if (
+        !this.trySpendResource(player, client.sessionId, skill.resourceCost)
+      ) {
         client.send("notice", { kind: "not_enough_resource" });
         return;
       }
@@ -978,9 +1078,7 @@ export class WorldRoom extends Room {
 
       // Two-handers clear the off-hand; equipping an off-hand clears a 2H main.
       if (incoming.twoHanded && data.slotId === "mainHand") {
-        if (
-          !this.stowEquipmentSlot(player, "offHand", [data.inventoryIndex])
-        ) {
+        if (!this.stowEquipmentSlot(player, "offHand", [data.inventoryIndex])) {
           client.send("notice", { kind: "inventory_full" });
           return;
         }
@@ -1588,9 +1686,7 @@ export class WorldRoom extends Room {
       }
 
       const node = getProfessionGatherNode(data.nodeId);
-      const profession = node
-        ? getProfessionConfig(node.professionId)
-        : null;
+      const profession = node ? getProfessionConfig(node.professionId) : null;
       if (!node || !profession) return;
 
       const state = this.professionState(player, node.professionId);
@@ -1648,9 +1744,7 @@ export class WorldRoom extends Room {
       }
 
       const node = getProfessionGatherNode(data.nodeId);
-      const profession = node
-        ? getProfessionConfig(node.professionId)
-        : null;
+      const profession = node ? getProfessionConfig(node.professionId) : null;
       if (!node || !profession) return;
 
       const state = this.professionState(player, node.professionId);
@@ -1861,6 +1955,14 @@ export class WorldRoom extends Room {
       const blockers: CircleBlocker[] = (
         this.mapColliders.get(animal.mapId) ?? []
       ).map((c) => ({ x: c.x, y: c.y, radius: c.radius }));
+      for (const campfire of this.placedCampfires.values()) {
+        if (campfire.mapId !== animal.mapId) continue;
+        blockers.push({
+          x: campfire.x,
+          y: campfire.y,
+          radius: PLACEABLE_CAMPFIRE.collisionRadius,
+        });
+      }
       this.animalAi.tick(
         animal,
         dt,
@@ -2027,17 +2129,17 @@ export class WorldRoom extends Room {
       }
 
       this.rageDecayCarry.set(sessionId, carry - loss);
-      player.resource = clampResource(player.resource - loss, player.maxResource);
+      player.resource = clampResource(
+        player.resource - loss,
+        player.maxResource,
+      );
       if (player.resource <= 0) {
         this.rageDecayCarry.delete(sessionId);
         this.lastRageDecayAt.delete(sessionId);
       }
     }
   }
-  private sendLootDropped(
-    client: Client,
-    animal: AnimalState,
-  ): void {
+  private sendLootDropped(client: Client, animal: AnimalState): void {
     const items: Array<{ itemId: string; quantity: number }> = [];
     for (let i = 0; i < animal.loot.length; i++) {
       const slot = animal.loot.at(i);
@@ -2058,11 +2160,7 @@ export class WorldRoom extends Room {
     now: number,
   ): boolean {
     const last = this.chatLast.get(sessionId);
-    if (
-      last &&
-      last.text === text &&
-      now - last.at < CHAT_DUPLICATE_MS
-    ) {
+    if (last && last.text === text && now - last.at < CHAT_DUPLICATE_MS) {
       return false;
     }
 
@@ -2135,16 +2233,22 @@ export class WorldRoom extends Room {
     player: PlayerState,
     requiredTool: string,
   ): boolean {
-    const matches = (itemId: string, durability: number, maxDurability: number) => {
+    const matches = (
+      itemId: string,
+      durability: number,
+      maxDurability: number,
+    ) => {
       if (!itemId) return false;
       if (isBroken(durability, maxDurability)) return false;
       return getItemConfig(itemId)?.gatheringTool === requiredTool;
     };
     for (const slot of player.equipment) {
-      if (matches(slot.itemId, slot.durability, slot.maxDurability)) return true;
+      if (matches(slot.itemId, slot.durability, slot.maxDurability))
+        return true;
     }
     for (const slot of player.slots) {
-      if (matches(slot.itemId, slot.durability, slot.maxDurability)) return true;
+      if (matches(slot.itemId, slot.durability, slot.maxDurability))
+        return true;
     }
     return false;
   }
@@ -2944,11 +3048,36 @@ export class WorldRoom extends Room {
   }
 
   private isAtCookingStation(player: PlayerState): boolean {
-    return (this.mapForPlayer(player).cookingStations ?? []).some(
-      (station) =>
-        Math.hypot(player.x - station.x, player.y - station.y) <=
-        Math.max(1, station.radius ?? COOKING_STATION_RANGE),
+    const map = this.mapForPlayer(player);
+    if (
+      (map.cookingStations ?? []).some(
+        (station) =>
+          Math.hypot(player.x - station.x, player.y - station.y) <=
+          Math.max(1, station.radius ?? COOKING_STATION_RANGE),
+      )
+    ) {
+      return true;
+    }
+    for (const campfire of this.placedCampfires.values()) {
+      if (campfire.mapId !== map.id) continue;
+      if (
+        Math.hypot(player.x - campfire.x, player.y - campfire.y) <=
+        PLACEABLE_CAMPFIRE.cookingActivationRadius
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private sendCampfiresState(client: Client): void {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    const mapId = player.mapId;
+    const campfires = [...this.placedCampfires.values()].filter(
+      (campfire) => campfire.mapId === mapId,
     );
+    client.send("campfiresState", { campfires });
   }
 
   private hasItemQuantity(
@@ -3141,7 +3270,9 @@ export class WorldRoom extends Room {
     );
     if (!offer) return 0;
     if (offer.stock < 0) return -1;
-    return this.shopStock.get(`${player.mapId}:${instanceId}`)?.get(itemId) ?? 0;
+    return (
+      this.shopStock.get(`${player.mapId}:${instanceId}`)?.get(itemId) ?? 0
+    );
   }
 }
 

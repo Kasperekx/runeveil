@@ -7602,6 +7602,49 @@ body {
   font-style: italic;
   line-height: 1.35;
 }
+.professions-panel__place {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 7px;
+  align-items: center;
+  width: calc(100% - 2px);
+  margin: 8px 1px 0;
+  padding: 6px;
+  border: 1px solid #5a4a28;
+  color: var(--parchment);
+  background: linear-gradient(180deg, rgba(90, 62, 28, 0.45), rgba(24, 18, 10, 0.85));
+  text-align: left;
+  cursor: pointer;
+}
+.professions-panel__place:hover {
+  border-color: rgba(230, 200, 120, 0.7);
+  background: linear-gradient(180deg, rgba(120, 82, 36, 0.55), rgba(30, 22, 12, 0.9));
+}
+.professions-panel__place[hidden] {
+  display: none !important;
+}
+.professions-panel__place img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: #030504;
+  border: 1px solid #3f4f44;
+}
+.professions-panel__place strong {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.professions-panel__place small {
+  display: block;
+  margin-top: 2px;
+  color: rgba(168, 144, 96, 0.8);
+  font-family: var(--font-body);
+  font-size: 10px;
+}
 
 .professions-panel__recipes-wrap {
   display: grid;

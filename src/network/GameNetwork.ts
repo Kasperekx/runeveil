@@ -223,6 +223,22 @@ export interface MiningNodeRespawnedEvent {
   nodeKey: string;
 }
 
+export interface CampfirePlacedEvent {
+  id: string;
+  mapId: string;
+  x: number;
+  y: number;
+  ownerPlayerId: string;
+}
+
+export interface CampfireRemovedEvent {
+  id: string;
+}
+
+export interface CampfiresStateEvent {
+  campfires: CampfirePlacedEvent[];
+}
+
 export interface QuestReadyEvent {
   questId: string;
 }
@@ -461,6 +477,9 @@ export class GameNetwork {
     null;
   onMiningNodeRespawned: ((event: MiningNodeRespawnedEvent) => void) | null =
     null;
+  onCampfirePlaced: ((event: CampfirePlacedEvent) => void) | null = null;
+  onCampfireRemoved: ((event: CampfireRemovedEvent) => void) | null = null;
+  onCampfiresState: ((event: CampfiresStateEvent) => void) | null = null;
   /** Active food buff snapshot (join / apply). */
   onFoodBuffState: ((event: FoodBuffStateEvent | null) => void) | null = null;
   /** Objective complete; the player must claim the configured reward. */
@@ -538,6 +557,7 @@ export class GameNetwork {
     this.room = await client.joinOrCreate("world");
     // Register before waiting on state — onJoin may already have sent mining sync.
     this.bindMiningMessages(this.room);
+    this.bindCampfireMessages(this.room);
 
     await this.waitForOwnPlayer();
 
@@ -700,6 +720,18 @@ export class GameNetwork {
         this.onMiningNodeRespawned?.(event);
       },
     );
+  }
+
+  private bindCampfireMessages(room: Room): void {
+    room.onMessage("campfiresState", (event: CampfiresStateEvent) => {
+      this.onCampfiresState?.(event);
+    });
+    room.onMessage("campfirePlaced", (event: CampfirePlacedEvent) => {
+      this.onCampfirePlaced?.(event);
+    });
+    room.onMessage("campfireRemoved", (event: CampfireRemovedEvent) => {
+      this.onCampfireRemoved?.(event);
+    });
   }
 
   hydrate(snapshot: NetworkPlayerSnapshot): void {
@@ -898,6 +930,23 @@ export class GameNetwork {
     this.cancelScheduledSave();
     const { x, y } = this.player.position;
     this.room.send("craftRecipe", { recipeId, quantity, x, y });
+  }
+
+  /** Place or replace this character's personal cooking campfire. */
+  placeCampfire(x: number, y: number): void {
+    if (!this.room) return;
+    const pos = this.player.position;
+    this.room.send("placeCampfire", {
+      x,
+      y,
+      playerX: pos.x,
+      playerY: pos.y,
+    });
+  }
+
+  /** Ask the server for runtime campfires on the current map. */
+  requestCampfiresState(): void {
+    this.room?.send("requestCampfiresState");
   }
 
   /** Begin a mining channel; server records the completion timestamp. */

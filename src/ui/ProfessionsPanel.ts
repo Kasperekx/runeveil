@@ -9,9 +9,11 @@ import {
   type ProfessionRecipe,
 } from "../professions/catalog";
 import type { ProfessionSnapshot } from "../network/GameNetwork";
+import { PLACEABLE_CAMPFIRE } from "../world/placeableCampfire";
 import { makeDraggable } from "./makeDraggable";
 
 type CraftHandler = (recipeId: string, quantity: number) => void;
+type PlaceCampfireHandler = () => void;
 
 interface CraftQueue {
   recipeId: string;
@@ -27,6 +29,7 @@ const CRAFT_RESULT_TIMEOUT_MS = 3500;
 const CRAFT_STEP_PAUSE_MS = 140;
 const CRAFT_COMPLETE_HOLD_MS = 700;
 const MAX_CRAFT_QUEUE = 99;
+const CAMPFIRE_ICON = PLACEABLE_CAMPFIRE.ghostTexture;
 
 /** Trade-profession journal with rank progress and server-backed crafting. */
 export class ProfessionsPanel {
@@ -46,6 +49,7 @@ export class ProfessionsPanel {
   private readonly craftStepEl: HTMLElement;
   private readonly craftFillEl: HTMLElement;
   private readonly craftTimeEl: HTMLElement;
+  private onPlaceCampfire: PlaceCampfireHandler | null = null;
 
   private constructor(
     private readonly root: HTMLElement,
@@ -108,6 +112,10 @@ export class ProfessionsPanel {
               <span class="professions-panel__station-mark" aria-hidden="true">⌖</span>
               <p><strong data-station-state>Wymagane stanowisko</strong><small data-station-copy>Przepisy wykonasz przy palenisku obok kuźni.</small></p>
             </div>
+            <button type="button" class="professions-panel__place" data-place-campfire hidden>
+              <img src="/${CAMPFIRE_ICON}" alt="" />
+              <span><strong>Postaw palenisko</strong><small>Tryb stawiania · LPM / Esc</small></span>
+            </button>
           </nav>
           <section class="professions-panel__workspace">
             <header class="professions-panel__hero">
@@ -160,9 +168,23 @@ export class ProfessionsPanel {
     root
       .querySelector("[data-close]")!
       .addEventListener("click", () => panel.close());
+    root
+      .querySelector("[data-place-campfire]")!
+      .addEventListener("click", () => panel.beginPlaceCampfire());
     makeDraggable(root, root.querySelector("[data-header]") as HTMLElement);
     panel.render();
     return panel;
+  }
+
+  /** Called by Game to start WoW-style campfire placement. */
+  setPlaceCampfireHandler(handler: PlaceCampfireHandler): void {
+    this.onPlaceCampfire = handler;
+  }
+
+  private beginPlaceCampfire(): void {
+    if (this.selectedProfessionId !== "cooking") return;
+    this.close();
+    this.onPlaceCampfire?.();
   }
 
   get isOpen(): boolean {
@@ -306,6 +328,11 @@ export class ProfessionsPanel {
           ? "Wytopisz rudę przy kuźni lub palenisku."
           : "Przepisy wykonasz przy palenisku obok kuźni."
         : "Surowce pozyskasz bezpośrednio z węzłów na mapie.";
+
+    const placeButton = this.root.querySelector<HTMLButtonElement>(
+      "[data-place-campfire]",
+    )!;
+    placeButton.hidden = profession.id !== "cooking";
 
     const professionList = this.root.querySelector<HTMLElement>(
       "[data-profession-list]",

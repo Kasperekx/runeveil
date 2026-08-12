@@ -176,22 +176,33 @@ export function knownMapIds(): string[] {
 /** Default body radius for static map NPCs. */
 const NPC_COLLISION_RADIUS = 20;
 
+/** Solid circles for one prop instance (primary radius + optional extras). */
+export function collidersForProp(
+  def: Pick<MapPropType, "collisionRadius" | "colliders">,
+  x: number,
+  y: number,
+): MapCircleCollider[] {
+  const out: MapCircleCollider[] = [];
+  if (def.collisionRadius > 0) {
+    out.push({ x, y, radius: def.collisionRadius });
+  }
+  for (const extra of def.colliders ?? []) {
+    if (extra.radius <= 0) continue;
+    out.push({
+      x: x + (extra.x ?? 0),
+      y: y + (extra.y ?? 0),
+      radius: extra.radius,
+    });
+  }
+  return out;
+}
+
 export function collidersFromMap(map: MapDocument): MapCircleCollider[] {
   const out: MapCircleCollider[] = [];
   for (const prop of map.props) {
     const def = map.propTypes[prop.type];
     if (!def) continue;
-    if (def.collisionRadius > 0) {
-      out.push({ x: prop.x, y: prop.y, radius: def.collisionRadius });
-    }
-    for (const extra of def.colliders ?? []) {
-      if (extra.radius <= 0) continue;
-      out.push({
-        x: prop.x + (extra.x ?? 0),
-        y: prop.y + (extra.y ?? 0),
-        radius: extra.radius,
-      });
-    }
+    out.push(...collidersForProp(def, prop.x, prop.y));
   }
   for (const npc of map.npcs ?? []) {
     out.push({ x: npc.x, y: npc.y, radius: NPC_COLLISION_RADIUS });
