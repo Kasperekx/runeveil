@@ -417,6 +417,7 @@
     {
       "id": "hunting-grounds-hearth",
       "name": "Ognisko kucharskie",
+      "kind": "cooking",
       "x": 634,
       "y": 558,
       "radius": 96
@@ -424,6 +425,7 @@
     {
       "id": "hunting-grounds-forge",
       "name": "Kuźnia",
+      "kind": "forge",
       "x": 900,
       "y": 522,
       "radius": 160

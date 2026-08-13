@@ -1,5 +1,4 @@
 import {
-  getClassName,
   getClass,
   EQUIPMENT_SLOT_LABELS,
   ATTR_LABELS,
@@ -103,8 +102,6 @@ function figureSrc(classId: string): string {
 /** WoW-like character panel: paper-doll + attributes. Toggle with C. */
 export class CharacterPanel {
   private readonly root: HTMLElement;
-  private readonly identityEl: HTMLElement;
-  private readonly portraitEl: HTMLImageElement;
   private readonly dollEl: HTMLElement;
   private readonly pointsEl: HTMLElement;
   private readonly attrsEl: HTMLElement;
@@ -120,8 +117,6 @@ export class CharacterPanel {
 
   private constructor(
     root: HTMLElement,
-    identityEl: HTMLElement,
-    portraitEl: HTMLImageElement,
     dollEl: HTMLElement,
     pointsEl: HTMLElement,
     attrsEl: HTMLElement,
@@ -130,8 +125,6 @@ export class CharacterPanel {
     private readonly handlers: EquipHandlers,
   ) {
     this.root = root;
-    this.identityEl = identityEl;
-    this.portraitEl = portraitEl;
     this.dollEl = dollEl;
     this.pointsEl = pointsEl;
     this.attrsEl = attrsEl;
@@ -164,21 +157,7 @@ export class CharacterPanel {
           <button type="button" class="character-panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
         </header>
         <div class="character-panel__body">
-          <div class="character-panel__identity">
-            <div class="character-panel__portrait-wrap">
-              <img class="character-panel__portrait" data-portrait src="" alt="" draggable="false" />
-              <span class="character-panel__portrait-corner character-panel__portrait-corner--tl" aria-hidden="true"></span>
-              <span class="character-panel__portrait-corner character-panel__portrait-corner--br" aria-hidden="true"></span>
-            </div>
-            <div class="character-panel__identity-copy">
-              <span class="character-panel__identity-label">Profil bohatera</span>
-              <div class="character-panel__identity-text" data-identity></div>
-            </div>
-            <div class="character-panel__identity-seal" aria-hidden="true">
-              <span>✦</span>
-              <small>CHWAŁA</small>
-            </div>
-          </div>
+
           <div class="character-panel__columns">
             <section class="character-panel__equipment">
               <div class="character-panel__section-heading">
@@ -220,8 +199,6 @@ export class CharacterPanel {
 
     const panel = new CharacterPanel(
       root,
-      root.querySelector("[data-identity]")!,
-      root.querySelector("[data-portrait]")!,
       root.querySelector("[data-doll]")!,
       root.querySelector("[data-points]")!,
       root.querySelector("[data-attrs]")!,
@@ -290,16 +267,6 @@ export class CharacterPanel {
       ".character-panel__figure-sprite",
     );
     if (figure) figure.src = figureSrc(data.classId);
-    this.portraitEl.src = `/${data.portrait}`;
-    this.portraitEl.alt = `Portret: ${data.name}`;
-    this.identityEl.innerHTML = `
-      <div class="character-panel__name">${escapeHtml(data.name)}</div>
-      <div class="character-panel__meta">
-        <span class="character-panel__level"><small>Poziom</small>${data.level}</span>
-        <span class="character-panel__meta-divider" aria-hidden="true"></span>
-        <span class="character-panel__class">${escapeHtml(getClassName(data.classId))}</span>
-      </div>
-    `;
 
     this.worn = new Map(
       data.equipment.filter((e) => e.itemId).map((e) => [e.slotId, e] as const),

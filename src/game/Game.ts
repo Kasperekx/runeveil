@@ -99,7 +99,8 @@ const NOTICE_COPY: Record<string, string> = {
   food_buff_expired: "Efekt posiłku dobiegł końca.",
   food_buff_cancelled: "Anulowano efekt posiłku.",
   equip_level_too_low: "Twój poziom jest za niski, by założyć ten przedmiot.",
-  cooking_station_required: "Podejdź do paleniska lub kuźni, aby wytwarzać.",
+  cooking_station_required: "Podejdź do paleniska, aby gotować.",
+  forge_station_required: "Podejdź do kuźni, aby wytopić sztabki.",
   campfire_too_far: "Podejdź bliżej, aby postawić palenisko.",
   campfire_blocked: "Nie możesz tu postawić paleniska.",
   profession_level_too_low:
@@ -125,6 +126,7 @@ const NOTICE_COPY: Record<string, string> = {
 
 const CRAFT_REJECTION_NOTICES = new Set([
   "cooking_station_required",
+  "forge_station_required",
   "profession_level_too_low",
   "missing_ingredients",
   "inventory_full",

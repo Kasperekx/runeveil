@@ -139,6 +139,8 @@ export interface MapCookingStation {
   x: number;
   y: number;
   radius?: number;
+  /** cooking = campfire/hearth; forge = anvil/smelter. Default cooking. */
+  kind?: "cooking" | "forge";
 }
 
 export interface MapHome {
@@ -205,6 +207,8 @@ export type MapWorldInteraction =
       activationRadius: number;
       radius: number;
       stationId?: string;
+      /** Which craft recipes this station unlocks. Default cooking. */
+      stationKind?: "cooking" | "forge";
     }
   | {
       kind: "enter";

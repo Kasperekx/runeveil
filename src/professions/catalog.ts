@@ -13,6 +13,8 @@ export interface ProfessionRecipe {
   level: number;
   xp: number;
   craftTimeMs: number;
+  /** World station required to craft this recipe. */
+  station: "cooking" | "forge";
   output: { itemId: string; quantity: number };
   ingredients: ProfessionIngredient[];
 }
@@ -48,6 +50,7 @@ interface RecipeYaml {
   level?: number;
   xp?: number;
   craftTimeMs?: number;
+  station?: "cooking" | "forge";
   output?: { item?: string; quantity?: number };
   ingredients?: Array<{ item?: string; quantity?: number }>;
 }
@@ -103,6 +106,7 @@ export async function loadProfessionCatalog(): Promise<void> {
               level: Math.max(1, number(recipe.level, 1)),
               xp: Math.max(1, number(recipe.xp, 1)),
               craftTimeMs: Math.max(500, number(recipe.craftTimeMs, 1600)),
+              station: recipe.station === "forge" ? "forge" : "cooking",
               output: {
                 itemId: outputId,
                 quantity: Math.max(1, number(recipe.output?.quantity, 1)),
@@ -175,6 +179,14 @@ export function getProfession(id: string): ProfessionDefinition {
   const profession = catalog[id];
   if (!profession) throw new Error(`Unknown profession id: ${id}`);
   return profession;
+}
+
+export function getProfessionRecipe(recipeId: string): ProfessionRecipe | null {
+  for (const profession of Object.values(catalog)) {
+    const recipe = profession.recipes.find((entry) => entry.id === recipeId);
+    if (recipe) return recipe;
+  }
+  return null;
 }
 
 export function getProfessionGatherNode(

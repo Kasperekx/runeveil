@@ -3,6 +3,7 @@ import type { Inventory } from "../inventory/Inventory";
 import { getItem } from "../items/catalog";
 import {
   getProfession,
+  getProfessionRecipe,
   listProfessions,
   professionXpForLevel,
   type ProfessionGatherNode,
@@ -14,6 +15,9 @@ import { makeDraggable } from "./makeDraggable";
 
 type CraftHandler = (recipeId: string, quantity: number) => void;
 type PlaceCampfireHandler = () => void;
+
+/** World craft benches unlocked while standing near a station. */
+export type CraftStationKind = "cooking" | "forge";
 
 interface CraftQueue {
   recipeId: string;
@@ -38,7 +42,7 @@ export class ProfessionsPanel {
   private selectedProfessionId = "cooking";
   private selectedRecipeId: string | null = null;
   private professions: ProfessionSnapshot[] = [];
-  private craftingAvailable = false;
+  private craftingStations = new Set<CraftStationKind>();
   private readonly craftQuantities = new Map<string, number>();
   private craftQueue: CraftQueue | null = null;
   private craftAnimationFrame: number | null = null;
@@ -110,7 +114,7 @@ export class ProfessionsPanel {
             <div class="professions-panel__profession-list" data-profession-list></div>
             <div class="professions-panel__station" data-station>
               <span class="professions-panel__station-mark" aria-hidden="true">⌖</span>
-              <p><strong data-station-state>Wymagane stanowisko</strong><small data-station-copy>Przepisy wykonasz przy palenisku obok kuźni.</small></p>
+              <p><strong data-station-state>Wymagane stanowisko</strong><small data-station-copy>Gotowanie przy palenisku, wytop przy kuźni.</small></p>
             </div>
             <button type="button" class="professions-panel__place" data-place-campfire hidden>
               <img src="/${CAMPFIRE_ICON}" alt="" />
@@ -195,10 +199,26 @@ export class ProfessionsPanel {
     return this.craftQueue !== null;
   }
 
-  setCraftingAvailable(available: boolean): void {
-    if (this.craftingAvailable === available) return;
-    this.craftingAvailable = available;
+  setCraftingStations(kinds: readonly CraftStationKind[]): void {
+    const next = new Set(kinds);
+    const same =
+      next.size === this.craftingStations.size &&
+      [...next].every((kind) => this.craftingStations.has(kind));
+    if (same) return;
+    this.craftingStations = next;
+
+    // Drop in-progress craft if the required station is no longer in range.
+    if (this.craftQueue) {
+      const active = getProfessionRecipe(this.craftQueue.recipeId);
+      if (active && !this.craftingStations.has(active.station)) {
+        this.cancelCraft();
+      }
+    }
     this.render();
+  }
+
+  private hasStation(kind: CraftStationKind): boolean {
+    return this.craftingStations.has(kind);
   }
 
   setProfessions(professions: ProfessionSnapshot[]): void {
@@ -311,22 +331,22 @@ export class ProfessionsPanel {
       : `${profession.maxLevel} / ${profession.maxLevel} · maksimum`;
     const station = this.root.querySelector<HTMLElement>("[data-station]")!;
     const usesCraftingStation = profession.recipes.length > 0;
-    station.classList.toggle(
-      "is-available",
-      usesCraftingStation && this.craftingAvailable,
-    );
+    const stationReady =
+      usesCraftingStation &&
+      profession.recipes.some((recipe) => this.hasStation(recipe.station));
+    station.classList.toggle("is-available", stationReady);
     station.classList.toggle("is-world", !usesCraftingStation);
     station.querySelector("[data-station-state]")!.textContent =
       !usesCraftingStation
         ? "Praca w terenie"
-        : this.craftingAvailable
+        : stationReady
           ? "Stanowisko aktywne"
           : "Wymagane stanowisko";
     station.querySelector("[data-station-copy]")!.textContent =
       usesCraftingStation
         ? profession.id === "mining"
-          ? "Wytopisz rudę przy kuźni lub palenisku."
-          : "Przepisy wykonasz przy palenisku obok kuźni."
+          ? "Sztabki wytopisz tylko przy kuźni."
+          : "Przepisy wykonasz przy palenisku."
         : "Surowce pozyskasz bezpośrednio z węzłów na mapie.";
 
     const placeButton = this.root.querySelector<HTMLButtonElement>(
@@ -483,7 +503,7 @@ export class ProfessionsPanel {
     this.craftQuantities.set(recipe.id, quantity);
     const canCraft =
       !this.craftQueue &&
-      this.craftingAvailable &&
+      this.hasStation(recipe.station) &&
       !missingLevel &&
       maxCraftable > 0;
     const craftLabel =
@@ -499,6 +519,7 @@ export class ProfessionsPanel {
       <div class="professions-panel__output"><img src="/${output.icon}" alt="" /><span>Rezultat</span><b>${escapeHtml(output.name)} ×${recipe.output.quantity}</b><em>+${recipe.xp} PD</em></div>
       <h4>Składniki</h4><ul>${ingredients}</ul>
       ${missingLevel ? `<p class="professions-panel__locked">Wymaga ${recipe.level}. poziomu ${escapeHtml(profession.name)}.</p>` : ""}
+      ${!missingLevel && !this.hasStation(recipe.station) ? `<p class="professions-panel__locked">${recipe.station === "forge" ? "Wymaga kuźni — palenisko nie wystarczy." : "Wymaga paleniska."}</p>` : ""}
       <div class="professions-panel__craft-actions">
         <div class="professions-panel__quantity" aria-label="Ilość wytwarzania">
           <button type="button" data-quantity-step="-1" aria-label="Zmniejsz ilość" ${maxCraftable > 0 && !this.craftQueue ? "" : "disabled"}>−</button>
@@ -553,7 +574,7 @@ export class ProfessionsPanel {
   }
 
   private startCraft(recipe: ProfessionRecipe, quantity: number): void {
-    if (this.craftQueue || !this.craftingAvailable) return;
+    if (this.craftQueue || !this.hasStation(recipe.station)) return;
 
     this.craftQueue = {
       recipeId: recipe.id,
@@ -588,7 +609,8 @@ export class ProfessionsPanel {
     const startedAt = performance.now();
     const animate = (now: number): void => {
       if (this.craftQueue !== queue) return;
-      if (!this.craftingAvailable) {
+      const recipe = getProfessionRecipe(queue.recipeId);
+      if (!recipe || !this.hasStation(recipe.station)) {
         this.cancelCraft();
         return;
       }

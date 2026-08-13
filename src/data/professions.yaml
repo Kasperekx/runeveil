@@ -65,6 +65,8 @@ professions:
         level: 1
         xp: 12
         craftTimeMs: 1800
+        # Smelting needs the forge — campfires are cooking-only.
+        station: forge
         output:
           item: copper_ingot
           quantity: 1

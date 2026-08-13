@@ -1589,8 +1589,13 @@ export class WorldRoom extends Room {
       if (!profession) return;
 
       this.applyClientPosition(player, data.x, data.y);
-      if (!this.isAtCookingStation(player)) {
-        client.send("notice", { kind: "cooking_station_required" });
+      if (!this.isAtCraftStation(player, recipe.station)) {
+        client.send("notice", {
+          kind:
+            recipe.station === "forge"
+              ? "forge_station_required"
+              : "cooking_station_required",
+        });
         return;
       }
 
@@ -3047,17 +3052,25 @@ export class WorldRoom extends Room {
     this.persistPlayer(player);
   }
 
-  private isAtCookingStation(player: PlayerState): boolean {
+  private isAtCraftStation(
+    player: PlayerState,
+    stationKind: "cooking" | "forge",
+  ): boolean {
     const map = this.mapForPlayer(player);
     if (
-      (map.cookingStations ?? []).some(
-        (station) =>
+      (map.cookingStations ?? []).some((station) => {
+        const kind = station.kind === "forge" ? "forge" : "cooking";
+        if (kind !== stationKind) return false;
+        return (
           Math.hypot(player.x - station.x, player.y - station.y) <=
-          Math.max(1, station.radius ?? COOKING_STATION_RANGE),
-      )
+          Math.max(1, station.radius ?? COOKING_STATION_RANGE)
+        );
+      })
     ) {
       return true;
     }
+    // Player-placed campfires are cooking stations only.
+    if (stationKind !== "cooking") return false;
     for (const campfire of this.placedCampfires.values()) {
       if (campfire.mapId !== map.id) continue;
       if (

@@ -112,6 +112,7 @@ export class Environment {
             activationRadius: Math.max(1, station?.radius ?? 96),
             radius: interaction.radius,
             stationId: interaction.stationId,
+            stationKind: station?.kind === "forge" ? "forge" : "cooking",
           },
         ];
       }
@@ -218,6 +219,7 @@ export class Environment {
       activationRadius: PLACEABLE_CAMPFIRE.cookingActivationRadius,
       radius: interactionDef.radius,
       stationId: id,
+      stationKind: "cooking",
     };
     this.interactions.push(interaction);
 

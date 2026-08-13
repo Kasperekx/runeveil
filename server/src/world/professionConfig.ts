@@ -16,6 +16,8 @@ export interface ProfessionRecipeConfig {
   level: number;
   xp: number;
   craftTimeMs: number;
+  /** World station required to craft this recipe. */
+  station: "cooking" | "forge";
   output: { itemId: string; quantity: number };
   ingredients: ProfessionIngredient[];
 }
@@ -49,6 +51,7 @@ interface RecipeYamlEntry {
   level?: number;
   xp?: number;
   craftTimeMs?: number;
+  station?: "cooking" | "forge";
   output?: { item?: string; quantity?: number };
   ingredients?: Array<{ item?: string; quantity?: number }>;
 }
@@ -123,6 +126,7 @@ export const PROFESSIONS: Record<string, ProfessionConfig> = Object.fromEntries(
         level: Math.max(1, whole(recipe.level, 1)),
         xp: Math.max(1, whole(recipe.xp, 1)),
         craftTimeMs: Math.max(500, whole(recipe.craftTimeMs, 1600)),
+        station: recipe.station === "forge" ? "forge" : "cooking",
         output: {
           itemId: outputId,
           quantity: Math.max(1, whole(recipe.output?.quantity, 1)),

@@ -4,18 +4,19 @@ import type { Camera } from "../game/Camera";
 import { screenToWorld } from "../game/screenToWorld";
 import type { MapWorldInteraction } from "../maps/types";
 import type { GameToast } from "../ui/GameToast";
-import type { ProfessionsPanel } from "../ui/ProfessionsPanel";
+import type { CraftStationKind, ProfessionsPanel } from "../ui/ProfessionsPanel";
 
 const TOO_FAR_MESSAGE = "Podejdź bliżej do stanowiska, aby wytwarzać.";
 const CRAFT_INTERRUPTED_MESSAGE =
   "Przerwano wytwarzanie — oddaliłeś się od stanowiska.";
 
 /**
- * Native-canvas interaction for cooking props. The prop's hit radius controls
- * the pointer target; both client and server validate the activation distance.
+ * Native-canvas interaction for cooking / forge props. The prop's hit radius
+ * controls the pointer target; both client and server validate activation.
  */
 export class CookingStationInteraction {
   private playerWasInRange: boolean | null = null;
+  private nearbyKindsKey = "";
 
   constructor(
     private readonly app: Application,
@@ -35,6 +36,7 @@ export class CookingStationInteraction {
   setEnvironment(environment: Environment): void {
     this.environment = environment;
     this.playerWasInRange = null;
+    this.nearbyKindsKey = "";
     this.updatePlayerRange();
   }
 
@@ -44,13 +46,23 @@ export class CookingStationInteraction {
   }
 
   isPlayerInRange(): boolean {
+    return this.nearbyStationKinds().length > 0;
+  }
+
+  private nearbyStationKinds(): CraftStationKind[] {
     const player = this.getPlayerPosition();
-    return this.environment.interactions.some(
-      (interaction) =>
-        interaction.kind === "cooking" &&
-        Math.hypot(interaction.x - player.x, interaction.y - player.y) <=
-          interaction.activationRadius,
-    );
+    const kinds = new Set<CraftStationKind>();
+    for (const interaction of this.environment.interactions) {
+      if (interaction.kind !== "cooking") continue;
+      if (
+        Math.hypot(interaction.x - player.x, interaction.y - player.y) >
+        interaction.activationRadius
+      ) {
+        continue;
+      }
+      kinds.add(interaction.stationKind === "forge" ? "forge" : "cooking");
+    }
+    return [...kinds];
   }
 
   private onPointerDown = (event: PointerEvent): void => {
@@ -76,21 +88,28 @@ export class CookingStationInteraction {
       return;
     }
 
-    this.playerWasInRange = true;
-    this.professions.setCraftingAvailable(true);
+    const kinds = this.nearbyStationKinds();
+    this.playerWasInRange = kinds.length > 0;
+    this.nearbyKindsKey = kinds.slice().sort().join(",");
+    this.professions.setCraftingStations(kinds);
     this.professions.openPanel();
   };
 
   private readonly updatePlayerRange = (): void => {
-    const inRange = this.isPlayerInRange();
-    if (inRange === this.playerWasInRange) return;
+    const kinds = this.nearbyStationKinds();
+    const inRange = kinds.length > 0;
+    const kindsKey = kinds.slice().sort().join(",");
+    if (inRange === this.playerWasInRange && kindsKey === this.nearbyKindsKey) {
+      return;
+    }
 
     this.playerWasInRange = inRange;
+    this.nearbyKindsKey = kindsKey;
     if (!inRange && this.professions.isCrafting) {
       this.professions.cancelCraft();
       this.toast.show(CRAFT_INTERRUPTED_MESSAGE);
     }
-    this.professions.setCraftingAvailable(inRange);
+    this.professions.setCraftingStations(kinds);
   };
 
   private withinActivationRange(interaction: MapWorldInteraction): boolean {

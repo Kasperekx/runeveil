@@ -91,6 +91,8 @@ export interface MapCookingStation {
   x: number;
   y: number;
   radius?: number;
+  /** cooking = campfire/hearth; forge = anvil/smelter. Default cooking. */
+  kind?: "cooking" | "forge";
 }
 
 /** Safe settlement used for player resurrection. */
