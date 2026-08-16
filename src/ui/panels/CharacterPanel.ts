@@ -209,28 +209,30 @@ export class CharacterPanel {
   ): CharacterPanel {
     const root = document.createElement("aside");
     root.id = "character-panel";
-    root.className = "character-panel";
+    root.className = "character-panel panel";
     root.hidden = true;
     root.setAttribute("aria-hidden", "true");
     root.setAttribute("aria-label", "Postać");
     root.innerHTML = `
-      <div class="character-panel__frame">
-        <span class="character-panel__corner character-panel__corner--tl" aria-hidden="true"></span>
-        <span class="character-panel__corner character-panel__corner--tr" aria-hidden="true"></span>
-        <span class="character-panel__corner character-panel__corner--bl" aria-hidden="true"></span>
-        <span class="character-panel__corner character-panel__corner--br" aria-hidden="true"></span>
-        <header class="character-panel__header" data-header>
-          <span class="character-panel__sigil" aria-hidden="true"><span>ᚲ</span></span>
-          <div class="character-panel__titles">
-            <span class="character-panel__eyebrow" data-eyebrow>Karta postaci</span>
-            <h2 class="character-panel__title">Postać</h2>
+      <div class="panel__frame">
+        <span class="panel__corner panel__corner--tl" aria-hidden="true"></span>
+        <span class="panel__corner panel__corner--tr" aria-hidden="true"></span>
+        <span class="panel__corner panel__corner--bl" aria-hidden="true"></span>
+        <span class="panel__corner panel__corner--br" aria-hidden="true"></span>
+        <header class="panel__header" data-header>
+          <div class="panel__brand">
+            <span class="panel__sigil" aria-hidden="true"><span>ᚲ</span></span>
+            <div>
+              <span class="panel__eyebrow" data-eyebrow>Karta postaci</span>
+              <h2 class="panel__title">Postać</h2>
+            </div>
           </div>
-          <span class="character-panel__rule" aria-hidden="true"></span>
-          <button type="button" class="character-panel__close" data-close aria-label="Zamknij">
+          <div class="panel__rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="panel__close" data-close aria-label="Zamknij">
             <span aria-hidden="true">×</span>
           </button>
         </header>
-        <div class="character-panel__body" data-body>
+        <div class="panel__body" data-body>
           <section class="character-panel__gear-side">
             <div class="character-panel__identity">
               <span class="character-panel__portrait-well">
@@ -252,20 +254,17 @@ export class CharacterPanel {
             <div class="character-panel__gear" data-gear></div>
           </section>
           <section class="character-panel__register">
-            <div class="character-panel__heading">
-              <span>Rdzeń</span>
-              <h4>Atrybuty</h4>
-              <b class="character-panel__points" data-points hidden></b>
+            <div class="panel__heading">
+              <div><span>Rdzeń</span><h3>Atrybuty</h3></div>
+              <b class="panel__counter panel__counter--urgent" data-points hidden></b>
             </div>
             <div class="character-panel__rows" data-attrs></div>
-            <div class="character-panel__heading">
-              <span>Walka</span>
-              <h4>Gotowość</h4>
+            <div class="panel__heading">
+              <div><span>Walka</span><h3>Gotowość</h3></div>
             </div>
             <div class="character-panel__rows" data-combat></div>
-            <div class="character-panel__heading">
-              <span>Ciało</span>
-              <h4>Żywotność</h4>
+            <div class="panel__heading">
+              <div><span>Ciało</span><h3>Żywotność</h3></div>
             </div>
             <div class="character-panel__vitals" data-vitals></div>
           </section>
@@ -584,12 +583,12 @@ export class CharacterPanel {
           );
 
     const chips = [
-      `<span class="character-panel__chip"><i>Założone</i><b>${worn.length} / ${SLOT_COUNT}</b></span>`,
+      `<span class="panel__chip"><i>Założone</i><b>${worn.length} / ${SLOT_COUNT}</b></span>`,
       wear === null
         ? ""
-        : `<span class="character-panel__chip"><i>Trwałość</i><b>${wear}%</b></span>`,
+        : `<span class="panel__chip"><i>Trwałość</i><b>${wear}%</b></span>`,
       broken > 0
-        ? `<span class="character-panel__chip character-panel__chip--alert"><i>Zepsute</i><b>${broken}</b></span>`
+        ? `<span class="panel__chip panel__chip--alert"><i>Zepsute</i><b>${broken}</b></span>`
         : "",
     ];
 

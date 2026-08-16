@@ -13,8 +13,8 @@ export interface TargetVitals {
 /**
  * Top-of-screen target frame: portrait, name and HP for the selected creature.
  *
- * Mirrors the player unit frame — portrait on the right, plate on the left — so
- * the two read as opposing halves of the same pair, as in WoW.
+ * Mirror of PlayerHud — same brass plate and squared portrait, flipped so the
+ * portrait sits on the right. The two read as opposing halves of one pair.
  */
 export class TargetFrame {
   private lastKey = "";
@@ -53,9 +53,15 @@ export class TargetFrame {
       </div>
       <div class="target-frame__portrait-ring" aria-hidden="true">
         <div class="target-frame__portrait">
-          <img class="target-frame__avatar" data-portrait src="" alt="" draggable="false" />
+          <img
+            class="target-frame__avatar"
+            data-portrait
+            src=""
+            alt=""
+            draggable="false"
+          />
         </div>
-        <span class="target-frame__percent" data-percent></span>
+        <span class="target-frame__percent" data-percent aria-hidden="true"></span>
       </div>
     `;
     host.appendChild(root);

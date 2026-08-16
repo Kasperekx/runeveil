@@ -54,30 +54,30 @@ export class QuestLog {
   ): QuestLog {
     const root = document.createElement("aside");
     root.id = "quest-log";
-    root.className = "quest-log";
+    root.className = "quest-log panel";
     root.hidden = true;
     root.setAttribute("aria-hidden", "true");
     root.setAttribute("aria-label", "Dziennik zadań");
     root.innerHTML = `
-      <div class="quest-log__frame">
-        <span class="quest-log__corner quest-log__corner--tl" aria-hidden="true"></span>
-        <span class="quest-log__corner quest-log__corner--br" aria-hidden="true"></span>
-        <header class="quest-log__header" data-header>
-          <div class="quest-log__brand">
-            <span class="quest-log__sigil" aria-hidden="true"><span>✦</span></span>
+      <div class="panel__frame">
+        <span class="panel__corner panel__corner--tl" aria-hidden="true"></span>
+        <span class="panel__corner panel__corner--br" aria-hidden="true"></span>
+        <header class="panel__header" data-header>
+          <div class="panel__brand">
+            <span class="panel__sigil" aria-hidden="true"><span>✦</span></span>
             <div>
-              <span class="quest-log__header-eyebrow">Kroniki wypraw</span>
-              <h2>Dziennik zadań</h2>
+              <span class="panel__eyebrow">Kroniki wypraw</span>
+              <h2 class="panel__title">Dziennik zadań</h2>
             </div>
           </div>
-          <div class="quest-log__header-rule" aria-hidden="true"><span>◆</span></div>
-          <button type="button" class="quest-log__close" data-close aria-label="Zamknij"><span>×</span></button>
+          <div class="panel__rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
         </header>
-        <div class="quest-log__body">
+        <div class="panel__body">
           <section class="quest-log__list-wrap">
-            <div class="quest-log__heading">
+            <div class="panel__heading">
               <div><span>Wyprawy</span><h3>Aktywne zadania</h3></div>
-              <b data-quest-count aria-label="Liczba aktywnych zadań">0</b>
+              <b class="panel__counter" data-quest-count aria-label="Liczba aktywnych zadań">0</b>
             </div>
             <div class="quest-log__list" data-quest-list></div>
           </section>

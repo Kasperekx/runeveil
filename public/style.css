@@ -1991,233 +1991,8 @@ body {
 /* ——— Target frame (selected creature) ——— */
 
 /* Mirror of the player unit frame: plate left, portrait right. */
-.target-frame {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 16px;
-  margin: 0 auto;
-  width: max-content;
-  max-width: min(22rem, 82vw);
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
-  opacity: 0;
-  transform: translateY(-8px);
-  transition:
-    opacity 170ms ease,
-    transform 170ms cubic-bezier(0.2, 0.9, 0.3, 1);
-}
-
-.target-frame.is-shown {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.target-frame[hidden] {
-  display: none !important;
-}
-
-.target-frame__info {
-  position: relative;
-  z-index: 1;
-  margin-right: -10px;
-  padding: 6px 18px 7px 12px;
-  min-width: 11rem;
-  background: linear-gradient(
-    180deg,
-    rgba(42, 34, 24, 0.94) 0%,
-    rgba(14, 11, 9, 0.94) 100%
-  );
-  border: 1px solid var(--brass-lo);
-  border-right: none;
-  /* Angled edge points toward the portrait, mirroring the player frame. */
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 10px);
-  box-shadow:
-    0 0 0 1px rgba(184, 149, 74, 0.22),
-    inset 0 1px 0 rgba(230, 200, 120, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.45);
-}
-
-.target-frame__name {
-  margin: 0 0 5px;
-  font-family: var(--font-ui);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #f0e6c8;
-  text-shadow: 0 1px 2px #000;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 12rem;
-}
-
-.target-frame__bar {
-  position: relative;
-  height: 15px;
-  background: linear-gradient(180deg, #050706 0%, #0c1210 100%);
-  border: 1px solid #2a332c;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.65),
-    inset 0 2px 4px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
-}
-
-/* Lags behind the live fill so a landed hit stays readable for a moment. */
-.target-frame__ghost {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 100%;
-  background: linear-gradient(180deg, #d88a7a 0%, #7a2c22 100%);
-  opacity: 0.7;
-  transition: width 400ms ease 200ms;
-}
-
-.target-frame__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 100%;
-  background: linear-gradient(180deg, #7bc86a 0%, #4f9a42 45%, #2f6a2c 100%);
-  box-shadow: inset 0 1px 0 rgba(200, 255, 180, 0.35);
-  transition: width 0.14s linear;
-}
-
-.target-frame__fill[data-tier="mid"] {
-  background: linear-gradient(180deg, #e0bf55 0%, #b08830 45%, #6e5420 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 230, 160, 0.35);
-}
-
-.target-frame__fill[data-tier="low"] {
-  background: linear-gradient(180deg, #e06a5a 0%, #a8382c 45%, #5a1c18 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 180, 160, 0.3);
-  animation: target-frame-pulse 0.9s ease-in-out infinite;
-}
-
-@keyframes target-frame-pulse {
-  0%,
-  100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.18);
-  }
-}
-
-.target-frame__bar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(0, 0, 0, 0.22) 100%
-  );
-}
-
-.target-frame__hp {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-ui);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #fff8e0;
-  text-shadow:
-    -1px 0 #000,
-    0 1px #000,
-    1px 0 #000,
-    0 -1px #000;
-  pointer-events: none;
-}
-
-/* Iron ring, not the player's brass — the target reads as "other". */
-.target-frame__portrait-ring {
-  position: relative;
-  z-index: 2;
-  flex: 0 0 auto;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  padding: 3px;
-  background: radial-gradient(
-    circle at 30% 25%,
-    #9c8f7e 0%,
-    #6c6155 42%,
-    #3c352c 78%,
-    #201c17 100%
-  );
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.85),
-    0 0 0 3px rgba(120, 105, 80, 0.28),
-    inset 0 1px 0 rgba(240, 230, 205, 0.3);
-}
-
-.target-frame__portrait {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  background: radial-gradient(circle at 40% 30%, #2a382e 0%, #0a100c 70%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.75);
-}
-
-.target-frame__avatar {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  image-rendering: pixelated;
-  transform: scale(1.35);
-}
-
-/* Percentage sits on the ring where the player frame carries its level. */
-.target-frame__percent {
-  position: absolute;
-  right: -4px;
-  bottom: -2px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  min-width: 26px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  font-family: var(--font-ui);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  color: #f0e6c8;
-  background: linear-gradient(180deg, #3a4a3e 0%, #141c18 100%);
-  border: 1px solid var(--brass-lo);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .target-frame {
-    transition: opacity 120ms ease;
-    transform: none;
-  }
-
-  .target-frame.is-shown {
-    transform: none;
-  }
-
-  .target-frame__fill[data-tier="low"] {
-    animation: none;
-  }
-}
-
-/* Player unit frame lives in styles/player-hud.css. */
+/* Player + target unit frames live in styles/player-hud.css and
+   styles/target-frame.css. */
 
 /* WoW-style personal buffs under the player frame. */
 .player-buffs {
@@ -4254,179 +4029,89 @@ body {
 /* ——— Skills panel (spellbook) — same chrome as character panel ——— */
 
 .skills-panel {
+  --panel-body-max: calc(100vh - 122px);
+
   position: absolute;
+  top: clamp(12px, 5vh, 54px);
   left: 0;
   right: 0;
-  top: 10%;
-  margin: 0 auto;
-  width: min(34rem, 94vw);
-  transform: translateY(-10px) scale(0.985);
-  transform-origin: 50% 0;
   z-index: 26;
-  pointer-events: auto;
-  opacity: 0;
-  transition:
-    opacity 180ms ease,
-    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  width: min(780px, calc(100vw - 24px));
+  margin: 0 auto;
 }
 
-.skills-panel.is-open {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-.skills-panel.is-dragging {
-  transition: none;
-  user-select: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skills-panel {
-    transition: opacity 120ms ease;
-    transform: none;
-  }
-
-  .skills-panel.is-open {
-    transform: none;
-  }
-}
-
-.skills-panel[hidden] {
-  display: block !important;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.skills-panel.is-open[hidden] {
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.skills-panel__frame {
-  position: relative;
+/* Faint centre seam — the codex reads as an open book. */
+.skills-panel .panel__frame {
   background:
-    radial-gradient(
-      120% 60% at 50% 0%,
-      rgba(106, 154, 124, 0.16) 0%,
-      transparent 62%
+    linear-gradient(
+      90deg,
+      transparent 49.8%,
+      rgba(230, 200, 120, 0.035) 50%,
+      transparent 50.2%
     ),
-    linear-gradient(180deg, #1c2820 0%, #152018 42%, #0a100e 100%);
-  border: 1px solid var(--brass-lo);
-  box-shadow:
-    0 0 0 1px rgba(184, 149, 74, 0.35),
-    0 0 0 3px rgba(7, 11, 9, 0.95),
-    inset 0 1px 0 rgba(230, 200, 120, 0.2),
-    0 18px 48px rgba(0, 0, 0, 0.7);
-  padding: 6px 6px 8px;
+    radial-gradient(
+      circle at 15% 7%,
+      rgba(106, 154, 124, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
+}
+
+.skills-panel .panel__body {
+  display: grid;
+  grid-template-columns: minmax(245px, 0.82fr) minmax(360px, 1.18fr);
+  gap: 12px;
+  min-height: 430px;
 }
 
 /* ——— Professions panel (crafting journal) ——— */
 
 .professions-panel {
+  --panel-body-max: calc(100vh - 86px);
+
   position: absolute;
+  top: clamp(12px, 4vh, 44px);
   left: 0;
   right: 0;
-  top: 11%;
-  margin: 0 auto;
-  width: min(43rem, 94vw);
   z-index: 26;
-  pointer-events: auto;
-  opacity: 0;
-  transform: translateY(-10px) scale(0.985);
-  transform-origin: 50% 0;
-  transition:
-    opacity 180ms ease,
-    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  width: min(880px, calc(100vw - 24px));
+  margin: 0 auto;
 }
 
-.professions-panel.is-open {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-.professions-panel.is-dragging {
-  transition: none;
-  user-select: none;
-}
-.professions-panel[hidden] {
-  display: block !important;
-  visibility: hidden;
-  pointer-events: none;
-}
-.professions-panel.is-open[hidden] {
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.professions-panel__frame {
-  padding: 6px 6px 8px;
+/* Faint centre seam — same open-book conceit as the skills codex. */
+.professions-panel .panel__frame {
   background:
-    radial-gradient(
-      90% 55% at 50% 0%,
-      rgba(184, 109, 55, 0.18),
-      transparent 65%
+    linear-gradient(
+      90deg,
+      transparent 49.8%,
+      rgba(230, 200, 120, 0.035) 50%,
+      transparent 50.2%
     ),
-    linear-gradient(180deg, #24241b, #151b14 45%, #0a100e);
-  border: 1px solid var(--brass-lo);
-  box-shadow:
-    0 0 0 1px rgba(184, 149, 74, 0.35),
-    0 0 0 3px rgba(7, 11, 9, 0.95),
-    inset 0 1px 0 rgba(230, 200, 120, 0.2),
-    0 18px 48px rgba(0, 0, 0, 0.7);
+    radial-gradient(
+      circle at 15% 7%,
+      rgba(106, 154, 124, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
 }
 
-.professions-panel__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 30px;
-  padding: 0 4px 0 9px;
-  margin-bottom: 6px;
-  background: linear-gradient(180deg, #3a3827, #191d16);
-  border: 1px solid var(--brass-lo);
-  cursor: grab;
-}
-.professions-panel.is-dragging .professions-panel__header {
-  cursor: grabbing;
-}
+/* The anvil glyph inside the shared diamond, rotated back to upright. */
 .professions-panel__sigil {
-  color: #d8b56b;
-  filter: drop-shadow(0 0 5px rgba(226, 184, 96, 0.42));
-  fill: currentColor;
-}
-.professions-panel__title {
-  flex: 1;
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--parchment);
-}
-.professions-panel__close {
   width: 18px;
   height: 18px;
-  padding: 0;
-  border: 1px solid var(--brass-lo);
-  background: linear-gradient(180deg, #3a4a3e, #1a221c);
-  color: var(--parchment);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-.professions-panel__close:hover {
-  border-color: var(--brass-hi);
-  color: #fff3c0;
+  color: inherit;
+  fill: currentColor;
+  transform: rotate(-45deg);
+  filter: drop-shadow(0 0 5px rgba(226, 184, 96, 0.3));
 }
 
-.professions-panel__body {
+.professions-panel .panel__body {
   display: grid;
-  grid-template-columns: 12.5rem minmax(0, 1fr);
-  gap: 9px;
-  padding: 8px;
-  background: #0c1210;
-  border: 1px solid #000;
-  box-shadow: inset 0 0 0 1px var(--brass-lo);
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 500px;
 }
+
 .professions-panel__master {
   display: flex;
   flex-direction: column;
@@ -4719,7 +4404,7 @@ body {
     top: 5%;
     width: min(31rem, 96vw);
   }
-  .professions-panel__body {
+  .professions-panel .panel__body {
     grid-template-columns: 1fr;
   }
   .professions-panel__recipes-wrap {
@@ -4732,51 +4417,6 @@ body {
 
 /* Professions v2: a scalable craft journal. The rail stays navigation-only;
    rank and progression belong to the currently selected profession. */
-.professions-panel {
-  width: min(52rem, 95vw);
-}
-
-.professions-panel__frame {
-  padding: 8px;
-  background:
-    radial-gradient(
-      82% 70% at 50% -10%,
-      rgba(174, 112, 49, 0.12),
-      transparent 68%
-    ),
-    linear-gradient(180deg, #20231b 0%, #121814 51%, #090d0b 100%);
-}
-
-.professions-panel__header {
-  height: 38px;
-  padding-left: 12px;
-  margin-bottom: 8px;
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.16), transparent 45%),
-    linear-gradient(180deg, #343526, #20251c);
-}
-
-.professions-panel__title {
-  font-family: var(--font-display);
-  font-size: 14px;
-  letter-spacing: 0.18em;
-}
-
-.professions-panel__sigil {
-  display: block;
-  width: 20px;
-  height: 20px;
-}
-
-.professions-panel__body {
-  grid-template-columns: 11.75rem minmax(0, 1fr);
-  gap: 10px;
-  min-height: 30rem;
-  padding: 9px;
-  background: #080d0a;
-  box-shadow: inset 0 0 0 1px rgba(184, 149, 74, 0.42);
-}
-
 .professions-panel__master {
   display: flex;
   flex-direction: column;
@@ -5364,7 +5004,7 @@ body {
 }
 
 @media (max-width: 700px) {
-  .professions-panel__body {
+  .professions-panel .panel__body {
     grid-template-columns: 1fr;
     min-height: 0;
   }
@@ -5402,148 +5042,6 @@ body {
     grid-template-columns: 1fr;
     gap: 3px;
   }
-}
-
-.skills-panel__ornament {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: #b8954a;
-  border-style: solid;
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.skills-panel__ornament--tl {
-  top: 3px;
-  left: 3px;
-  border-width: 1px 0 0 1px;
-}
-.skills-panel__ornament--tr {
-  top: 3px;
-  right: 3px;
-  border-width: 1px 1px 0 0;
-}
-.skills-panel__ornament--bl {
-  bottom: 3px;
-  left: 3px;
-  border-width: 0 0 1px 1px;
-}
-.skills-panel__ornament--br {
-  bottom: 3px;
-  right: 3px;
-  border-width: 0 1px 1px 0;
-}
-
-.skills-panel__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 30px;
-  padding: 0 4px 0 9px;
-  margin-bottom: 6px;
-  background: linear-gradient(180deg, #2a382e 0%, #141c18 100%);
-  border: 1px solid var(--brass-lo);
-  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.14);
-  cursor: grab;
-}
-
-.skills-panel.is-dragging .skills-panel__header {
-  cursor: grabbing;
-}
-
-.skills-panel__sigil {
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
-  color: var(--brass);
-  text-shadow: 0 0 8px rgba(184, 149, 74, 0.45);
-}
-
-.skills-panel__title {
-  flex: 1;
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--parchment);
-  text-shadow: 0 1px 2px #000;
-}
-
-.skills-panel__title::after {
-  content: "";
-  display: block;
-  margin-top: 4px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    var(--brass-lo),
-    rgba(184, 149, 74, 0.15) 70%,
-    transparent
-  );
-}
-
-.skills-panel__close {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid #6e5428;
-  background: linear-gradient(180deg, #3a4a3e 0%, #1a221c 100%);
-  color: #e8d9b0;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.skills-panel__close:hover {
-  border-color: #e6c878;
-  color: #fff3c0;
-}
-
-.skills-panel__body {
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
-  gap: 10px;
-  min-height: 220px;
-  padding: 8px;
-  background: #0c1210;
-  border: 1px solid #000;
-  box-shadow: inset 0 0 0 1px #6e5428;
-}
-
-.skills-panel__list-wrap {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.skills-panel__section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 6px;
-  font-family: var(--font-ui);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--brass);
-}
-
-.skills-panel__section-title::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(184, 149, 74, 0.45), transparent);
-}
-
-.skills-panel__class {
-  margin: 0 0 8px;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--parchment-dim);
 }
 
 .skills-panel__list {
@@ -5762,7 +5260,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  .skills-panel__body {
+  .skills-panel .panel__body {
     grid-template-columns: 1fr;
   }
 
@@ -6378,141 +5876,6 @@ body {
 
 /* ——— Professions panel: heraldic workshop redesign ——— */
 
-.professions-panel {
-  top: clamp(12px, 4vh, 44px);
-  width: min(880px, calc(100vw - 24px));
-  transform: translateY(-16px) scale(0.975);
-  filter: drop-shadow(0 28px 44px rgba(0, 0, 0, 0.55));
-}
-
-.professions-panel.is-open {
-  transform: translateY(0) scale(1);
-}
-
-.professions-panel__frame {
-  position: relative;
-  padding: 0;
-  overflow: visible;
-  background:
-    linear-gradient(
-      90deg,
-      transparent 49.8%,
-      rgba(230, 200, 120, 0.035) 50%,
-      transparent 50.2%
-    ),
-    radial-gradient(
-      circle at 15% 7%,
-      rgba(106, 154, 124, 0.16),
-      transparent 34%
-    ),
-    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
-  border: 1px solid #8a6b33;
-  outline: 1px solid rgba(4, 7, 5, 0.98);
-  outline-offset: 4px;
-  box-shadow:
-    0 0 0 6px rgba(18, 27, 21, 0.94),
-    0 0 0 7px rgba(110, 84, 40, 0.6),
-    inset 0 1px 0 rgba(230, 200, 120, 0.18),
-    inset 0 0 70px rgba(0, 0, 0, 0.34);
-}
-
-.professions-panel__corner {
-  position: absolute;
-  z-index: 5;
-  width: 12px;
-  height: 12px;
-  border-color: #d0ad5b;
-  border-style: solid;
-  opacity: 0.75;
-  pointer-events: none;
-}
-
-.professions-panel__corner--tl {
-  top: -5px;
-  left: -5px;
-  border-width: 1px 0 0 1px;
-}
-
-.professions-panel__corner--br {
-  right: -5px;
-  bottom: -5px;
-  border-width: 0 1px 1px 0;
-}
-
-.professions-panel__header {
-  position: relative;
-  height: 54px;
-  margin: 0;
-  padding: 0 13px 0 15px;
-  gap: 14px;
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.08), transparent 24%),
-    linear-gradient(180deg, #253329 0%, #121b16 100%);
-  border: 0;
-  border-bottom: 1px solid #6e5428;
-  box-shadow:
-    inset 0 1px 0 rgba(230, 200, 120, 0.16),
-    0 3px 12px rgba(0, 0, 0, 0.48);
-}
-
-.professions-panel__header::before,
-.professions-panel__header::after {
-  content: "";
-  position: absolute;
-  bottom: -3px;
-  width: 52px;
-  height: 5px;
-  border-top: 1px solid var(--brass-lo);
-}
-
-.professions-panel__header::before {
-  left: 0;
-  transform: skewX(42deg);
-}
-
-.professions-panel__header::after {
-  right: 0;
-  transform: skewX(-42deg);
-}
-
-.professions-panel__brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  flex: none;
-}
-
-.professions-panel__brand > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.professions-panel__sigil-frame {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  color: #e8ca78;
-  background:
-    radial-gradient(circle, rgba(184, 149, 74, 0.2), transparent 62%), #0a100d;
-  border: 1px solid #84662f;
-  transform: rotate(45deg);
-  box-shadow:
-    inset 0 0 0 2px #111a15,
-    0 3px 10px rgba(0, 0, 0, 0.55);
-}
-
-.professions-panel__sigil {
-  width: 18px;
-  height: 18px;
-  color: inherit;
-  fill: currentColor;
-  transform: rotate(-45deg);
-  filter: drop-shadow(0 0 5px rgba(226, 184, 96, 0.3));
-}
-
-.professions-panel__header-eyebrow,
 .professions-panel__rail-heading > span {
   color: #8f8058;
   font-family: var(--font-ui);
@@ -6521,84 +5884,6 @@ body {
   line-height: 1;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-}
-
-.professions-panel__title {
-  flex: none;
-  margin: 0;
-  color: #eee2bf;
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
-  letter-spacing: 0.09em;
-  text-transform: none;
-}
-
-.professions-panel__header-rule {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex: 1;
-  color: #72592c;
-  font-size: 7px;
-}
-
-.professions-panel__header-rule::before,
-.professions-panel__header-rule::after {
-  content: "";
-  height: 1px;
-  flex: 1;
-  background: linear-gradient(90deg, transparent, rgba(184, 149, 74, 0.5));
-}
-
-.professions-panel__header-rule::after {
-  background: linear-gradient(90deg, rgba(184, 149, 74, 0.5), transparent);
-}
-
-.professions-panel__close {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  color: #b9aa7c;
-  background: #0b110e;
-  border: 1px solid #5c4a28;
-  transform: rotate(45deg);
-  font-family: var(--font-body);
-  font-size: 17px;
-}
-
-.professions-panel__close > span {
-  display: block;
-  transform: rotate(-45deg);
-}
-
-.professions-panel__close:hover {
-  color: #fff0b6;
-  background: #263128;
-  border-color: var(--brass-hi);
-}
-
-.professions-panel__body {
-  grid-template-columns: 196px minmax(0, 1fr);
-  gap: 12px;
-  min-height: 500px;
-  max-height: calc(100vh - 86px);
-  overflow: auto;
-  padding: 14px;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.008) 0 1px,
-      transparent 1px 6px
-    ),
-    rgba(8, 13, 10, 0.9);
-  border: 0;
-  box-shadow: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--brass-lo) #080c0a;
 }
 
 .professions-panel__master,
@@ -7086,7 +6371,7 @@ body {
     width: min(650px, calc(100vw - 16px));
   }
 
-  .professions-panel__body {
+  .professions-panel .panel__body {
     grid-template-columns: 1fr;
     min-height: 0;
   }
@@ -7101,11 +6386,11 @@ body {
 }
 
 @media (max-width: 560px) {
-  .professions-panel__header-rule {
+  .professions-panel .panel__rule {
     display: none;
   }
 
-  .professions-panel__body {
+  .professions-panel .panel__body {
     padding: 9px;
   }
 
@@ -7146,160 +6431,6 @@ body {
   }
 }
 
-/*
- * Panel chrome the skills panel shares with the quest log. The quest log now
- * owns its copy in styles/quest-log.css; these are the skills-panel halves of
- * the rules the two used to declare together.
- */
-
-.skills-panel__corner {
-  position: absolute;
-  z-index: 5;
-  width: 12px;
-  height: 12px;
-  border-color: #d0ad5b;
-  border-style: solid;
-  opacity: 0.75;
-  pointer-events: none;
-}
-
-.skills-panel__corner--tl {
-  top: -5px;
-  left: -5px;
-  border-width: 1px 0 0 1px;
-}
-
-.skills-panel__corner--br {
-  right: -5px;
-  bottom: -5px;
-  border-width: 0 1px 1px 0;
-}
-
-.skills-panel__header::before,
-.skills-panel__header::after {
-  content: "";
-  position: absolute;
-  bottom: -3px;
-  width: 52px;
-  height: 5px;
-  border-top: 1px solid var(--brass-lo);
-}
-
-.skills-panel__header::before {
-  left: 0;
-  transform: skewX(42deg);
-}
-
-.skills-panel__header::after {
-  right: 0;
-  transform: skewX(-42deg);
-}
-
-.skills-panel__brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  flex: none;
-}
-
-.skills-panel__brand > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.skills-panel__sigil {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  color: #e8ca78;
-  background:
-    radial-gradient(circle, rgba(184, 149, 74, 0.2), transparent 62%), #0a100d;
-  border: 1px solid #84662f;
-  transform: rotate(45deg);
-  box-shadow:
-    inset 0 0 0 2px #111a15,
-    0 3px 10px rgba(0, 0, 0, 0.55);
-  font-family: var(--font-display);
-  font-size: 14px;
-}
-
-.skills-panel__sigil > span,
-.skills-panel__close > span {
-  display: block;
-  transform: rotate(-45deg);
-}
-
-.skills-panel__header-eyebrow,
-.skills-panel__section-heading > div > span {
-  color: #8f8058;
-  font-family: var(--font-ui);
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.skills-panel__title {
-  flex: none;
-  margin: 0;
-  color: #eee2bf;
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
-  letter-spacing: 0.09em;
-  text-transform: none;
-  text-shadow: 0 2px 3px #000;
-}
-
-.skills-panel__title::after {
-  display: none;
-}
-
-.skills-panel__header-rule {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex: 1;
-  color: #72592c;
-  font-size: 7px;
-}
-
-.skills-panel__header-rule::before,
-.skills-panel__header-rule::after {
-  content: "";
-  height: 1px;
-  flex: 1;
-  background: linear-gradient(90deg, transparent, rgba(184, 149, 74, 0.5));
-}
-
-.skills-panel__header-rule::after {
-  background: linear-gradient(90deg, rgba(184, 149, 74, 0.5), transparent);
-}
-
-.skills-panel__close {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  color: #b9aa7c;
-  background: #0b110e;
-  border: 1px solid #5c4a28;
-  transform: rotate(45deg);
-  font-family: var(--font-body);
-  font-size: 17px;
-}
-
-.skills-panel__close:hover {
-  color: #fff0b6;
-  background: #263128;
-  border-color: var(--brass-hi);
-}
-
 .skills-panel__list-wrap,
 .skills-panel__detail-wrap {
   min-width: 0;
@@ -7312,116 +6443,11 @@ body {
     0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
-.skills-panel__section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 42px;
-  margin: 0;
-  padding: 2px 2px 10px;
-  border-bottom: 1px solid rgba(110, 84, 40, 0.42);
-}
-
-.skills-panel__section-heading > div {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.skills-panel__section-heading h3 {
-  margin: 0;
-  color: #e7dbb9;
-  font-family: var(--font-display);
-  font-size: 12px;
-  line-height: 1;
-  letter-spacing: 0.08em;
-}
-
-/* ——— Skills panel: heraldic combat codex redesign ——— */
-
-.skills-panel {
-  top: clamp(12px, 5vh, 54px);
-  width: min(780px, calc(100vw - 24px));
-  transform: translateY(-16px) scale(0.975);
-  filter: drop-shadow(0 28px 44px rgba(0, 0, 0, 0.55));
-}
-
-.skills-panel.is-open {
-  transform: translateY(0) scale(1);
-}
-
-.skills-panel__frame {
-  position: relative;
-  padding: 0;
-  overflow: visible;
-  background:
-    linear-gradient(
-      90deg,
-      transparent 49.8%,
-      rgba(230, 200, 120, 0.035) 50%,
-      transparent 50.2%
-    ),
-    radial-gradient(
-      circle at 15% 7%,
-      rgba(106, 154, 124, 0.16),
-      transparent 34%
-    ),
-    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
-  border: 1px solid #8a6b33;
-  outline: 1px solid rgba(4, 7, 5, 0.98);
-  outline-offset: 4px;
-  box-shadow:
-    0 0 0 6px rgba(18, 27, 21, 0.94),
-    0 0 0 7px rgba(110, 84, 40, 0.6),
-    inset 0 1px 0 rgba(230, 200, 120, 0.18),
-    inset 0 0 70px rgba(0, 0, 0, 0.34);
-}
-
-.skills-panel__header {
-  position: relative;
-  height: 54px;
-  margin: 0;
-  padding: 0 13px 0 15px;
-  gap: 14px;
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.08), transparent 24%),
-    linear-gradient(180deg, #253329 0%, #121b16 100%);
-  border: 0;
-  border-bottom: 1px solid #6e5428;
-  box-shadow:
-    inset 0 1px 0 rgba(230, 200, 120, 0.16),
-    0 3px 12px rgba(0, 0, 0, 0.48);
-}
-
-.skills-panel__body {
-  grid-template-columns: minmax(245px, 0.82fr) minmax(360px, 1.18fr);
-  gap: 12px;
-  min-height: 430px;
-  max-height: calc(100vh - 122px);
-  overflow: auto;
-  padding: 14px;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.008) 0 1px,
-      transparent 1px 6px
-    ),
-    rgba(8, 13, 10, 0.9);
-  border: 0;
-  box-shadow: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--brass-lo) #080c0a;
-}
-
 .skills-panel__list-wrap,
 .skills-panel__detail-wrap {
   display: flex;
   flex-direction: column;
   padding: 11px;
-}
-
-.skills-panel__section-heading {
-  flex: none;
 }
 
 .skills-panel__class {
@@ -7724,13 +6750,14 @@ body {
 
 @media (max-width: 760px) {
   .skills-panel {
+    --panel-body-max: calc(100vh - 82px);
+
     top: 10px;
   }
 
-  .skills-panel__body {
+  .skills-panel .panel__body {
     grid-template-columns: 1fr;
     min-height: 0;
-    max-height: calc(100vh - 82px);
   }
 
   .skills-panel__list {
@@ -7747,20 +6774,20 @@ body {
     width: calc(100vw - 16px);
   }
 
-  .skills-panel__header {
+  .skills-panel .panel__header {
     padding-right: 10px;
     padding-left: 11px;
   }
 
-  .skills-panel__header-rule {
+  .skills-panel .panel__rule {
     display: none;
   }
 
-  .skills-panel__brand {
+  .skills-panel .panel__brand {
     flex: 1;
   }
 
-  .skills-panel__body {
+  .skills-panel .panel__body {
     padding: 9px;
   }
 

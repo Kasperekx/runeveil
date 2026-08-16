@@ -46,35 +46,35 @@ export class SkillsPanel {
   ): SkillsPanel {
     const root = document.createElement("aside");
     root.id = "skills-panel";
-    root.className = "skills-panel";
+    root.className = "skills-panel panel";
     root.hidden = true;
     root.setAttribute("aria-hidden", "true");
     root.setAttribute("aria-label", "Umiejętności");
     root.innerHTML = `
-      <div class="skills-panel__frame">
-        <span class="skills-panel__corner skills-panel__corner--tl" aria-hidden="true"></span>
-        <span class="skills-panel__corner skills-panel__corner--br" aria-hidden="true"></span>
-        <header class="skills-panel__header" data-header>
-          <div class="skills-panel__brand">
-            <span class="skills-panel__sigil" aria-hidden="true"><span>ᚱ</span></span>
+      <div class="panel__frame">
+        <span class="panel__corner panel__corner--tl" aria-hidden="true"></span>
+        <span class="panel__corner panel__corner--br" aria-hidden="true"></span>
+        <header class="panel__header" data-header>
+          <div class="panel__brand">
+            <span class="panel__sigil" aria-hidden="true"><span>ᚱ</span></span>
             <div>
-              <span class="skills-panel__header-eyebrow">Arsenał bohatera</span>
-              <h2 class="skills-panel__title">Księga umiejętności</h2>
+              <span class="panel__eyebrow">Arsenał bohatera</span>
+              <h2 class="panel__title">Księga umiejętności</h2>
             </div>
           </div>
-          <div class="skills-panel__header-rule" aria-hidden="true"><span>◆</span></div>
-          <button type="button" class="skills-panel__close" data-close aria-label="Zamknij"><span>×</span></button>
+          <div class="panel__rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
         </header>
-        <div class="skills-panel__body">
+        <div class="panel__body">
           <section class="skills-panel__list-wrap">
-            <div class="skills-panel__section-heading">
+            <div class="panel__heading">
               <div><span>Dyscyplina</span><h3>Znane techniki</h3></div>
               <p class="skills-panel__class" data-class></p>
             </div>
             <div class="skills-panel__list" data-list role="listbox" aria-label="Lista umiejętności"></div>
           </section>
           <section class="skills-panel__detail-wrap">
-            <div class="skills-panel__section-heading">
+            <div class="panel__heading">
               <div><span>Arsenał</span><h3>Szczegóły techniki</h3></div>
             </div>
             <div class="skills-panel__detail" data-detail>

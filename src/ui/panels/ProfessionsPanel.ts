@@ -80,17 +80,17 @@ export class ProfessionsPanel {
   ): ProfessionsPanel {
     const root = document.createElement("aside");
     root.id = "professions-panel";
-    root.className = "professions-panel";
+    root.className = "professions-panel panel";
     root.hidden = true;
     root.setAttribute("aria-hidden", "true");
     root.setAttribute("aria-label", "Profesje");
     root.innerHTML = `
-      <div class="professions-panel__frame">
-        <span class="professions-panel__corner professions-panel__corner--tl" aria-hidden="true"></span>
-        <span class="professions-panel__corner professions-panel__corner--br" aria-hidden="true"></span>
-        <header class="professions-panel__header" data-header>
-          <div class="professions-panel__brand">
-            <span class="professions-panel__sigil-frame" aria-hidden="true">
+      <div class="panel__frame">
+        <span class="panel__corner panel__corner--tl" aria-hidden="true"></span>
+        <span class="panel__corner panel__corner--br" aria-hidden="true"></span>
+        <header class="panel__header" data-header>
+          <div class="panel__brand">
+            <span class="panel__sigil" aria-hidden="true">
               <svg class="professions-panel__sigil" viewBox="0 0 24 24">
                 <path d="m4 4 5-2 4 4-4 4-4-4z" />
                 <path d="m10 10 2.8 2.8-7.2 7.2-2.8-2.8z" />
@@ -98,14 +98,14 @@ export class ProfessionsPanel {
               </svg>
             </span>
             <div>
-              <span class="professions-panel__header-eyebrow">Kroniki rzemiosła</span>
-              <h2 class="professions-panel__title">Księga profesji</h2>
+              <span class="panel__eyebrow">Kroniki rzemiosła</span>
+              <h2 class="panel__title">Księga profesji</h2>
             </div>
           </div>
-          <div class="professions-panel__header-rule" aria-hidden="true"><span>◆</span></div>
-          <button type="button" class="professions-panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
+          <div class="panel__rule" aria-hidden="true"><span>◆</span></div>
+          <button type="button" class="panel__close" data-close aria-label="Zamknij"><span aria-hidden="true">×</span></button>
         </header>
-        <div class="professions-panel__body">
+        <div class="panel__body">
           <nav class="professions-panel__master" aria-label="Lista profesji">
             <div class="professions-panel__rail-heading">
               <span>Specjalizacje</span>

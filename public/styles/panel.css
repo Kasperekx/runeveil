@@ -1,0 +1,419 @@
+/**
+ * Shared window chrome for every draggable panel (character sheet, quest log,
+ * skills, professions, dialogue, loot).
+ *
+ * Before this file each panel carried its own copy of the frame, corners and
+ * header, and the copies had already drifted apart in noise-level values. The
+ * rule now: a panel's own stylesheet owns *placement and content*; this file
+ * owns *chrome*. Deviations belong in the panel file, scoped as
+ * `.quest-log .panel__body { … }`, so nothing needs duplicate classes.
+ *
+ * Panels vary along a few axes on purpose; those are tokens, not forks:
+ *   --panel-enter-y / --panel-enter-scale  where the open animation starts
+ *   --panel-body-max                       scroll ceiling for the body
+ *   --panel-lift                           drop shadow under the whole window
+ */
+
+.panel {
+  --panel-edge: #8a6b33;
+  --panel-corner: #d0ad5b;
+  --panel-header-h: 54px;
+  --panel-eyebrow: #a08f61;
+  --panel-title: #f3e8c6;
+  --panel-enter-y: -16px;
+  --panel-enter-scale: 0.975;
+  --panel-body-max: calc(100vh - 96px);
+  --panel-lift: 0 28px 44px rgba(0, 0, 0, 0.55);
+
+  opacity: 0;
+  transform: translateY(var(--panel-enter-y)) scale(var(--panel-enter-scale));
+  filter: drop-shadow(var(--panel-lift));
+  transition:
+    opacity 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  pointer-events: none;
+}
+
+.panel.is-open {
+  opacity: 1;
+  /* Equivalent to translateY(0) scale(1) — and it lets makeDraggable's
+     left/top positioning apply without fighting a leftover transform. */
+  transform: none;
+  pointer-events: auto;
+}
+
+/*
+ * Kept in the layout while hidden so the closing transition has something to
+ * animate; `visibility` does the actual hiding.
+ */
+.panel[hidden] {
+  display: block !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.panel.is-open[hidden] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.panel.is-dragging {
+  transition: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transform: none;
+    transition: opacity 120ms ease;
+  }
+}
+
+/* ——— Frame ——— */
+
+.panel__frame {
+  position: relative;
+  background:
+    radial-gradient(
+      circle at 15% 7%,
+      rgba(106, 154, 124, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
+  border: 1px solid var(--panel-edge);
+  outline: 1px solid rgba(4, 7, 5, 0.98);
+  outline-offset: 4px;
+  box-shadow:
+    0 0 0 6px rgba(18, 27, 21, 0.94),
+    0 0 0 7px rgba(110, 84, 40, 0.6),
+    inset 0 1px 0 rgba(230, 200, 120, 0.18),
+    inset 0 0 70px rgba(0, 0, 0, 0.34);
+}
+
+.panel__corner {
+  position: absolute;
+  z-index: 5;
+  width: 12px;
+  height: 12px;
+  border-color: var(--panel-corner);
+  border-style: solid;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.panel__corner--tl {
+  top: -5px;
+  left: -5px;
+  border-width: 1px 0 0 1px;
+}
+
+.panel__corner--tr {
+  top: -5px;
+  right: -5px;
+  border-width: 1px 1px 0 0;
+}
+
+.panel__corner--bl {
+  bottom: -5px;
+  left: -5px;
+  border-width: 0 0 1px 1px;
+}
+
+.panel__corner--br {
+  right: -5px;
+  bottom: -5px;
+  border-width: 0 1px 1px 0;
+}
+
+/* ——— Header ——— */
+
+.panel__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--panel-header-h);
+  padding: 0 13px 0 15px;
+  background:
+    linear-gradient(90deg, rgba(184, 149, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #253329 0%, #121b16 100%);
+  border-bottom: 1px solid #6e5428;
+  box-shadow:
+    inset 0 1px 0 rgba(230, 200, 120, 0.16),
+    0 3px 12px rgba(0, 0, 0, 0.48);
+  cursor: grab;
+}
+
+.panel.is-dragging .panel__header {
+  cursor: grabbing;
+}
+
+/* Clipped corners under the header bar, so it reads as a fitted brass plate. */
+.panel__header::before,
+.panel__header::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  width: 52px;
+  height: 5px;
+  border-top: 1px solid var(--brass-lo);
+}
+
+.panel__header::before {
+  left: 0;
+  transform: skewX(42deg);
+}
+
+.panel__header::after {
+  right: 0;
+  transform: skewX(-42deg);
+}
+
+.panel__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: none;
+}
+
+.panel__brand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panel__sigil {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  color: #e8ca78;
+  background:
+    radial-gradient(circle, rgba(184, 149, 74, 0.2), transparent 62%), #0a100d;
+  border: 1px solid #84662f;
+  transform: rotate(45deg);
+  box-shadow:
+    inset 0 0 0 2px #111a15,
+    0 3px 10px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+
+/* The diamond is a rotated square; its contents rotate back to upright. */
+.panel__sigil > span,
+.panel__close > span {
+  display: block;
+  transform: rotate(-45deg);
+}
+
+.panel__eyebrow {
+  color: var(--panel-eyebrow);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.panel__title {
+  flex: none;
+  overflow: hidden;
+  margin: 0;
+  color: var(--panel-title);
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 3px #000;
+}
+
+.panel__rule {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  color: #72592c;
+  font-size: 7px;
+}
+
+.panel__rule::before,
+.panel__rule::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, rgba(184, 149, 74, 0.5));
+}
+
+.panel__rule::after {
+  background: linear-gradient(90deg, rgba(184, 149, 74, 0.5), transparent);
+}
+
+.panel__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: #b9aa7c;
+  background: #0b110e;
+  border: 1px solid #5c4a28;
+  transform: rotate(45deg);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panel__close:hover {
+  color: #fff0b6;
+  background: #263128;
+  border-color: var(--brass-hi);
+}
+
+/* ——— Body ——— */
+
+.panel__body {
+  max-height: var(--panel-body-max);
+  overflow: auto;
+  padding: 14px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.008) 0 1px,
+      transparent 1px 6px
+    ),
+    rgba(8, 13, 10, 0.9);
+  scrollbar-width: thin;
+  scrollbar-color: var(--brass-lo) #080c0a;
+}
+
+/* ——— Section heading ——— */
+
+.panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  gap: 8px;
+  min-height: 42px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid rgba(110, 84, 40, 0.42);
+}
+
+.panel__heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.panel__heading > div > span {
+  color: var(--panel-eyebrow);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.panel__heading h3 {
+  margin: 0;
+  color: #ece0be;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+/*
+ * Trailing counter — quest totals, unspent points, stock.
+ *
+ * Deliberately a class and not `.panel__heading b`: an element selector there
+ * would out-specify any panel-level override of the counter (0,1,1 beats 0,1,0)
+ * and silently cancel it.
+ */
+.panel__counter {
+  display: grid;
+  flex: none;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  place-items: center;
+  color: #f0d68a;
+  background: #080c09;
+  border: 1px solid #65532d;
+  box-shadow: inset 0 0 0 2px #111913;
+  font: 700 11px var(--font-ui);
+}
+
+.panel__counter[hidden] {
+  display: none;
+}
+
+/* Something is waiting on the player — unspent points, a quest to hand in. */
+.panel__counter--urgent {
+  color: #0d1410;
+  background: linear-gradient(180deg, #e6c878 0%, #b8954a 100%);
+  border-color: #6e5428;
+  animation: panel-counter-pulse 1600ms ease-in-out infinite;
+}
+
+@keyframes panel-counter-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(230, 200, 120, 0);
+  }
+  50% {
+    box-shadow: 0 0 9px rgba(230, 200, 120, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel__counter--urgent {
+    animation: none;
+  }
+}
+
+/* ——— Value chip ——— */
+
+.panel__chip {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 7px;
+  background: linear-gradient(180deg, #1a231c 0%, #0b110e 100%);
+  border: 1px solid #3a4a3e;
+}
+
+.panel__chip i {
+  color: #8f8058;
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.panel__chip b {
+  color: #f0d78a;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel__chip--alert {
+  border-color: #7a3a33;
+}
+
+.panel__chip--alert b {
+  color: #df7c6b;
+}

@@ -1,5 +1,5 @@
 /**
- * Character sheet — same brass/ink chrome as the inventory and quest log.
+ * Character sheet layout. Window chrome comes from `panel.css`.
  *
  * Signature of this panel: every empty well is engraved with the body part it
  * covers, so the wardrobe reads as a map instead of a grid of holes. Dragging
@@ -13,245 +13,27 @@
   --cp-well-edge: #2a332c;
   --cp-engraved: #6d684c;
 
+  /* Anchored bottom-left, so it rises into place instead of dropping in. */
+  --panel-enter-y: 10px;
+  --panel-enter-scale: 0.985;
+  --panel-body-max: calc(100vh - 130px);
+  --panel-lift: 0 22px 38px rgba(0, 0, 0, 0.58);
+
   position: absolute;
   left: 12px;
   /* Clears the micro menu strip along the bottom edge. */
   bottom: 56px;
   z-index: 25;
   width: min(38rem, calc(100vw - 24px));
-  opacity: 0;
-  transform: translateY(10px) scale(0.985);
-  filter: drop-shadow(0 22px 38px rgba(0, 0, 0, 0.58));
-  transition:
-    opacity 170ms ease,
-    transform 170ms cubic-bezier(0.2, 0.9, 0.3, 1);
-  pointer-events: none;
-}
-
-.character-panel.is-open {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
-.character-panel[hidden] {
-  display: block !important;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.character-panel.is-open[hidden] {
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.character-panel.is-dragging {
-  transition: none;
-  user-select: none;
-}
-
-/* ——— Frame ——— */
-
-.character-panel__frame {
-  position: relative;
-  background:
-    radial-gradient(
-      circle at 14% 6%,
-      rgba(106, 154, 124, 0.15),
-      transparent 36%
-    ),
-    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
-  border: 1px solid #8a6b33;
-  outline: 1px solid rgba(4, 7, 5, 0.98);
-  outline-offset: 4px;
-  box-shadow:
-    0 0 0 6px rgba(18, 27, 21, 0.94),
-    0 0 0 7px rgba(110, 84, 40, 0.6),
-    inset 0 1px 0 rgba(230, 200, 120, 0.18),
-    inset 0 0 70px rgba(0, 0, 0, 0.34);
-}
-
-.character-panel__corner {
-  position: absolute;
-  z-index: 5;
-  width: 12px;
-  height: 12px;
-  border-color: #d0ad5b;
-  border-style: solid;
-  opacity: 0.75;
-  pointer-events: none;
-}
-
-.character-panel__corner--tl {
-  top: -5px;
-  left: -5px;
-  border-width: 1px 0 0 1px;
-}
-
-.character-panel__corner--tr {
-  top: -5px;
-  right: -5px;
-  border-width: 1px 1px 0 0;
-}
-
-.character-panel__corner--bl {
-  bottom: -5px;
-  left: -5px;
-  border-width: 0 0 1px 1px;
-}
-
-.character-panel__corner--br {
-  right: -5px;
-  bottom: -5px;
-  border-width: 0 1px 1px 0;
-}
-
-/* ——— Header ——— */
-
-.character-panel__header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 54px;
-  padding: 0 13px 0 15px;
-  background:
-    linear-gradient(90deg, rgba(184, 149, 74, 0.08), transparent 24%),
-    linear-gradient(180deg, #253329 0%, #121b16 100%);
-  border-bottom: 1px solid #6e5428;
-  box-shadow:
-    inset 0 1px 0 rgba(230, 200, 120, 0.16),
-    0 3px 12px rgba(0, 0, 0, 0.48);
-  cursor: grab;
-}
-
-.character-panel.is-dragging .character-panel__header {
-  cursor: grabbing;
-}
-
-.character-panel__header::before,
-.character-panel__header::after {
-  content: "";
-  position: absolute;
-  bottom: -3px;
-  width: 52px;
-  height: 5px;
-  border-top: 1px solid var(--brass-lo);
-}
-
-.character-panel__header::before {
-  left: 0;
-  transform: skewX(42deg);
-}
-
-.character-panel__header::after {
-  right: 0;
-  transform: skewX(-42deg);
-}
-
-.character-panel__sigil {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 34px;
-  height: 34px;
-  color: #e8ca78;
-  background:
-    radial-gradient(circle, rgba(184, 149, 74, 0.2), transparent 62%), #0a100d;
-  border: 1px solid #84662f;
-  transform: rotate(45deg);
-  box-shadow:
-    inset 0 0 0 2px #111a15,
-    0 3px 10px rgba(0, 0, 0, 0.55);
-  font-family: var(--font-display);
-  font-size: 14px;
-}
-
-.character-panel__sigil > span,
-.character-panel__close > span {
-  display: block;
-  transform: rotate(-45deg);
-}
-
-.character-panel__titles {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.character-panel__eyebrow {
-  color: #8f8058;
-  font-family: var(--font-ui);
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.character-panel__title {
-  margin: 0;
-  color: #eee2bf;
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
-  letter-spacing: 0.09em;
-  text-shadow: 0 2px 3px #000;
-}
-
-.character-panel__rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(184, 149, 74, 0.5),
-    transparent
-  );
-}
-
-.character-panel__close {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  color: #b9aa7c;
-  background: #0b110e;
-  border: 1px solid #5c4a28;
-  transform: rotate(45deg);
-  font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.character-panel__close:hover {
-  color: #fff0b6;
-  background: #263128;
-  border-color: var(--brass-hi);
 }
 
 /* ——— Body ——— */
 
-.character-panel__body {
+.character-panel .panel__body {
   display: grid;
   grid-template-columns: minmax(252px, 1fr) minmax(216px, 0.9fr);
   gap: 12px;
-  max-height: calc(100vh - 130px);
-  overflow: auto;
   padding: 13px;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.008) 0 1px,
-      transparent 1px 6px
-    ),
-    rgba(8, 13, 10, 0.9);
-  scrollbar-width: thin;
-  scrollbar-color: var(--brass-lo) #080c0a;
 }
 
 .character-panel__gear-side,
@@ -671,88 +453,12 @@
   border: 1px solid #263127;
 }
 
-.character-panel__chip {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 2px 7px;
-  background: linear-gradient(180deg, #1a231c 0%, #0b110e 100%);
-  border: 1px solid #3a4a3e;
-}
-
-.character-panel__chip i {
-  color: #8f8058;
-  font-family: var(--font-ui);
-  font-size: 8px;
-  font-style: normal;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.character-panel__chip b {
-  color: #f0d78a;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.character-panel__chip--alert {
-  border-color: #7a3a33;
-}
-
-.character-panel__chip--alert b {
-  color: #df7c6b;
-}
-
 /* ——— Register (attributes, combat, vitals) ——— */
 
-.character-panel__heading {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(110, 84, 40, 0.42);
-}
-
-.character-panel__heading > span {
-  color: #8f8058;
-  font-family: var(--font-ui);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.character-panel__heading h4 {
-  flex: 1;
-  margin: 0;
-  color: #e2d4ab;
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.05em;
-}
-
-.character-panel__points {
-  padding: 1px 6px;
-  color: #0d1410;
-  background: linear-gradient(180deg, #e6c878 0%, #b8954a 100%);
-  border: 1px solid #6e5428;
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  animation: character-panel-points 1600ms ease-in-out infinite;
-}
-
-@keyframes character-panel-points {
-  0%,
-  100% {
-    box-shadow: 0 0 0 rgba(230, 200, 120, 0);
-  }
-  50% {
-    box-shadow: 0 0 9px rgba(230, 200, 120, 0.55);
-  }
+/* Sections here are tighter than the shared default — no counter to clear. */
+.character-panel .panel__heading {
+  min-height: 0;
+  padding: 0 0 4px;
 }
 
 .character-panel__rows {
@@ -927,7 +633,7 @@
     --cp-slot: 42px;
   }
 
-  .character-panel__body {
+  .character-panel .panel__body {
     grid-template-columns: minmax(0, 1fr);
   }
 
