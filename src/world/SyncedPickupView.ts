@@ -1,5 +1,5 @@
 import { Assets, Container, Sprite } from "pixi.js";
-import { getItem, type ItemId } from "../items/catalog";
+import { getItem, type ItemId } from "../content/items";
 
 /** Client visual for a server-driven world pickup. */
 export class SyncedPickupView {

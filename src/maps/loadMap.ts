@@ -20,9 +20,7 @@ export function mapUrlForId(mapId: string): string {
 }
 
 /** Fetch and lightly validate a map document from public/. */
-export async function loadMap(
-  urlOrId = DEFAULT_MAP_URL,
-): Promise<MapDocument> {
+export async function loadMap(urlOrId = DEFAULT_MAP_URL): Promise<MapDocument> {
   const url = urlOrId.startsWith("/") ? urlOrId : mapUrlForId(urlOrId);
   const res = await fetch(url);
   if (!res.ok) {

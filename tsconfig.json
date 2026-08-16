@@ -19,7 +19,13 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@mmo/shared/*": ["shared/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "shared"],
+  "exclude": ["shared/data/dir.ts"]
 }

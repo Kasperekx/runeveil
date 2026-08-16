@@ -1,4 +1,4 @@
-import { hostScale } from "./uiScale";
+import { hostScale } from "./hud/uiScale";
 
 /** Enables dragging `element` by pointer events on `handle`. */
 export function makeDraggable(

@@ -4,8 +4,8 @@ import {
   itemRarityLabel,
   type ItemDefinition,
   type ItemInstance,
-} from "../../items/catalog";
-import { toHostSpace } from "../uiScale";
+} from "../../content/items";
+import { toHostSpace } from "../hud/uiScale";
 
 export interface ItemTooltipComparison {
   item: ItemDefinition;
@@ -406,9 +406,7 @@ function useStatsHtml(item: ItemDefinition): string {
     if (bonuses.length > 0) {
       const minutes = Math.round(buff.durationMs / 60000);
       const duration =
-        minutes >= 60
-          ? `${Math.round(minutes / 60)} godz.`
-          : `${minutes} min.`;
+        minutes >= 60 ? `${Math.round(minutes / 60)} godz.` : `${minutes} min.`;
       lines.push(
         `<p class="item-tooltip__stat item-tooltip__stat--heal">${escapeHtml(bonuses.join(", "))} na ${duration}</p>`,
       );

@@ -1,8 +1,8 @@
 import type { Application, Container } from "pixi.js";
 import { PICKUP_RADIUS } from "../config/constants";
-import type { ItemId } from "../items/catalog";
+import type { ItemId } from "../content/items";
 import type { GameNetwork } from "../network/GameNetwork";
-import type { Player } from "../player/Player";
+import type { Player } from "../entities/player/Player";
 import { SyncedPickupView } from "./SyncedPickupView";
 
 interface PickupSnap {

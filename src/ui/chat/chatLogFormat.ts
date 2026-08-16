@@ -1,5 +1,5 @@
-import { getCreatureName } from "../../creatures/catalog";
-import { getItem, hasItem } from "../../items/catalog";
+import { getCreatureName } from "../../content/creatures";
+import { getItem, hasItem } from "../../content/items";
 import type { ChatChannel } from "./chatTypes";
 
 export function itemDisplayName(itemId: string): string {

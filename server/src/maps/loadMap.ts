@@ -1,149 +1,18 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  collidersFromMap,
+  collidersForProp,
+  type MapDocument,
+} from "@mmo/shared/maps/types";
 
-export interface MapPlayableBounds {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-}
-
-export interface MapPropType {
-  texture: string;
-  /** Client-only visual used while a gather node is depleted. */
-  depletedTexture?: string;
-  anchorX: number;
-  anchorY: number;
-  scale?: number;
-  filter?: "nearest" | "linear";
-  shadow?: {
-    radiusX: number;
-    radiusY: number;
-    alpha?: number;
-  };
-  collisionRadius: number;
-  /** Extra solid circles relative to the prop foot (wide wagons, etc.). */
-  colliders?: Array<{ x?: number; y?: number; radius: number }>;
-  interaction?:
-    | {
-        kind: "cooking";
-        radius: number;
-        stationId?: string;
-        offsetX?: number;
-        offsetY?: number;
-      }
-    | {
-        kind: "enter";
-        radius: number;
-        offsetX?: number;
-        offsetY?: number;
-        activationRadius?: number;
-        label?: string;
-        targetMapId?: string;
-        targetEntryId?: string;
-      }
-    | {
-        kind: "mining";
-        radius: number;
-        offsetX?: number;
-        offsetY?: number;
-        activationRadius?: number;
-        nodeId: string;
-      };
-  ambientEffect?: {
-    kind: "campfire";
-  };
-  light?: {
-    color: number;
-    radius: number;
-    intensity: number;
-    flicker?: boolean;
-    offsetX?: number;
-    offsetY?: number;
-  };
-}
-
-export interface MapPropInstance {
-  type: string;
-  x: number;
-  y: number;
-}
-
-export interface MapAnimalSpawn {
-  id: string;
-  kind: string;
-  x: number;
-  y: number;
-}
-
-export interface MapNpcPlacement {
-  id: string;
-  npcId: string;
-  x: number;
-  y: number;
-}
-
-/** A world location at which trade-profession recipes may be crafted. */
-export interface MapCookingStation {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  radius?: number;
-  /** cooking = campfire/hearth; forge = anvil/smelter. Default cooking. */
-  kind?: "cooking" | "forge";
-}
-
-/** Safe settlement used for player resurrection. */
-export interface MapHome {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-}
-
-export interface MapEntryPoint {
-  id: string;
-  x: number;
-  y: number;
-}
-
-export interface MapDocument {
-  id: string;
-  /** Client-side Tiled source; the server consumes the compiled fields below. */
-  tiledMap?: string;
-  width: number;
-  height: number;
-  tileSize: number;
-  playable: MapPlayableBounds;
-  lighting?: {
-    mode: "world" | "interior";
-    ambientColor?: number;
-    ambientAlpha?: number;
-    localLightVisibility?: number;
-  };
-  ground: { texture: string; tileScale?: number };
-  propTypes: Record<string, MapPropType>;
-  props: MapPropInstance[];
-  spawns: {
-    player: { x: number; y: number };
-    animals: MapAnimalSpawn[];
-  };
-  /** Optional static NPC placements (vendors, etc.). */
-  npcs?: MapNpcPlacement[];
-  cookingStations?: MapCookingStation[];
-  /** Resurrection points. The closest one to the death location is used. */
-  homes?: MapHome[];
-  /** Named, server-selected arrival points for doors and portals. */
-  entryPoints?: MapEntryPoint[];
-}
-
-export interface MapCircleCollider {
-  x: number;
-  y: number;
-  radius: number;
-}
+export type {
+  MapCircleCollider,
+  MapDocument,
+  MapPropType,
+} from "@mmo/shared/maps/types";
+export { collidersFromMap, collidersForProp };
 
 const DEFAULT_MAP = "hunting_grounds.json";
 
@@ -173,41 +42,4 @@ export function loadMapById(mapId: string): MapDocument {
 
 export function knownMapIds(): string[] {
   return Object.keys(MAP_FILES);
-}
-
-/** Default body radius for static map NPCs. */
-const NPC_COLLISION_RADIUS = 20;
-
-/** Solid circles for one prop instance (primary radius + optional extras). */
-export function collidersForProp(
-  def: Pick<MapPropType, "collisionRadius" | "colliders">,
-  x: number,
-  y: number,
-): MapCircleCollider[] {
-  const out: MapCircleCollider[] = [];
-  if (def.collisionRadius > 0) {
-    out.push({ x, y, radius: def.collisionRadius });
-  }
-  for (const extra of def.colliders ?? []) {
-    if (extra.radius <= 0) continue;
-    out.push({
-      x: x + (extra.x ?? 0),
-      y: y + (extra.y ?? 0),
-      radius: extra.radius,
-    });
-  }
-  return out;
-}
-
-export function collidersFromMap(map: MapDocument): MapCircleCollider[] {
-  const out: MapCircleCollider[] = [];
-  for (const prop of map.props) {
-    const def = map.propTypes[prop.type];
-    if (!def) continue;
-    out.push(...collidersForProp(def, prop.x, prop.y));
-  }
-  for (const npc of map.npcs ?? []) {
-    out.push({ x: npc.x, y: npc.y, radius: NPC_COLLISION_RADIUS });
-  }
-  return out;
 }

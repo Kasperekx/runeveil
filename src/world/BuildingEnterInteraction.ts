@@ -1,10 +1,10 @@
 import { Graphics, type Application, type Container } from "pixi.js";
-import type { Environment } from "../environment/Environment";
+import type { Environment } from "../render/Environment";
 import type { Camera } from "../game/Camera";
 import { screenToWorld } from "../game/screenToWorld";
 import type { KeyboardInput } from "../input/KeyboardInput";
 import type { MapWorldInteraction } from "../maps/types";
-import type { GameToast } from "../ui/GameToast";
+import type { GameToast } from "../ui/hud/GameToast";
 
 const TOO_FAR_MESSAGE = "Podejdź bliżej drzwi, aby wejść.";
 const BUSY_MESSAGE = "Przechodzisz do innego miejsca…";

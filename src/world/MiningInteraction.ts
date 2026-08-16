@@ -1,14 +1,14 @@
 import { Assets, Sprite, type Application, type Container } from "pixi.js";
-import type { Environment } from "../environment/Environment";
+import type { Environment } from "../render/Environment";
 import type { Camera } from "../game/Camera";
 import { screenToWorld } from "../game/screenToWorld";
 import type { KeyboardInput } from "../input/KeyboardInput";
-import { getItem, hasItem } from "../items/catalog";
+import { getItem, hasItem } from "../content/items";
 import type { Inventory } from "../inventory/Inventory";
 import type { MapWorldInteraction } from "../maps/types";
 import type { NetworkPlayerSnapshot } from "../network/GameNetwork";
-import { getProfessionGatherNode } from "../professions/catalog";
-import type { GameToast } from "../ui/GameToast";
+import { getProfessionGatherNode } from "../content/professions";
+import type { GameToast } from "../ui/hud/GameToast";
 
 const TOO_FAR_MESSAGE = "Podejdź bliżej do żyły, aby kopać.";
 const NO_PICKAXE_MESSAGE = "Potrzebujesz kilofa, aby wydobywać rudę.";
@@ -86,7 +86,9 @@ export class MiningInteraction {
     `;
     this.castBarIcon = this.castBar.querySelector("img")!;
     this.castBarLabel = this.castBar.querySelector("strong")!;
-    this.castBarTime = this.castBar.querySelector(".mining-cast-bar__head span")!;
+    this.castBarTime = this.castBar.querySelector(
+      ".mining-cast-bar__head span",
+    )!;
     this.castBarFill = this.castBar.querySelector(
       ".mining-cast-bar__track > span",
     )!;
@@ -119,7 +121,9 @@ export class MiningInteraction {
     return this.channel !== null;
   }
 
-  applyDepletedState(nodes: Array<{ nodeKey: string; respawnAt: number }>): void {
+  applyDepletedState(
+    nodes: Array<{ nodeKey: string; respawnAt: number }>,
+  ): void {
     const now = Date.now();
     this.depleted.clear();
     for (const node of nodes) {
@@ -138,11 +142,7 @@ export class MiningInteraction {
     if (depleted) this.depleted.add(nodeKey);
     else this.depleted.delete(nodeKey);
     this.environment.setPropDepleted(nodeKey, depleted);
-    if (
-      depleted &&
-      this.channel &&
-      this.channel.spot.nodeKey === nodeKey
-    ) {
+    if (depleted && this.channel && this.channel.spot.nodeKey === nodeKey) {
       this.cancelChannel(true);
     }
   }
@@ -186,7 +186,10 @@ export class MiningInteraction {
         interaction.x - player.x,
         interaction.y - player.y,
       );
-      if (distance > interaction.activationRadius || distance >= nearestDistance)
+      if (
+        distance > interaction.activationRadius ||
+        distance >= nearestDistance
+      )
         continue;
       nearest = interaction;
       nearestDistance = distance;
@@ -300,7 +303,10 @@ export class MiningInteraction {
   }
 
   private updateCastBar(elapsedMs: number, gatherTimeMs: number): void {
-    const progress = Math.min(1, Math.max(0, elapsedMs / Math.max(1, gatherTimeMs)));
+    const progress = Math.min(
+      1,
+      Math.max(0, elapsedMs / Math.max(1, gatherTimeMs)),
+    );
     const pct = Math.round(progress * 100);
     this.castBarFill.style.width = `${pct}%`;
     const remainingSec = Math.max(0, (gatherTimeMs - elapsedMs) / 1000);

@@ -1,5 +1,5 @@
 import { load } from "js-yaml";
-import placeableCampfireYaml from "../data/placeableCampfire.yaml?raw";
+import placeableCampfireYaml from "@mmo/shared/data/placeableCampfire.yaml?raw";
 import type { MapPropType } from "../maps/types";
 
 export interface PlaceableCampfireDefinition {

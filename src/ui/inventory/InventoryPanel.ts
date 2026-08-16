@@ -8,8 +8,8 @@ import {
 } from "../../config/constants";
 import type { KeyboardInput } from "../../input/KeyboardInput";
 import type { Inventory } from "../../inventory/Inventory";
-import { getItem, hasItem, isUsableItem } from "../../items/catalog";
-import type { ItemCooldowns } from "../ItemCooldowns";
+import { getItem, hasItem, isUsableItem } from "../../content/items";
+import type { ItemCooldowns } from "../hud/ItemCooldowns";
 import { makeDraggable } from "../makeDraggable";
 import { ItemTooltip, type ItemComparisonProvider } from "./ItemTooltip";
 
@@ -53,6 +53,8 @@ export class InventoryPanel {
   private readonly input: KeyboardInput;
   private readonly cooldowns: ItemCooldowns;
   private readonly goldEl: HTMLElement;
+  private readonly capacityEl: HTMLElement;
+  private readonly capacityFillEl: HTMLElement;
 
   private constructor(
     private readonly root: HTMLElement,
@@ -62,6 +64,8 @@ export class InventoryPanel {
     header: HTMLElement,
     closeButton: HTMLButtonElement,
     goldEl: HTMLElement,
+    capacityEl: HTMLElement,
+    capacityFillEl: HTMLElement,
     onDropToWorld: DropToWorldHandler,
     bagHandlers: BagHandlers,
     input: KeyboardInput,
@@ -73,6 +77,8 @@ export class InventoryPanel {
     this.input = input;
     this.cooldowns = cooldowns;
     this.goldEl = goldEl;
+    this.capacityEl = capacityEl;
+    this.capacityFillEl = capacityFillEl;
     this.tooltip = ItemTooltip.create();
     this.buildSlots();
     this.buildBagSockets();
@@ -83,6 +89,7 @@ export class InventoryPanel {
     closeButton.addEventListener("click", () => this.close());
     makeDraggable(this.root, header, () => this.input.clear());
     this.bindWorldDrop();
+    this.bindDropTargetHint();
   }
 
   static create(
@@ -99,6 +106,8 @@ export class InventoryPanel {
     const header = document.getElementById("inventory-header");
     const closeButton = document.getElementById("inventory-close");
     const goldEl = document.getElementById("inventory-gold");
+    const capacityEl = document.getElementById("inventory-capacity");
+    const capacityFillEl = document.getElementById("inventory-capacity-fill");
 
     if (
       !root ||
@@ -106,10 +115,12 @@ export class InventoryPanel {
       !bags ||
       !header ||
       !goldEl ||
+      !capacityEl ||
+      !capacityFillEl ||
       !(closeButton instanceof HTMLButtonElement)
     ) {
       throw new Error(
-        "Inventory markup missing (#inventory, #inventory-grid, #inventory-bags, #inventory-header, #inventory-close, #inventory-gold)",
+        "Inventory markup missing (#inventory, #inventory-grid, #inventory-bags, #inventory-header, #inventory-close, #inventory-gold, #inventory-capacity, #inventory-capacity-fill)",
       );
     }
 
@@ -121,6 +132,8 @@ export class InventoryPanel {
       header,
       closeButton,
       goldEl,
+      capacityEl,
+      capacityFillEl,
       onDropToWorld,
       bagHandlers,
       input,
@@ -145,6 +158,44 @@ export class InventoryPanel {
     this.goldEl.textContent = String(this.gold);
     const money = this.goldEl.parentElement;
     money?.setAttribute("aria-label", `Złoto: ${this.gold}`);
+  }
+
+  /** Free space is the one number players check before every pickup. */
+  private renderCapacity(): void {
+    const slots = this.inventory.getSlots();
+    const total = slots.length;
+    const used = slots.filter((slot) => slot.itemId).length;
+    const free = total - used;
+
+    this.capacityEl.textContent = `${used} / ${total}`;
+    this.capacityFillEl.style.width = `${total > 0 ? (used / total) * 100 : 0}%`;
+    this.capacityFillEl.dataset.tier =
+      free === 0 ? "full" : free <= 3 ? "tight" : "roomy";
+    this.capacityEl.parentElement?.setAttribute(
+      "aria-label",
+      free === 0
+        ? "Plecak pełny"
+        : `Zajęte ${used} z ${total} miejsc, wolne ${free}`,
+    );
+  }
+
+  /**
+   * Any drag — grid, bag socket or paper doll — marks the panel as a drop zone
+   * so the free slots waiting for the item are obvious.
+   */
+  private bindDropTargetHint(): void {
+    document.addEventListener("dragstart", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.closest("[data-slot-index], [data-bag-index], [data-slot]")) {
+        return;
+      }
+      this.root.classList.add("is-receiving");
+    });
+
+    const clear = () => this.root.classList.remove("is-receiving");
+    document.addEventListener("dragend", clear);
+    document.addEventListener("drop", clear);
   }
 
   get isOpen(): boolean {
@@ -418,6 +469,10 @@ export class InventoryPanel {
             ? "Główny plecak"
             : `Puste gniazdo torby ${index + 1}`;
         socket.setAttribute("aria-label", label);
+        const caption = document.createElement("span");
+        caption.className = "inventory__bag-caption";
+        caption.textContent = index === MAIN_BAG_INDEX ? "Główna" : "Torba";
+        socket.appendChild(caption);
         return;
       }
 
@@ -622,6 +677,8 @@ export class InventoryPanel {
         "inventory__slot--uncommon",
         "inventory__slot--rare",
         "inventory__slot--epic",
+        "inventory__slot--worn",
+        "inventory__slot--broken",
       );
 
       if (!slot?.itemId) {
@@ -667,12 +724,33 @@ export class InventoryPanel {
         element.appendChild(qty);
       }
 
+      // Wear is visible on the paper doll, so the bag shows it too — a broken
+      // piece looks the same in both places.
+      if (slot.maxDurability > 0) {
+        const ratio = Math.max(
+          0,
+          Math.min(1, slot.durability / slot.maxDurability),
+        );
+        element.classList.toggle("inventory__slot--broken", ratio <= 0);
+        element.classList.toggle(
+          "inventory__slot--worn",
+          ratio > 0 && ratio <= 0.25,
+        );
+        const track = document.createElement("span");
+        track.className = "inventory__durability";
+        const fill = document.createElement("span");
+        fill.style.width = `${ratio * 100}%`;
+        track.appendChild(fill);
+        element.appendChild(track);
+      }
+
       const cooldown = document.createElement("span");
       cooldown.className = "inventory__cooldown";
       cooldown.setAttribute("aria-hidden", "true");
       element.appendChild(cooldown);
     });
 
+    this.renderCapacity();
     this.renderCooldowns();
 
     // Item removed under the cursor (loot pickup / equip) skips pointerleave.

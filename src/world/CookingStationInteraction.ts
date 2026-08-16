@@ -1,10 +1,13 @@
 import type { Application } from "pixi.js";
-import type { Environment } from "../environment/Environment";
+import type { Environment } from "../render/Environment";
 import type { Camera } from "../game/Camera";
 import { screenToWorld } from "../game/screenToWorld";
 import type { MapWorldInteraction } from "../maps/types";
-import type { GameToast } from "../ui/GameToast";
-import type { CraftStationKind, ProfessionsPanel } from "../ui/ProfessionsPanel";
+import type { GameToast } from "../ui/hud/GameToast";
+import type {
+  CraftStationKind,
+  ProfessionsPanel,
+} from "../ui/panels/ProfessionsPanel";
 
 const TOO_FAR_MESSAGE = "Podejdź bliżej do stanowiska, aby wytwarzać.";
 const CRAFT_INTERRUPTED_MESSAGE =

@@ -1,8 +1,14 @@
-import { Assets, Sprite, Texture, type Application, type Container } from "pixi.js";
-import type { Environment } from "../environment/Environment";
+import {
+  Assets,
+  Sprite,
+  Texture,
+  type Application,
+  type Container,
+} from "pixi.js";
+import type { Environment } from "../render/Environment";
 import type { Camera } from "../game/Camera";
 import { screenToWorld } from "../game/screenToWorld";
-import type { GameToast } from "../ui/GameToast";
+import type { GameToast } from "../ui/hud/GameToast";
 import { PLACEABLE_CAMPFIRE } from "./placeableCampfire";
 
 export type PlaceCampfireHandler = (x: number, y: number) => void;
@@ -73,7 +79,11 @@ export class CampfirePlacementMode {
     this.active = false;
     this.app.canvas.style.cursor = "";
     this.app.canvas.removeEventListener("pointermove", this.onPointerMove);
-    this.app.canvas.removeEventListener("pointerdown", this.onPointerDown, true);
+    this.app.canvas.removeEventListener(
+      "pointerdown",
+      this.onPointerDown,
+      true,
+    );
     this.app.canvas.removeEventListener("contextmenu", this.onContextMenu);
     window.removeEventListener("keydown", this.onKeyDown);
     this.ghost?.destroy();
@@ -138,7 +148,9 @@ export class CampfirePlacementMode {
   private canPlaceAt(x: number, y: number): boolean {
     const radius = PLACEABLE_CAMPFIRE.prop.collisionRadius;
     const player = this.getPlayerPosition();
-    if (Math.hypot(x - player.x, y - player.y) > PLACEABLE_CAMPFIRE.placeRange) {
+    if (
+      Math.hypot(x - player.x, y - player.y) > PLACEABLE_CAMPFIRE.placeRange
+    ) {
       return false;
     }
     const bounds = this.environment.playableBounds;
@@ -151,7 +163,10 @@ export class CampfirePlacementMode {
       return false;
     }
     for (const collider of this.environment.colliders) {
-      if (Math.hypot(x - collider.x, y - collider.y) < collider.radius + radius) {
+      if (
+        Math.hypot(x - collider.x, y - collider.y) <
+        collider.radius + radius
+      ) {
         return false;
       }
     }

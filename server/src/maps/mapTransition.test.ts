@@ -29,10 +29,7 @@ test("tavern door resolves the configured indoor arrival", () => {
 
 test("door transition is rejected outside activation range", () => {
   const outdoors = loadMapById("hunting_grounds");
-  assert.equal(
-    findMapTransition(outdoors, 40, 40, "hunters-tavern"),
-    null,
-  );
+  assert.equal(findMapTransition(outdoors, 40, 40, "hunters-tavern"), null);
 });
 
 test("interior has no animal spawns", () => {

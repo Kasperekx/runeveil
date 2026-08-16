@@ -1,5 +1,5 @@
-import type { ItemAffix, ItemId, ItemRarity } from "../items/catalog";
-import { canonicalItemId, getItem, itemIdsMatch } from "../items/catalog";
+import type { ItemAffix, ItemId, ItemRarity } from "../content/items";
+import { canonicalItemId, getItem, itemIdsMatch } from "../content/items";
 import { INVENTORY_SLOT_COUNT } from "../config/constants";
 
 export interface InventorySlot {

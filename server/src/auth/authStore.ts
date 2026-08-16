@@ -1,8 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import argon2 from "argon2";
 import type { PoolClient } from "pg";
-import { database } from "../database.js";
-import { CLASSES } from "../world/classConfig.js";
+import { database } from "../db/database.js";
+import { CLASSES } from "../content/classConfig.js";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const GAME_TICKET_TTL_MS = 60_000;

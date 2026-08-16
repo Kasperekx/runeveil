@@ -3,7 +3,7 @@ import { parseCookie, stringifySetCookie } from "cookie";
 import type { Express, Request } from "express";
 import { rateLimit } from "express-rate-limit";
 import { authStore } from "./authStore.js";
-import { isCharacterOnline } from "../world/onlineCharacters.js";
+import { isCharacterOnline } from "../sim/onlineCharacters.js";
 
 const SESSION_COOKIE =
   process.env.NODE_ENV === "production" ? "__Host-mmo_session" : "mmo_session";

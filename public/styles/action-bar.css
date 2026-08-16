@@ -1,0 +1,474 @@
+/**
+ * Hotbar — the HUD member of the brass/ink family.
+ *
+ * Signature shared with the paper doll and the bag: an unused socket is
+ * engraved with what belongs there. Here that is the key that fires it, so a
+ * glance tells you which numbers are still free.
+ */
+
+.action-bar {
+  --ab-slot: 46px;
+  --ab-gap: 4px;
+
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 20;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+/* ——— Drag notice ——— */
+
+.action-bar__notice {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  margin: 0;
+  padding: 6px 11px;
+  color: #eee2bf;
+  background: linear-gradient(180deg, #1a221c 0%, #0a100c 100%);
+  border: 1px solid var(--brass-lo);
+  box-shadow:
+    0 0 0 1px rgba(184, 149, 74, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.7);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+  pointer-events: none;
+}
+
+.action-bar--dragging .action-bar__notice {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.action-bar--discarding .action-bar__notice {
+  color: #efab8e;
+  border-color: #a64e3b;
+}
+
+/* Both lines ship in the markup; the drag state picks which one shows. */
+.action-bar__notice-drop,
+.action-bar--discarding .action-bar__notice-keep {
+  display: none;
+}
+
+.action-bar--discarding .action-bar__notice-drop {
+  display: inline;
+}
+
+/* ——— Rail and terminals ——— */
+
+.action-bar__rail {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.6));
+}
+
+/*
+ * Brass terminals close the bar. They replace the old hand-drawn "wings",
+ * which stood in for gryphon art the project never had — this reuses the
+ * diamond vocabulary of the panel sigils instead of faking a creature.
+ */
+.action-bar__cap {
+  position: relative;
+  flex: none;
+  width: 22px;
+  background:
+    linear-gradient(90deg, rgba(184, 149, 74, 0.1), transparent 60%),
+    linear-gradient(180deg, #253329 0%, #121b16 100%);
+  border: 1px solid #6e5428;
+  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.16);
+}
+
+.action-bar__cap::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  background: radial-gradient(
+    circle,
+    rgba(232, 202, 120, 0.4),
+    transparent 68%
+  );
+  border: 1px solid #d0ad5b;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.action-bar__cap::after {
+  content: "";
+  position: absolute;
+  inset: 5px 5px;
+  border-top: 1px solid rgba(184, 149, 74, 0.4);
+  border-bottom: 1px solid rgba(184, 149, 74, 0.4);
+}
+
+.action-bar__cap--left {
+  border-right: 0;
+}
+
+.action-bar__cap--right {
+  border-left: 0;
+}
+
+/* ——— Plate ——— */
+
+.action-bar__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 9px 6px;
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(106, 154, 124, 0.16),
+      transparent 42%
+    ),
+    linear-gradient(180deg, #17231c 0%, #0c1310 60%, #070b09 100%);
+  border: 1px solid #8a6b33;
+  box-shadow:
+    0 0 0 1px rgba(4, 7, 5, 0.98),
+    inset 0 1px 0 rgba(230, 200, 120, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.action-bar__slots {
+  display: flex;
+  gap: var(--ab-gap);
+}
+
+/* ——— Sockets ——— */
+
+.action-bar__slot {
+  position: relative;
+  width: var(--ab-slot);
+  height: var(--ab-slot);
+  padding: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%), #050706;
+  border: 1px solid #2a332c;
+  box-shadow:
+    inset 1px 1px 0 #3f4f44,
+    inset -1px -1px 0 #000,
+    inset 0 0 6px rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 90ms ease;
+}
+
+/* Recessed socket behind the icon; sells the "carved into metal" look. */
+.action-bar__well {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 100% at 50% 0%,
+    rgba(106, 154, 124, 0.13) 0%,
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+/* Curved highlight across the top, as on the HP bars. */
+.action-bar__gloss {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 42%,
+    rgba(0, 0, 0, 0.26) 100%
+  );
+  pointer-events: none;
+}
+
+.action-bar__slot:hover {
+  border-color: var(--brass-hi);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 1px 1px 0 rgba(230, 200, 120, 0.28),
+    inset -1px -1px 0 #000,
+    0 0 12px rgba(230, 200, 120, 0.4);
+}
+
+.action-bar__slot:active {
+  transform: translateY(1px);
+}
+
+.action-bar__slot--filled {
+  background:
+    linear-gradient(145deg, rgba(230, 200, 120, 0.07), transparent 40%), #0a100c;
+  border-color: var(--brass);
+  cursor: grab;
+}
+
+/*
+ * Empty socket: the key is the engraving, filling the whole well. Bind
+ * something and it shrinks into the corner to make room for the icon.
+ */
+.action-bar__key {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  color: #6d684c;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(230, 200, 120, 0.07);
+  pointer-events: none;
+}
+
+.action-bar__slot:hover .action-bar__key {
+  color: #a89464;
+}
+
+.action-bar__slot--filled .action-bar__key {
+  inset: 1px auto auto 3px;
+  display: block;
+  color: #cbb887;
+  font-size: 9px;
+  line-height: 1;
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+}
+
+.action-bar__icon {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.action-bar__qty {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  z-index: 4;
+  color: #fff3c0;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+  pointer-events: none;
+}
+
+/* Sweeps downward as the cooldown expires. */
+.action-bar__cooldown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  height: 0;
+  background: rgba(6, 10, 8, 0.74);
+  border-bottom: 1px solid rgba(230, 200, 120, 0.45);
+  pointer-events: none;
+  transition: height 100ms linear;
+}
+
+/* Seconds left, so a long cooldown is readable without counting the sweep. */
+.action-bar__timer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  color: #ffeeb4;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 1px 3px #000,
+    0 0 9px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.action-bar__slot--dragging {
+  opacity: 0.38;
+  cursor: grabbing;
+  filter: grayscale(0.65);
+}
+
+.action-bar__slot--drag-over {
+  border-color: var(--brass-hi);
+  box-shadow:
+    0 0 0 1px var(--brass-hi),
+    0 0 12px rgba(230, 200, 120, 0.5);
+}
+
+/* Bound item the player no longer carries. */
+.action-bar__slot--empty-stack .action-bar__icon {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+
+.action-bar__slot--empty-stack::after {
+  content: "0";
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  z-index: 4;
+  color: #df7c6b;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+  pointer-events: none;
+}
+
+/* Not enough rage/mana — WoW-style desaturated icon. */
+.action-bar__slot--unusable {
+  border-color: #4a4538;
+}
+
+.action-bar__slot--unusable .action-bar__icon {
+  filter: grayscale(1) brightness(0.55);
+  opacity: 0.72;
+}
+
+@keyframes action-bar-deny {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+.action-bar__slot--denied {
+  animation: action-bar-deny 180ms ease;
+  border-color: #c86a58;
+}
+
+/* ——— Experience strip ——— */
+
+.action-bar__xp {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.action-bar__xp-level {
+  flex: none;
+  min-width: 22px;
+  padding: 1px 4px;
+  color: #ffeeb4;
+  background: linear-gradient(180deg, #3a2f14 0%, #100c06 100%);
+  border: 1px solid #8a6b33;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-bar__xp-track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  background: #050806;
+  border: 1px solid #2a332c;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.action-bar__xp-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(180deg, #b98ee0 0%, #7d51ad 45%, #4a2d6f 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 8px rgba(150, 100, 200, 0.45);
+  transition: width 320ms ease;
+}
+
+/* Twenty notches, as on the WoW XP bar — reads as progress, not a plain fill. */
+.action-bar__xp-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 calc(5% - 1px),
+    rgba(0, 0, 0, 0.55) calc(5% - 1px) 5%
+  );
+  pointer-events: none;
+}
+
+.action-bar__xp-label {
+  min-width: 92px;
+  color: #817a65;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: right;
+  text-shadow: 0 1px 2px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Terminals are the first thing to go when width is tight. */
+@media (max-width: 620px) {
+  .action-bar {
+    --ab-slot: 42px;
+  }
+
+  .action-bar__cap {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-bar__slot--denied {
+    animation: none;
+  }
+
+  .action-bar__slot:hover,
+  .action-bar__slot:active {
+    transform: none;
+  }
+
+  .action-bar__xp-fill {
+    transition: none;
+  }
+}

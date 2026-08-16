@@ -1,3 +1,10 @@
+/**
+ * Bag panel — shares the brass/ink chrome of the quest log and character sheet.
+ *
+ * The item tooltip lives at the bottom of this file because every panel that
+ * shows an item reuses it.
+ */
+
 :root {
   --bag-bg: var(--ink-0, #070b09);
   --bag-panel: #152018;
@@ -11,7 +18,7 @@
   --slot-border-hi: #3f4f44;
   --slot-hover: var(--brass-hi, #e6c878);
   --slot-size: 44px;
-  --slot-gap: 3px;
+  --slot-gap: 4px;
 }
 
 .inventory {
@@ -19,14 +26,21 @@
   right: 12px;
   /* Clears the micro menu, which owns the bottom-right corner. */
   bottom: 56px;
-  width: calc(6 * var(--slot-size) + 5 * var(--slot-gap) + 20px);
-  pointer-events: auto;
+  z-index: 25;
+  width: calc(6 * var(--slot-size) + 5 * var(--slot-gap) + 40px);
   opacity: 0;
-  transition: opacity 180ms ease;
+  transform: translateY(10px) scale(0.985);
+  filter: drop-shadow(0 22px 38px rgba(0, 0, 0, 0.58));
+  transition:
+    opacity 170ms ease,
+    transform 170ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  pointer-events: none;
 }
 
 .inventory.is-open {
   opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
 
 .inventory.is-dragging {
@@ -45,66 +59,78 @@
   pointer-events: auto;
 }
 
+/* ——— Frame ——— */
+
 .inventory__frame {
   position: relative;
   background:
-    linear-gradient(180deg, rgba(45, 58, 48, 0.35) 0%, transparent 28%),
-    linear-gradient(180deg, #1c2820 0%, var(--bag-panel) 42%, #0a100e 100%);
-  border: 1px solid var(--bag-border-lo);
+    radial-gradient(
+      circle at 14% 6%,
+      rgba(106, 154, 124, 0.15),
+      transparent 36%
+    ),
+    linear-gradient(145deg, #17231c 0%, #0c1310 57%, #070b09 100%);
+  border: 1px solid #8a6b33;
+  outline: 1px solid rgba(4, 7, 5, 0.98);
+  outline-offset: 4px;
   box-shadow:
-    0 0 0 1px rgba(184, 149, 74, 0.35),
-    0 0 0 3px rgba(7, 11, 9, 0.95),
-    inset 0 1px 0 rgba(230, 200, 120, 0.2),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
-    0 10px 28px rgba(0, 0, 0, 0.65);
-  padding: 6px 5px 5px;
+    0 0 0 6px rgba(18, 27, 21, 0.94),
+    0 0 0 7px rgba(110, 84, 40, 0.6),
+    inset 0 1px 0 rgba(230, 200, 120, 0.18),
+    inset 0 0 70px rgba(0, 0, 0, 0.34);
 }
 
-.inventory__ornament {
+.inventory__corner {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: var(--brass);
+  z-index: 5;
+  width: 12px;
+  height: 12px;
+  border-color: #d0ad5b;
   border-style: solid;
-  opacity: 0.7;
+  opacity: 0.75;
   pointer-events: none;
 }
 
-.inventory__ornament--tl {
-  top: 3px;
-  left: 3px;
+.inventory__corner--tl {
+  top: -5px;
+  left: -5px;
   border-width: 1px 0 0 1px;
 }
 
-.inventory__ornament--tr {
-  top: 3px;
-  right: 3px;
+.inventory__corner--tr {
+  top: -5px;
+  right: -5px;
   border-width: 1px 1px 0 0;
 }
 
-.inventory__ornament--bl {
-  bottom: 3px;
-  left: 3px;
+.inventory__corner--bl {
+  bottom: -5px;
+  left: -5px;
   border-width: 0 0 1px 1px;
 }
 
-.inventory__ornament--br {
-  bottom: 3px;
-  right: 3px;
+.inventory__corner--br {
+  right: -5px;
+  bottom: -5px;
   border-width: 0 1px 1px 0;
 }
 
+/* ——— Header ——— */
+
 .inventory__header {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  height: 24px;
-  padding: 0 4px 0 8px;
-  margin-bottom: 4px;
-  background: linear-gradient(180deg, #2a382e 0%, #141c18 100%);
-  border: 1px solid var(--bag-border-lo);
-  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.14);
+  gap: 12px;
+  height: 48px;
+  padding: 0 11px 0 13px;
+  background:
+    linear-gradient(90deg, rgba(184, 149, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #253329 0%, #121b16 100%);
+  border-bottom: 1px solid #6e5428;
+  box-shadow:
+    inset 0 1px 0 rgba(230, 200, 120, 0.16),
+    0 3px 12px rgba(0, 0, 0, 0.48);
   cursor: grab;
 }
 
@@ -112,42 +138,188 @@
   cursor: grabbing;
 }
 
-.inventory__title {
-  margin: 0;
-  font-family: var(--font-ui);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--bag-title);
-  text-shadow: 0 1px 2px #000;
+.inventory__header::before,
+.inventory__header::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  width: 44px;
+  height: 5px;
+  border-top: 1px solid var(--bag-border-lo);
+}
+
+.inventory__header::before {
+  left: 0;
+  transform: skewX(42deg);
+}
+
+.inventory__header::after {
+  right: 0;
+  transform: skewX(-42deg);
+}
+
+.inventory__sigil {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  color: #e8ca78;
+  background:
+    radial-gradient(circle, rgba(184, 149, 74, 0.2), transparent 62%), #0a100d;
+  border: 1px solid #84662f;
+  transform: rotate(45deg);
+  box-shadow:
+    inset 0 0 0 2px #111a15,
+    0 3px 10px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+
+.inventory__sigil > span,
+.inventory__close > span {
+  display: block;
+  transform: rotate(-45deg);
+}
+
+.inventory__titles {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 3px;
   pointer-events: none;
 }
 
-.inventory__close {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid var(--bag-border-lo);
-  background: linear-gradient(180deg, #3a4a3e 0%, #1a221c 100%);
-  color: var(--bag-title);
+.inventory__eyebrow {
+  color: #8f8058;
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.inventory__title {
+  margin: 0;
+  color: #eee2bf;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-shadow: 0 2px 3px #000;
+}
+
+.inventory__rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(184, 149, 74, 0.5),
+    transparent
+  );
+}
+
+.inventory__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #b9aa7c;
+  background: #0b110e;
+  border: 1px solid #5c4a28;
+  transform: rotate(45deg);
+  font-family: var(--font-body);
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.18);
 }
 
 .inventory__close:hover {
-  border-color: var(--slot-hover);
-  color: #fff3c0;
-  background: linear-gradient(180deg, #4a3a20 0%, #2a2010 100%);
+  color: #fff0b6;
+  background: #263128;
+  border-color: var(--bag-border-hi);
 }
 
 .inventory__close:active {
   background: #120e0a;
 }
+
+/* ——— Body ——— */
+
+.inventory__body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.008) 0 1px,
+      transparent 1px 6px
+    ),
+    rgba(8, 13, 10, 0.9);
+}
+
+/* ——— Capacity plate ——— */
+
+.inventory__capacity {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  padding: 5px 8px;
+  background: rgba(10, 16, 13, 0.7);
+  border: 1px solid #263127;
+}
+
+.inventory__capacity-label {
+  color: #8f8058;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inventory__capacity-value {
+  color: #fff3c0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory__capacity-track {
+  grid-column: 1 / -1;
+  height: 5px;
+  background: #050806;
+  border: 1px solid #2a332c;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+.inventory__capacity-fill {
+  display: block;
+  height: 100%;
+  transition: width 200ms ease;
+}
+
+.inventory__capacity-fill[data-tier="roomy"] {
+  background: linear-gradient(90deg, #3f7a4d, #6fbd7d);
+}
+
+.inventory__capacity-fill[data-tier="tight"] {
+  background: linear-gradient(90deg, #9a7a24, #dcb64c);
+}
+
+.inventory__capacity-fill[data-tier="full"] {
+  background: linear-gradient(90deg, #7a2f28, #c2554a);
+}
+
+/* ——— Grid ——— */
 
 .inventory__grid {
   display: grid;
@@ -155,118 +327,16 @@
   /* Row count follows capacity: equipped bags grow/shrink the grid. */
   grid-auto-rows: var(--slot-size);
   gap: var(--slot-gap);
-  padding: 4px;
+  padding: 5px;
   background: var(--bag-panel-inner);
   border: 1px solid #000;
   box-shadow: inset 0 0 0 1px var(--bag-border-lo);
-}
-
-/* ——— Bag sockets (WoW-style, under the grid) ——— */
-
-.inventory__bags {
-  display: flex;
-  justify-content: center;
-  gap: var(--slot-gap);
-  margin-top: 4px;
-  padding: 4px;
-  background: var(--bag-panel-inner);
-  border: 1px solid #000;
-  box-shadow: inset 0 0 0 1px var(--bag-border-lo);
-}
-
-.inventory__bag-socket {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  background:
-    linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%),
-    var(--slot-bg);
-  border: 1px dashed rgba(110, 84, 40, 0.55);
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8);
-  cursor: default;
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.inventory__bag-socket--filled {
-  border: 1px solid var(--bag-border);
-  cursor: grab;
-}
-
-.inventory__bag-socket--main {
-  border-style: solid;
-  border-color: rgba(180, 140, 70, 0.65);
-}
-
-.inventory__bag-socket--main.inventory__bag-socket--filled {
-  cursor: default;
-}
-
-.inventory__bag-socket--dragging {
-  opacity: 0.45;
-}
-
-.inventory__bag-socket:hover {
-  border-color: var(--slot-hover);
-}
-
-.inventory__bag-socket--drag-over {
-  border: 1px solid var(--slot-hover);
-  box-shadow:
-    inset 0 0 0 1px rgba(230, 200, 120, 0.5),
-    0 0 8px rgba(230, 200, 120, 0.4);
-}
-
-.inventory__bag-icon {
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
-  image-rendering: pixelated;
-  pointer-events: none;
-}
-
-/* ——— Money strip (WoW-style, under bag sockets — not a slot) ——— */
-
-.inventory__money {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 4px 8px;
-  background: var(--bag-panel-inner);
-  border: 1px solid #000;
-  box-shadow: inset 0 0 0 1px var(--bag-border-lo);
-}
-
-.inventory__money-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  image-rendering: pixelated;
-  flex: none;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.85));
-}
-
-.inventory__money-amount {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #f0d78a;
-  text-shadow: 0 1px 2px #000;
-  font-variant-numeric: tabular-nums;
 }
 
 .inventory__slot {
   position: relative;
   width: var(--slot-size);
   height: var(--slot-size);
-  border-radius: 0;
   background:
     linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%),
     var(--slot-bg);
@@ -299,30 +369,6 @@
   box-shadow: inset 0 0 0 1px var(--rarity-epic);
 }
 
-.inventory__cooldown {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  z-index: 3;
-  height: 0;
-  background: rgba(6, 10, 8, 0.74);
-  border-bottom: 1px solid rgba(230, 200, 120, 0.45);
-  pointer-events: none;
-  transition: height 100ms linear;
-}
-
-.inventory__slot--dragging {
-  opacity: 0.45;
-}
-
-.inventory__slot--drag-over {
-  border-color: var(--slot-hover) !important;
-  box-shadow:
-    inset 0 0 0 1px rgba(230, 200, 120, 0.5),
-    0 0 0 1px rgba(230, 200, 120, 0.45) !important;
-}
-
 .inventory__icon {
   display: block;
   width: 100%;
@@ -351,12 +397,261 @@
   line-height: 1;
 }
 
+/* Same wear readout as the paper doll, so gear looks identical in both. */
+.inventory__durability {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  left: 3px;
+  z-index: 2;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.inventory__durability > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #6a9a7c, #9ecfa8);
+}
+
+.inventory__slot--worn .inventory__durability > span {
+  background: linear-gradient(90deg, #b3862f, #e0b45c);
+}
+
+.inventory__slot--broken {
+  border-color: #8b4038;
+}
+
+.inventory__slot--broken .inventory__icon {
+  filter: grayscale(0.85) brightness(0.6);
+}
+
+.inventory__slot--broken::after {
+  content: "✕";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  color: #df7c6b;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+
+.inventory__slot--broken .inventory__durability > span {
+  background: #8b4038;
+}
+
+.inventory__cooldown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 3;
+  height: 0;
+  background: rgba(6, 10, 8, 0.74);
+  border-bottom: 1px solid rgba(230, 200, 120, 0.45);
+  pointer-events: none;
+  transition: height 100ms linear;
+}
+
+.inventory__slot--dragging {
+  opacity: 0.45;
+}
+
+.inventory__slot--drag-over {
+  border-color: var(--slot-hover) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 200, 120, 0.5),
+    0 0 0 1px rgba(230, 200, 120, 0.45) !important;
+}
+
 .inventory__slot:hover {
   border-color: var(--slot-hover);
   box-shadow:
     inset 1px 1px 0 rgba(230, 200, 120, 0.3),
     inset -1px -1px 0 #000,
     0 0 0 1px rgba(230, 200, 120, 0.4);
+}
+
+/* Something is in flight: show where it can land. The hovered slot keeps its
+   own solid highlight, so exclude it here. */
+.inventory.is-receiving
+  .inventory__slot:not(.inventory__slot--filled, .inventory__slot--drag-over) {
+  border-style: dashed;
+  border-color: rgba(184, 149, 74, 0.6);
+  box-shadow:
+    inset 0 0 10px rgba(184, 149, 74, 0.14),
+    inset -1px -1px 0 #000;
+}
+
+/* ——— Bag sockets ——— */
+
+.inventory__section {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  background: var(--bag-panel-inner);
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 1px var(--bag-border-lo);
+}
+
+.inventory__section-label {
+  flex: none;
+  color: #8f8058;
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.inventory__bags {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: var(--slot-gap);
+}
+
+.inventory__bag-socket {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%),
+    var(--slot-bg);
+  border: 1px dashed rgba(110, 84, 40, 0.55);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8);
+  cursor: default;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+/* Engraved like the paper-doll wells: an empty socket says what it takes. */
+.inventory__bag-caption {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  color: #6d684c;
+  font-family: var(--font-ui);
+  font-size: 6.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.07em;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(230, 200, 120, 0.07);
+  pointer-events: none;
+}
+
+.inventory__bag-socket:hover .inventory__bag-caption {
+  color: #d7c48c;
+}
+
+.inventory__bag-socket--filled {
+  border: 1px solid var(--bag-border);
+  cursor: grab;
+}
+
+.inventory__bag-socket--main {
+  border-style: solid;
+  border-color: rgba(180, 140, 70, 0.65);
+}
+
+.inventory__bag-socket--main.inventory__bag-socket--filled {
+  cursor: default;
+}
+
+.inventory__bag-socket--dragging {
+  opacity: 0.45;
+}
+
+.inventory__bag-socket:hover {
+  border-color: var(--slot-hover);
+}
+
+.inventory__bag-socket--drag-over {
+  border: 1px solid var(--slot-hover);
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 200, 120, 0.5),
+    0 0 8px rgba(230, 200, 120, 0.4);
+}
+
+.inventory__bag-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* ——— Purse ——— */
+
+.inventory__money {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  background: rgba(10, 16, 13, 0.7);
+  border: 1px solid #263127;
+}
+
+.inventory__money-label {
+  flex: 1;
+  color: #8f8058;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inventory__money-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.85));
+}
+
+.inventory__money-amount {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f0d78a;
+  text-shadow: 0 1px 2px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ——— Control hints ——— */
+
+.inventory__hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  color: #817a65;
+  font-family: var(--font-body);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.inventory__hints b {
+  color: var(--bag-border-hi);
+  font-weight: 700;
 }
 
 /* ——— Item tooltip ——— */

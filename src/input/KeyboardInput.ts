@@ -10,7 +10,9 @@ export function isTextEntryTarget(target: EventTarget | null): boolean {
   const tag = target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   if (target.isContentEditable) return true;
-  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true']"),
+  );
 }
 
 export class KeyboardInput {
@@ -104,4 +106,4 @@ export class KeyboardInput {
   private onVisibilityChange = (): void => {
     if (document.hidden) this.pressed.clear();
   };
-};
+}

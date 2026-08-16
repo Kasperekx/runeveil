@@ -2,139 +2,65 @@ import { Container } from "pixi.js";
 import { createApp } from "./createApp";
 import { Camera } from "./Camera";
 import { screenToWorld } from "./screenToWorld";
+import { bindGameHud } from "./bindHud";
+import { bindGameNetwork, bindWorldNetwork } from "./bindNetwork";
+import { loadGameContent } from "./loadContent";
+import { NOTICE_COPY } from "./notices";
 import type { GameAccess } from "../auth/types";
 import { clearLastCharacter } from "../auth/lastCharacter";
-import { NetworkAnimalSystem } from "../creatures/NetworkAnimalSystem";
-import { Environment } from "../environment/Environment";
+import { NetworkAnimalSystem } from "../entities/creatures/NetworkAnimalSystem";
+import { Environment } from "../render/Environment";
 import { parseResourceKind } from "../config/resource";
 import { KeyboardInput } from "../input/KeyboardInput";
 import { Inventory } from "../inventory/Inventory";
-import { getItem, hasItem, loadItemCatalog } from "../items/catalog";
-import { getProfession, loadProfessionCatalog } from "../professions/catalog";
-import {
-  getQuest,
-  listQuests,
-  loadQuestCatalog,
-  type QuestDefinition,
-} from "../quests/catalog";
-import { getSkill, loadSkillCatalog } from "../skills/catalog";
-import { loadCreatureCatalog } from "../creatures/catalog";
-import { SweepingStrikeFx } from "../fx/SweepingStrikeFx";
-import { loadClassCatalog, getClass } from "../classes/catalog";
+import { getItem, hasItem } from "../content/items";
+import { getQuest, listQuests, type QuestDefinition } from "../content/quests";
+import { getSkill } from "../content/skills";
+import { SweepingStrikeFx } from "../render/SweepingStrikeFx";
+import { getClass } from "../content/classes";
 import { loadMap } from "../maps/loadMap";
 import {
   GameNetwork,
   type NetworkPlayerSnapshot,
   type QuestSnapshot,
 } from "../network/GameNetwork";
-import { DialogueHotkeys } from "../npcs/DialogueHotkeys";
-import { loadNpcCatalog } from "../npcs/catalog";
-import { NpcInteraction } from "../npcs/NpcInteraction";
-import { NpcSystem } from "../npcs/NpcSystem";
-import { Player } from "../player/Player";
-import { PlayerCombat } from "../player/PlayerCombat";
-import { PlayerMovement } from "../player/PlayerMovement";
-import { NetworkPlayerSystem } from "../player/NetworkPlayerSystem";
-import { ActionBar } from "../ui/ActionBar";
-import { ActionBarHotkeys } from "../ui/ActionBarHotkeys";
-import { AttrPointsHint } from "../ui/AttrPointsHint";
-import { CharacterHotkeys } from "../ui/CharacterHotkeys";
-import { CharacterPanel } from "../ui/CharacterPanel";
-import { DialogueWindow } from "../ui/DialogueWindow";
-import { DeathScreen } from "../ui/DeathScreen";
-import { FloatingCombatText } from "../ui/FloatingCombatText";
-import { GameChat } from "../ui/GameChat";
-import {
-  formatChatSay,
-  formatCombatDealt,
-  formatCombatHeal,
-  formatCombatTaken,
-  formatLevelUp,
-  formatLootDropped,
-  formatSystem,
-  formatXpGain,
-  itemDisplayName,
-} from "../ui/chat/chatLogFormat";
-import { GameToast } from "../ui/GameToast";
-import { ItemCooldowns } from "../ui/ItemCooldowns";
-import { SkillCooldowns } from "../ui/SkillCooldowns";
-import { SkillsHotkeys } from "../ui/SkillsHotkeys";
-import { SkillsPanel } from "../ui/SkillsPanel";
-import { InventoryHotkeys } from "../ui/inventory/InventoryHotkeys";
+import { DialogueHotkeys } from "../ui/panels/DialogueHotkeys";
+import { NpcInteraction } from "../entities/npcs/NpcInteraction";
+import { NpcSystem } from "../entities/npcs/NpcSystem";
+import { Player } from "../entities/player/Player";
+import { PlayerCombat } from "../entities/player/PlayerCombat";
+import { PlayerMovement } from "../entities/player/PlayerMovement";
+import { NetworkPlayerSystem } from "../entities/player/NetworkPlayerSystem";
+import { ActionBar } from "../ui/hud/actionBar/ActionBar";
+import { AttrPointsHint } from "../ui/hud/AttrPointsHint";
+import { CharacterPanel } from "../ui/panels/CharacterPanel";
+import { DialogueWindow } from "../ui/panels/DialogueWindow";
+import { DeathScreen } from "../ui/screens/DeathScreen";
+import { GameChat } from "../ui/chat/GameChat";
+import { formatSystem } from "../ui/chat/chatLogFormat";
+import { GameToast } from "../ui/hud/GameToast";
+import { ItemCooldowns } from "../ui/hud/ItemCooldowns";
+import { SkillCooldowns } from "../ui/hud/SkillCooldowns";
+import { SkillsPanel } from "../ui/panels/SkillsPanel";
 import { InventoryPanel } from "../ui/inventory/InventoryPanel";
-import { LevelUpBanner } from "../ui/LevelUpBanner";
-import { LoadingScreen } from "../ui/LoadingScreen";
-import { LootWindow } from "../ui/LootWindow";
-import { MICRO_ICONS, MicroMenu } from "../ui/MicroMenu";
-import { PlayerHud } from "../ui/PlayerHud";
-import { PlayerBuffs } from "../ui/PlayerBuffs";
-import { Minimap } from "../ui/Minimap";
-import { ProfessionsHotkeys } from "../ui/ProfessionsHotkeys";
-import { ProfessionsPanel } from "../ui/ProfessionsPanel";
-import { QuestLog } from "../ui/QuestLog";
-import { QuestLogHotkeys } from "../ui/QuestLogHotkeys";
-import { Settings } from "../ui/settings";
-import { SettingsPanel } from "../ui/SettingsPanel";
-import { SystemMenu } from "../ui/SystemMenu";
-import { TargetFrame } from "../ui/TargetFrame";
+import { LoadingScreen } from "../ui/screens/LoadingScreen";
+import { LootWindow } from "../ui/panels/LootWindow";
+import type { MicroMenu } from "../ui/panels/MicroMenu";
+import { PlayerHud } from "../ui/hud/PlayerHud";
+import { PlayerBuffs } from "../ui/hud/PlayerBuffs";
+import { Minimap } from "../ui/hud/Minimap";
+import { ProfessionsPanel } from "../ui/panels/ProfessionsPanel";
+import { QuestLog } from "../ui/panels/QuestLog";
+import { Settings } from "../ui/panels/settings";
+import type { SystemMenu } from "../ui/panels/SystemMenu";
+import { TargetFrame } from "../ui/hud/TargetFrame";
 import { NetworkPickupSystem } from "../world/NetworkPickupSystem";
 import { CookingStationInteraction } from "../world/CookingStationInteraction";
 import { CampfirePlacementMode } from "../world/CampfirePlacementMode";
 import { PLACEABLE_CAMPFIRE } from "../world/placeableCampfire";
 import { BuildingEnterInteraction } from "../world/BuildingEnterInteraction";
 import { MiningInteraction } from "../world/MiningInteraction";
-import { LightSystem } from "../lighting/LightSystem";
-
-const NOTICE_COPY: Record<string, string> = {
-  inventory_full: "Plecak jest pełny.",
-  not_enough_gold: "Za mało złota.",
-  out_of_stock: "Towar wyprzedany.",
-  shop_unavailable: "Ten kupiec nie prowadzi teraz handlu.",
-  shop_item_unavailable:
-    "Ten przedmiot nie jest dostępny u kupca. Odśwież grę.",
-  cannot_sell: "Kupiec tego nie kupi.",
-  too_far: "Podejdź bliżej, by handlować.",
-  already_full_hp: "Jesteś już w pełni sił.",
-  item_on_cooldown: "Przedmiot się jeszcze odnawia.",
-  food_buff_expired: "Efekt posiłku dobiegł końca.",
-  food_buff_cancelled: "Anulowano efekt posiłku.",
-  equip_level_too_low: "Twój poziom jest za niski, by założyć ten przedmiot.",
-  cooking_station_required: "Podejdź do paleniska, aby gotować.",
-  forge_station_required: "Podejdź do kuźni, aby wytopić sztabki.",
-  campfire_too_far: "Podejdź bliżej, aby postawić palenisko.",
-  campfire_blocked: "Nie możesz tu postawić paleniska.",
-  profession_level_too_low:
-    "Twój poziom profesji jest za niski dla tej czynności.",
-  missing_ingredients: "Brakuje składników do tego przepisu.",
-  mining_pickaxe_required: "Potrzebujesz kilofa, aby wydobywać rudę.",
-  mining_too_far: "Podejdź bliżej do żyły, aby kopać.",
-  mining_node_depleted: "Ta żyła jest już wyczerpana.",
-  mining_node_missing: "Nie znaleziono żyły rudy.",
-  quest_giver_too_far: "Podejdź do zleceniodawcy, aby przyjąć to zadanie.",
-  quest_prerequisite_missing: "Najpierw ukończ poprzednie zadanie.",
-  quest_turn_in_too_far: "Podejdź do wskazanego miejsca, aby odebrać nagrodę.",
-  no_target: "Nie masz wybranego celu.",
-  out_of_range: "Cel jest poza zasięgiem.",
-  respawn_too_soon: "Nie możesz jeszcze powrócić do schronienia.",
-  repair_unavailable: "Ten NPC nie świadczy usług naprawy.",
-  nothing_to_repair: "Twój ekwipunek nie wymaga naprawy.",
-  not_enough_resource: "Za mało zasobu.",
-  not_enough_rage: "Za mało wściekłości.",
-  chat_rate_limited: "Piszesz zbyt szybko. Odczekaj chwilę.",
-  chat_invalid: "Wiadomość jest pusta lub niedozwolona.",
-};
-
-const CRAFT_REJECTION_NOTICES = new Set([
-  "cooking_station_required",
-  "forge_station_required",
-  "profession_level_too_low",
-  "missing_ingredients",
-  "inventory_full",
-  "mining_pickaxe_required",
-  "mining_too_far",
-  "mining_node_depleted",
-  "mining_node_missing",
-]);
+import { LightSystem } from "../render/LightSystem";
 
 /** Composition root: wires systems without owning their logic. */
 export class Game {
@@ -142,14 +68,7 @@ export class Game {
     const boot = LoadingScreen.create();
     boot.setStatus("Budzenie run…");
 
-    await loadItemCatalog();
-    await loadProfessionCatalog();
-    await loadQuestCatalog();
-    await loadSkillCatalog();
-    await loadCreatureCatalog();
-    await loadClassCatalog();
-    await loadNpcCatalog();
-    await SweepingStrikeFx.preload();
+    await loadGameContent();
     boot.markProgress();
     boot.setStatus("Tkanka świata…");
 
@@ -411,8 +330,13 @@ export class Game {
         name: snap.name,
         classId: snap.classId,
         level: snap.level,
+        experience: snap.experience,
+        experienceToLevel: snap.experienceToLevel,
         hp: snap.hp,
         maxHp: snap.maxHp,
+        resourceKind: snap.resourceKind,
+        resource: snap.resource,
+        maxResource: snap.maxResource,
         attackPower: snap.attackPower,
         damageMin: snap.damageMin,
         damageMax: snap.damageMax,
@@ -423,6 +347,13 @@ export class Game {
         stamina: snap.stamina,
         intellect: snap.intellect,
         spirit: snap.spirit,
+        bonusAttributes: {
+          strength: snap.bonusStrength ?? 0,
+          agility: snap.bonusAgility ?? 0,
+          stamina: snap.bonusStamina ?? 0,
+          intellect: snap.bonusIntellect ?? 0,
+          spirit: snap.bonusSpirit ?? 0,
+        },
         unspentAttrPoints: snap.unspentAttrPoints ?? 0,
         portrait: cls.portrait,
         equipment: snap.equipment,
@@ -467,215 +398,34 @@ export class Game {
     );
     const targetFrame = TargetFrame.create();
     animals.onSelectionChange = (vitals) => targetFrame.setTarget(vitals);
-    network.onVitalsChange = (hp, maxHp) => {
-      playerHud.setVitals({ hp, maxHp });
-      setDeathState(hp <= 0);
-    };
-    network.onResourceChange = (state) => {
-      playerResource = state;
-      playerHud.setResource({
-        kind: parseResourceKind(state.kind),
-        resource: state.resource,
-        maxResource: state.maxResource,
-      });
-      actionBar.setResource(state.resource);
-    };
-    network.onSheetChange = (snap) => applySheet(snap);
-    network.onItemUsed = (event) => {
-      itemCooldowns.start(event.itemId, event.cooldownMs);
-      const buff = event.buff;
-      if (!buff) return;
-      const parts: string[] = [];
-      if (buff.strength > 0) parts.push(`+${buff.strength} Siła`);
-      if (buff.stamina > 0) parts.push(`+${buff.stamina} Wytrzymałość`);
-      if (buff.agility > 0) parts.push(`+${buff.agility} Zwinność`);
-      if (buff.intellect > 0) parts.push(`+${buff.intellect} Intelekt`);
-      if (buff.spirit > 0) parts.push(`+${buff.spirit} Duch`);
-      if (parts.length === 0) return;
-      const minutes = Math.round(buff.durationMs / 60000);
-      const duration =
-        minutes >= 60 ? `${Math.round(minutes / 60)} godz.` : `${minutes} min.`;
-      const msg = `${parts.join(", ")} · ${duration}`;
-      toast.show(msg);
-      logSystem(`Efekt posiłku: ${msg}.`);
-    };
-    network.onFoodBuffState = (event) => {
-      playerBuffs.setFoodBuff(event);
-    };
-    const pendingFood = network.getFoodBuffState();
-    if (pendingFood) playerBuffs.setFoodBuff(pendingFood);
-    network.requestFoodBuffState();
-    network.onProfessionCrafted = (event) => {
-      professionsPanel.handleCrafted(event.recipeId, event.quantity);
-      const profession = getProfession(event.professionId);
-      const msg =
-        event.levelsGained > 0
-          ? `${profession.name} ${event.level} · awans profesji!`
-          : `${profession.name} · +${event.xp} PD`;
-      toast.show(msg);
-      logSystem(msg);
-    };
-    network.onOreMined = (event) => {
-      const profession = getProfession(event.professionId);
-      const msg =
-        event.levelsGained > 0
-          ? `${profession.name} ${event.level} · awans profesji!`
-          : `${profession.name} · +${event.xp} PD`;
-      toast.show(msg);
-      logSystem(
-        `Wydobyto ${itemDisplayName(event.itemId)}${
-          event.quantity > 1 ? ` ×${event.quantity}` : ""
-        }. ${msg}`,
-      );
-    };
-    network.onQuestReady = (event) => {
-      const quest = getQuest(event.questId);
-      toast.show(`Zadanie gotowe · ${quest.name}`);
-      logSystem(`Zadanie gotowe do oddania: ${quest.name}.`);
-    };
-    network.onQuestAccepted = (event) => {
-      const quest = getQuest(event.questId);
-      toast.show(`Przyjęto zadanie · ${quest.name}`);
-      logSystem(`Przyjęto zadanie: ${quest.name}.`);
-    };
-    network.onQuestClaimed = (event) => {
-      const quest = getQuest(event.questId);
-      toast.show(`Nagroda odebrana · ${quest.name}`);
-      logSystem(`Odebrano nagrodę za zadanie: ${quest.name}.`);
-    };
-
-    const levelUpBanner = LevelUpBanner.create();
-    network.onLevelUp = (event) => {
-      levelUpBanner.show(event);
-      const line = formatLevelUp(event.level);
-      gameChat.append(line.channel, line.text);
-    };
-    network.onPlayerDied = (event) => {
-      setDeathState(true);
-      deathScreen.show({
-        lostExperience: event.lostExperience,
-        penaltyPercent: event.penaltyPercent,
-        homeName: event.homeName,
-        respawnDelayMs: event.respawnDelayMs,
-      });
-      logSystem(
-        `Giniesz. Tracisz ${event.lostExperience} PD (−${event.penaltyPercent}%).`,
-      );
-    };
-    network.onPlayerRespawned = (event) => {
-      setDeathState(false);
-      player.setPosition(event.x, event.y);
-      toast.show(`Wskrzeszono · ${event.homeName}`);
-      logSystem(`Powracasz do życia przy: ${event.homeName}.`);
-    };
-
-    network.onNotice = (event) => {
-      if (CRAFT_REJECTION_NOTICES.has(event.kind)) {
-        professionsPanel.cancelCraft();
-      }
-      const message =
-        event.kind === "not_enough_resource" && playerResource.kind === "rage"
-          ? NOTICE_COPY.not_enough_rage
-          : NOTICE_COPY[event.kind];
-      if (message) {
-        toast.show(message);
-        logSystem(message);
-      }
-    };
-    network.onTradeResult = (event) => {
-      playerGold = event.gold;
-      dialogueWindow.setGold(event.gold);
-      inventoryPanel?.setGold(event.gold);
-      if (event.kind === "buy" && typeof event.stock === "number") {
-        dialogueWindow.setStock(event.itemId, event.stock);
-      }
-      const name = itemDisplayName(event.itemId);
-      if (event.kind === "buy") {
-        const spent = event.goldSpent ?? 0;
-        toast.show(`Kupiono · −${spent} g`);
-        logSystem(
-          `Kupujesz ${name}${
-            event.quantity > 1 ? ` ×${event.quantity}` : ""
-          } za ${spent} g.`,
-        );
-      } else {
-        const earned = event.goldEarned ?? 0;
-        toast.show(`Sprzedano · +${earned} g`);
-        logSystem(
-          `Sprzedajesz ${name}${
-            event.quantity > 1 ? ` ×${event.quantity}` : ""
-          } za ${earned} g.`,
-        );
-      }
-    };
-    network.onEquipmentRepaired = (event) => {
-      playerGold = event.gold;
-      dialogueWindow.setGold(event.gold);
-      inventoryPanel?.setGold(event.gold);
-      toast.show(`Naprawiono ekwipunek · −${event.totalCost} g`);
-      logSystem(`Naprawiono ekwipunek za ${event.totalCost} g.`);
-    };
-    network.onEquipmentBroken = (event) => {
-      const msg =
-        event.slotIds.length === 1
-          ? "Element ekwipunku został uszkodzony!"
-          : `${event.slotIds.length} elementy ekwipunku zostały uszkodzone!`;
-      toast.show(msg);
-      logSystem(msg);
-    };
-
-    network.onChat = (event) => {
-      gameChat.append("chat", formatChatSay(event.name, event.text));
-    };
-    network.onLootDropped = (event) => {
-      const line = formatLootDropped(event.creatureKind, event.items);
-      if (line) gameChat.append(line.channel, line.text);
-    };
-
-    const combatText = new FloatingCombatText(app, world);
-    combatText.start();
-    network.onCombatText = (event) => {
-      const creatureKind =
-        event.creatureKind ||
-        (event.animalId ? animals.getKind(event.animalId) : null);
-
-      if (event.target === "player") {
-        if (event.kind === "heal") {
-          const line = formatCombatHeal(event.amount);
-          gameChat.append(line.channel, line.text);
-        } else {
-          const line = formatCombatTaken(event.amount, creatureKind);
-          gameChat.append(line.channel, line.text);
-        }
-      } else {
-        const line = formatCombatDealt(
-          event.amount,
-          creatureKind,
-          event.killed,
-        );
-        gameChat.append(line.channel, line.text);
-      }
-
-      if (!settings.current.showDamageNumbers) return;
-      if (event.target === "player") {
-        const { x, y } = player.position;
-        if (event.kind === "heal") {
-          combatText.spawn(x, y - 26, event.amount, "heal");
-        } else {
-          combatText.spawn(x, y - 26, event.amount, "taken");
-        }
-        return;
-      }
-      const at = animals.getPosition(event.animalId);
-      if (at) combatText.spawn(at.x, at.y - 20, event.amount, "dealt");
-    };
-    network.onXpGain = (event) => {
-      const line = formatXpGain(event.amount, event.kind);
-      gameChat.append(line.channel, line.text);
-      const at = event.animalId ? animals.getPosition(event.animalId) : null;
-      const pos = at ?? player.position;
-      combatText.spawn(pos.x, pos.y - 36, event.amount, "xp");
-    };
+    bindGameNetwork({
+      network,
+      app,
+      world,
+      player,
+      animals,
+      settings,
+      playerHud,
+      playerBuffs,
+      actionBar,
+      gameChat,
+      toast,
+      itemCooldowns,
+      professionsPanel,
+      dialogueWindow,
+      deathScreen,
+      applySheet,
+      setDeathState,
+      logSystem,
+      getPlayerResource: () => playerResource,
+      setPlayerResource: (state) => {
+        playerResource = state;
+      },
+      setPlayerGold: (gold) => {
+        playerGold = gold;
+      },
+      getInventoryPanel: () => inventoryPanel,
+    });
     const lootWindow = LootWindow.create(comparisonForSlot);
     lootWindow.bindHotkeys((handler) => {
       input.onKeyDownPress(handler);
@@ -707,11 +457,13 @@ export class Game {
       if (!light) return;
       lights.upsertLight(id, x, y, light);
     };
-    const applyCampfiresState = async (campfires: Array<{
-      id: string;
-      x: number;
-      y: number;
-    }>): Promise<void> => {
+    const applyCampfiresState = async (
+      campfires: Array<{
+        id: string;
+        x: number;
+        y: number;
+      }>,
+    ): Promise<void> => {
       environment.clearRuntimeCampfires();
       lights.clearDynamicLights();
       for (const campfire of campfires) {
@@ -724,23 +476,6 @@ export class Game {
       }
       cookingStationInteraction.setEnvironment(environment);
     };
-    network.onCampfiresState = (event) => {
-      void applyCampfiresState(event.campfires);
-    };
-    network.onCampfirePlaced = (event) => {
-      void environment
-        .upsertRuntimeCampfire(event.id, event.x, event.y)
-        .then(() => {
-          upsertCampfireLight(event.id, event.x, event.y);
-          cookingStationInteraction.setEnvironment(environment);
-        });
-    };
-    network.onCampfireRemoved = (event) => {
-      environment.removeRuntimeCampfire(event.id);
-      lights.removeLight(event.id);
-      cookingStationInteraction.setEnvironment(environment);
-    };
-    network.requestCampfiresState();
     const miningInteraction = new MiningInteraction(
       app,
       camera,
@@ -755,20 +490,29 @@ export class Game {
       (nodeKey, nodeId) => network.completeMine(nodeKey, nodeId),
       () => Boolean(systemMenu?.isOpen) || isPlayerDead,
     );
-    network.onMiningNodesState = (event) => {
-      miningInteraction.applyDepletedState(event.nodes);
-    };
-    network.onMiningNodeDepleted = (event) => {
-      miningInteraction.setNodeDepleted(event.nodeKey, true);
-    };
-    network.onMiningNodeRespawned = (event) => {
-      miningInteraction.setNodeDepleted(event.nodeKey, false);
-    };
-    // Apply any join-time snapshot that arrived before this UI existed, then
-    // ask again so a raced early message cannot leave fresh veins on refresh.
-    const pendingMining = network.getMiningNodesState();
-    if (pendingMining) miningInteraction.applyDepletedState(pendingMining.nodes);
-    network.requestMiningNodesState();
+    bindWorldNetwork({
+      network,
+      applyCampfiresState,
+      onCampfirePlaced: (event) => {
+        void environment
+          .upsertRuntimeCampfire(event.id, event.x, event.y)
+          .then(() => {
+            upsertCampfireLight(event.id, event.x, event.y);
+            cookingStationInteraction.setEnvironment(environment);
+          });
+      },
+      onCampfireRemoved: (id) => {
+        environment.removeRuntimeCampfire(id);
+        lights.removeLight(id);
+        cookingStationInteraction.setEnvironment(environment);
+      },
+      applyMiningNodesState: (nodes) => {
+        miningInteraction.applyDepletedState(nodes);
+      },
+      setMiningNodeDepleted: (nodeKey, depleted) => {
+        miningInteraction.setNodeDepleted(nodeKey, depleted);
+      },
+    });
     let transitionMap: (mapId: string) => Promise<void> = async () => {
       throw new Error("Map transition is not ready yet.");
     };
@@ -897,12 +641,6 @@ export class Game {
     network.onBagsChange = (bags) => inventoryPanel!.setBags(bags);
     // Panel mounts after hydrate — push current bags (main backpack in slot 0).
     network.resyncBags();
-    const inventoryHotkeys = new InventoryHotkeys(inventoryPanel, input);
-    const characterHotkeys = new CharacterHotkeys(characterPanel, input);
-    const skillsHotkeys = new SkillsHotkeys(skillsPanel, input);
-    const professionsHotkeys = new ProfessionsHotkeys(professionsPanel, input);
-    const questLogHotkeys = new QuestLogHotkeys(questLog, input);
-    const actionBarHotkeys = new ActionBarHotkeys(actionBar, input);
 
     const exitToCharacterSelect = async (): Promise<void> => {
       try {
@@ -916,118 +654,28 @@ export class Game {
       // intentionally preserved, so bootstrap lands in character hall.
       window.location.reload();
     };
-    const settingsPanel = SettingsPanel.create(settings, {
+    const hud = bindGameHud({
+      app,
+      input,
+      inventoryPanel,
+      characterPanel,
+      skillsPanel,
+      professionsPanel,
+      questLog,
+      actionBar,
+      gameChat,
+      dialogueWindow,
+      lootWindow,
+      settings,
+      minimap,
       accountEmail: access.account.email,
       onCharacterSelect: exitToCharacterSelect,
+      getCombatTargetId: () => combat?.getTargetId() ?? null,
+      getIsPlayerDead: () => isPlayerDead,
     });
-    systemMenu = SystemMenu.create({
-      onSettings: () => settingsPanel.openPanel(),
-      onCharacterSelect: exitToCharacterSelect,
-    });
-
-    // This handler is registered before panel/gameplay hotkeys. Returning true
-    // consumes input while the modal menu is open.
-    input.onKeyDownPress((code, event) => {
-      if (gameChat.handleHotkey(code, event)) {
-        input.clear();
-        return true;
-      }
-      if (systemMenu?.isOpen) {
-        event.preventDefault();
-        if (code === "Escape") systemMenu.close();
-        input.clear();
-        return true;
-      }
-      if (code !== "Escape") return;
-
-      if (settingsPanel.isOpen) {
-        event.preventDefault();
-        settingsPanel.close();
-        return true;
-      }
-
-      const panelOpen =
-        inventoryPanel?.isOpen ||
-        characterPanel.isOpen ||
-        skillsPanel.isOpen ||
-        professionsPanel.isOpen ||
-        questLog.isOpen ||
-        dialogueWindow.isOpen ||
-        lootWindow.isOpen;
-      if (isPlayerDead) {
-        event.preventDefault();
-        return true;
-      }
-      if (panelOpen || combat?.getTargetId()) return;
-
-      event.preventDefault();
-      input.clear();
-      systemMenu?.openMenu();
-      return true;
-    });
-
-    microMenu = MicroMenu.create([
-      {
-        id: "character",
-        label: "Szczegóły postaci",
-        hotkey: "C",
-        icon: MICRO_ICONS.character,
-        onClick: () => characterPanel.toggle(),
-      },
-      {
-        id: "inventory",
-        label: "Ekwipunek",
-        hotkey: "I",
-        icon: MICRO_ICONS.bag,
-        onClick: () => inventoryPanel.toggle(),
-      },
-      {
-        id: "skills",
-        label: "Umiejętności",
-        hotkey: "P",
-        icon: MICRO_ICONS.skills,
-        onClick: () => skillsPanel.toggle(),
-      },
-      {
-        id: "professions",
-        label: "Profesje",
-        hotkey: "L",
-        icon: MICRO_ICONS.professions,
-        onClick: () => professionsPanel.toggle(),
-      },
-      {
-        id: "quests",
-        label: "Dziennik zadań",
-        hotkey: "Q",
-        icon: MICRO_ICONS.quests,
-        onClick: () => questLog.toggle(),
-      },
-      {
-        id: "map",
-        label: "Minimapa",
-        icon: MICRO_ICONS.map,
-        onClick: () => minimap.toggle(),
-      },
-      { id: "social", label: "Czat", hotkey: "Enter", icon: MICRO_ICONS.social, onClick: () => gameChat.focusInput() },
-      {
-        id: "settings",
-        label: "Ustawienia",
-        icon: MICRO_ICONS.settings,
-        onClick: () => settingsPanel.toggle(),
-      },
-    ]);
+    systemMenu = hud.systemMenu;
+    microMenu = hud.microMenu;
     syncUnspentAttrPoints(lastUnspentAttrPoints);
-
-    // Panels close by hotkey and Escape too, so poll rather than wrapping every
-    // call site in a notification.
-    app.ticker.add(() => {
-      microMenu!.setActive("character", characterPanel.isOpen);
-      microMenu!.setActive("inventory", inventoryPanel.isOpen);
-      microMenu!.setActive("skills", skillsPanel.isOpen);
-      microMenu!.setActive("professions", professionsPanel.isOpen);
-      microMenu!.setActive("quests", questLog.isOpen);
-      microMenu!.setActive("settings", settingsPanel.isOpen);
-    });
 
     const combatInstance = new PlayerCombat(
       app,
@@ -1045,7 +693,7 @@ export class Game {
         questLog.isOpen ||
         dialogueWindow.isOpen ||
         lootWindow.isOpen ||
-        settingsPanel.isOpen ||
+        hud.settingsPanel.isOpen ||
         Boolean(systemMenu?.isOpen) ||
         isPlayerDead,
       () => isPlayerDead,
@@ -1055,12 +703,7 @@ export class Game {
 
     input.start();
     movement.start();
-    inventoryHotkeys.start();
-    characterHotkeys.start();
-    skillsHotkeys.start();
-    professionsHotkeys.start();
-    questLogHotkeys.start();
-    actionBarHotkeys.start();
+    hud.startHotkeys();
     npcs.start();
     dialogueHotkeys.start();
     // Registered before combat's click handler so a hit on an NPC claims the

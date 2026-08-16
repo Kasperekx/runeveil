@@ -12,6 +12,11 @@
     />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/styles/inventory.css" />
+    <link rel="stylesheet" href="/styles/character-panel.css" />
+    <link rel="stylesheet" href="/styles/action-bar.css" />
+    <link rel="stylesheet" href="/styles/micro-menu.css" />
+    <link rel="stylesheet" href="/styles/player-hud.css" />
+    <link rel="stylesheet" href="/styles/quest-log.css" />
     <title>Runeveil</title>
   </head>
 
@@ -28,49 +33,95 @@
           aria-label="Plecak"
         >
           <div class="inventory__frame">
-            <div class="inventory__ornament inventory__ornament--tl" aria-hidden="true"></div>
-            <div class="inventory__ornament inventory__ornament--tr" aria-hidden="true"></div>
-            <div class="inventory__ornament inventory__ornament--bl" aria-hidden="true"></div>
-            <div class="inventory__ornament inventory__ornament--br" aria-hidden="true"></div>
+            <span
+              class="inventory__corner inventory__corner--tl"
+              aria-hidden="true"
+            ></span>
+            <span
+              class="inventory__corner inventory__corner--tr"
+              aria-hidden="true"
+            ></span>
+            <span
+              class="inventory__corner inventory__corner--bl"
+              aria-hidden="true"
+            ></span>
+            <span
+              class="inventory__corner inventory__corner--br"
+              aria-hidden="true"
+            ></span>
             <header class="inventory__header" id="inventory-header">
-              <h2 class="inventory__title">Plecak</h2>
+              <span class="inventory__sigil" aria-hidden="true"
+                ><span>ᛒ</span></span
+              >
+              <div class="inventory__titles">
+                <span class="inventory__eyebrow">Sakwy</span>
+                <h2 class="inventory__title">Plecak</h2>
+              </div>
+              <span class="inventory__rule" aria-hidden="true"></span>
               <button
                 type="button"
                 class="inventory__close"
                 id="inventory-close"
                 aria-label="Zamknij plecak"
               >
-                ×
+                <span aria-hidden="true">×</span>
               </button>
             </header>
 
-            <div
-              class="inventory__grid"
-              id="inventory-grid"
-              role="grid"
-              aria-label="Sloty plecaka"
-            ></div>
+            <div class="inventory__body">
+              <div class="inventory__capacity" id="inventory-capacity-plate">
+                <span class="inventory__capacity-label">Miejsce</span>
+                <b class="inventory__capacity-value" id="inventory-capacity"
+                  >0 / 0</b
+                >
+                <span class="inventory__capacity-track" aria-hidden="true">
+                  <span
+                    class="inventory__capacity-fill"
+                    id="inventory-capacity-fill"
+                  ></span>
+                </span>
+              </div>
 
-            <div
-              class="inventory__bags"
-              id="inventory-bags"
-              aria-label="Gniazda toreb"
-            ></div>
+              <div
+                class="inventory__grid"
+                id="inventory-grid"
+                role="grid"
+                aria-label="Sloty plecaka"
+              ></div>
 
-            <div
-              class="inventory__money"
-              id="inventory-money"
-              aria-label="Złoto"
-            >
-              <img
-                class="inventory__money-icon"
-                src="/assets/items/gold-coin.png"
-                alt=""
-                width="18"
-                height="18"
-                draggable="false"
-              />
-              <span class="inventory__money-amount" id="inventory-gold">0</span>
+              <div class="inventory__section">
+                <span class="inventory__section-label">Torby</span>
+                <div
+                  class="inventory__bags"
+                  id="inventory-bags"
+                  aria-label="Gniazda toreb"
+                ></div>
+              </div>
+
+              <div
+                class="inventory__money"
+                id="inventory-money"
+                aria-label="Złoto"
+              >
+                <span class="inventory__money-label">Sakiewka</span>
+                <img
+                  class="inventory__money-icon"
+                  src="/assets/items/gold-coin.png"
+                  alt=""
+                  width="18"
+                  height="18"
+                  draggable="false"
+                />
+                <span class="inventory__money-amount" id="inventory-gold"
+                  >0</span
+                >
+              </div>
+
+              <p class="inventory__hints">
+                <span><b>2×</b> klik — użyj lub założ</span>
+                <span><b>PPM</b> — użyj</span>
+                <span>przeciągnij poza panel — wyrzuć</span>
+              </p>
             </div>
           </div>
         </aside>
@@ -88,7 +139,9 @@
         <div class="boot-screen__grain" aria-hidden="true"></div>
         <div class="boot-screen__panel">
           <h1 id="boot-brand" class="boot-screen__brand">Runeveil</h1>
-          <p class="boot-screen__tagline">Tam, gdzie zasłona staje się cienka.</p>
+          <p class="boot-screen__tagline">
+            Tam, gdzie zasłona staje się cienka.
+          </p>
           <p id="boot-status" class="boot-screen__status">Budzenie run…</p>
         </div>
       </div>

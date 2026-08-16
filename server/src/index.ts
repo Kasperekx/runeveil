@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
-import { runMigrations } from "./database.js";
+import { runMigrations } from "./db/database.js";
 import { registerAuthRoutes } from "./auth/routes.js";
 import { authStore } from "./auth/authStore.js";
 import { WorldRoom } from "./rooms/WorldRoom.js";

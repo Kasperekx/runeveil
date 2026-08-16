@@ -9,7 +9,9 @@ export const RESOURCE_LABELS: Record<ResourceKind, string> = {
   energy: "Energia",
 };
 
-export function parseResourceKind(raw: string | undefined | null): ResourceKind {
+export function parseResourceKind(
+  raw: string | undefined | null,
+): ResourceKind {
   if (raw === "rage" || raw === "mana" || raw === "energy") return raw;
   return "none";
 }

@@ -3,8 +3,8 @@ import {
   rememberLastCharacter,
   resumeLastCharacter,
 } from "./auth/lastCharacter";
-import { AuthScreen } from "./ui/AuthScreen";
-import { CharacterSelectScreen } from "./ui/CharacterSelectScreen";
+import { AuthScreen } from "./ui/screens/AuthScreen";
+import { CharacterSelectScreen } from "./ui/screens/CharacterSelectScreen";
 
 const bootStatus = document.getElementById("boot-status");
 

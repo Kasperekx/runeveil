@@ -1,0 +1,221 @@
+/**
+ * Panel launcher, bottom-right.
+ *
+ * Deliberately built from the same parts as the hotbar it sits next to: one
+ * brass terminal, the same socket recipe, the same key caps. The two strips
+ * read as one piece of furniture along the bottom edge.
+ */
+
+.micro-menu {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 22;
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  padding: 4px 5px 4px 4px;
+  background:
+    radial-gradient(
+      circle at 50% -30%,
+      rgba(106, 154, 124, 0.14),
+      transparent 46%
+    ),
+    linear-gradient(180deg, #17231c 0%, #0c1310 60%, #070b09 100%);
+  border: 1px solid #8a6b33;
+  box-shadow:
+    0 0 0 1px rgba(4, 7, 5, 0.98),
+    inset 0 1px 0 rgba(230, 200, 120, 0.18),
+    0 10px 24px rgba(0, 0, 0, 0.62);
+  pointer-events: auto;
+}
+
+/* The hotbar's terminal, repeated so the two strips share a vocabulary. */
+.micro-menu::before {
+  content: "";
+  position: relative;
+  flex: none;
+  width: 14px;
+  margin-right: 4px;
+  background:
+    linear-gradient(90deg, rgba(184, 149, 74, 0.1), transparent 60%),
+    linear-gradient(180deg, #253329 0%, #121b16 100%);
+  border: 1px solid #6e5428;
+  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.16);
+}
+
+.micro-menu__button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #a89464;
+  background:
+    linear-gradient(145deg, rgba(106, 154, 124, 0.06), transparent 42%), #050706;
+  border: 1px solid #2a332c;
+  box-shadow:
+    inset 1px 1px 0 #3f4f44,
+    inset -1px -1px 0 #000,
+    inset 0 0 6px rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.micro-menu__button:hover:not(:disabled) {
+  color: var(--brass-hi);
+  border-color: var(--brass-hi);
+  box-shadow:
+    inset 1px 1px 0 rgba(230, 200, 120, 0.28),
+    inset -1px -1px 0 #000,
+    0 0 12px rgba(230, 200, 120, 0.35);
+}
+
+.micro-menu__button:focus-visible {
+  outline: 1px solid var(--brass-hi);
+  outline-offset: 1px;
+}
+
+/*
+ * Panel behind this button is open. Lit rather than inverted: filling the
+ * whole cap with brass turned the icon into a dark blob.
+ */
+.micro-menu__button--active {
+  color: #ffeeb4;
+  background:
+    linear-gradient(145deg, rgba(230, 200, 120, 0.12), transparent 40%), #0f1610;
+  border-color: var(--brass);
+  box-shadow:
+    inset 0 -2px 0 var(--brass),
+    inset 1px 1px 0 rgba(230, 200, 120, 0.2),
+    0 0 10px rgba(230, 200, 120, 0.25);
+}
+
+.micro-menu__button:disabled {
+  color: rgba(168, 144, 96, 0.3);
+  cursor: default;
+}
+
+.micro-menu__icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Same treatment as the hotbar key caps. */
+.micro-menu__key {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  color: #8d7f5b;
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+  pointer-events: none;
+}
+
+.micro-menu__button:hover:not(:disabled) .micro-menu__key,
+.micro-menu__button--active .micro-menu__key {
+  color: #cbb887;
+}
+
+.micro-menu__button:disabled .micro-menu__key {
+  color: rgba(141, 127, 91, 0.35);
+}
+
+.micro-menu__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 2;
+  display: grid;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  place-items: center;
+  color: #1a1208;
+  background: linear-gradient(180deg, #f0d78c, var(--brass) 55%, #8a6c34);
+  border: 1px solid #241a09;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  animation: micro-menu-badge-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes micro-menu-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.micro-menu__button--badge:not(.micro-menu__button--active) {
+  color: var(--brass-hi);
+  border-color: rgba(184, 149, 74, 0.55);
+}
+
+/* Tooltip built from data-tip so no JS or extra markup is needed. */
+.micro-menu__button::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  padding: 6px 10px;
+  color: #eee2bf;
+  background: linear-gradient(180deg, #1a221c 0%, #0a100c 100%);
+  border: 1px solid var(--brass-lo);
+  box-shadow:
+    0 0 0 1px rgba(184, 149, 74, 0.22),
+    0 8px 18px rgba(0, 0, 0, 0.68);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 3px);
+  transition:
+    opacity 110ms ease,
+    transform 110ms ease;
+  pointer-events: none;
+}
+
+.micro-menu__button:hover::after,
+.micro-menu__button:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .micro-menu__badge {
+    animation: none;
+  }
+
+  .micro-menu__button::after {
+    transition: none;
+  }
+}
