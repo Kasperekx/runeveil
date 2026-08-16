@@ -1,16 +1,24 @@
 import type { KeyboardInput } from "../../input/KeyboardInput";
 import type { DialogueWindow } from "./DialogueWindow";
+import type { MerchantWindow } from "./MerchantWindow";
 
-/** Routes Esc to close the dialogue window (no dedicated open hotkey — click an NPC). */
+/** Esc closes merchant first, then gossip. */
 export class DialogueHotkeys {
   constructor(
     private readonly dialogue: DialogueWindow,
+    private readonly merchant: MerchantWindow,
     private readonly input: KeyboardInput,
   ) {}
 
   start(): void {
     this.input.onKeyDownPress((code, event) => {
-      if (code === "Escape" && this.dialogue.isOpen) {
+      if (code !== "Escape") return;
+      if (this.merchant.isOpen) {
+        event.preventDefault();
+        this.merchant.close();
+        return;
+      }
+      if (this.dialogue.isOpen) {
         event.preventDefault();
         this.dialogue.close();
       }

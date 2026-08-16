@@ -25,7 +25,7 @@ import { LevelUpBanner } from "../ui/hud/LevelUpBanner";
 import type { PlayerBuffs } from "../ui/hud/PlayerBuffs";
 import type { PlayerHud } from "../ui/hud/PlayerHud";
 import type { InventoryPanel } from "../ui/inventory/InventoryPanel";
-import type { DialogueWindow } from "../ui/panels/DialogueWindow";
+import type { MerchantWindow } from "../ui/panels/MerchantWindow";
 import type { ProfessionsPanel } from "../ui/panels/ProfessionsPanel";
 import type { Settings } from "../ui/panels/settings";
 import type { DeathScreen } from "../ui/screens/DeathScreen";
@@ -45,7 +45,7 @@ export interface BindNetworkContext {
   toast: GameToast;
   itemCooldowns: ItemCooldowns;
   professionsPanel: ProfessionsPanel;
-  dialogueWindow: DialogueWindow;
+  merchantWindow: MerchantWindow;
   deathScreen: DeathScreen;
   applySheet: (snap: NetworkPlayerSnapshot) => void;
   setDeathState: (dead: boolean) => void;
@@ -80,7 +80,7 @@ export function bindGameNetwork(ctx: BindNetworkContext): void {
     gameChat,
     deathScreen,
     player,
-    dialogueWindow,
+    merchantWindow,
     animals,
     settings,
     app,
@@ -201,10 +201,10 @@ export function bindGameNetwork(ctx: BindNetworkContext): void {
   };
   network.onTradeResult = (event) => {
     ctx.setPlayerGold(event.gold);
-    dialogueWindow.setGold(event.gold);
+    merchantWindow.setGold(event.gold);
     ctx.getInventoryPanel()?.setGold(event.gold);
     if (event.kind === "buy" && typeof event.stock === "number") {
-      dialogueWindow.setStock(event.itemId, event.stock);
+      merchantWindow.setStock(event.itemId, event.stock);
     }
     const name = itemDisplayName(event.itemId);
     if (event.kind === "buy") {
@@ -227,7 +227,8 @@ export function bindGameNetwork(ctx: BindNetworkContext): void {
   };
   network.onEquipmentRepaired = (event) => {
     ctx.setPlayerGold(event.gold);
-    dialogueWindow.setGold(event.gold);
+    merchantWindow.setGold(event.gold);
+    merchantWindow.refreshRepair();
     ctx.getInventoryPanel()?.setGold(event.gold);
     toast.show(`Naprawiono ekwipunek · −${event.totalCost} g`);
     logSystem(`Naprawiono ekwipunek za ${event.totalCost} g.`);

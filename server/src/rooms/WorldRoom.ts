@@ -188,11 +188,18 @@ interface AnimalSpawnSlot {
   homeY: number;
   /** Living animal occupying this slot; null while waiting to respawn. */
   livingId: string | null;
-  /** Dead animal kept in the world until this slot spawns its replacement. */
-  corpseId: string | null;
   /** Unix ms when a new living animal should spawn; 0 when occupied. */
   respawnAt: number;
 }
+
+/**
+ * Corpse lifetime is independent of creature respawn (WoW / Tibia).
+ * Living animals come back on `config.respawnMs`; bodies stay longer so loot
+ * is not yanked out from under the player when the next spawn appears.
+ */
+const CORPSE_DESPAWN_MS = 120_000;
+/** Empty corpses clear sooner so the floor is not littered with husks. */
+const EMPTY_CORPSE_DESPAWN_MS = 20_000;
 
 export class WorldRoom extends Room implements WorldHost {
   state = new GameState();
@@ -592,6 +599,7 @@ export class WorldRoom extends Room implements WorldHost {
     const dt = Math.min(deltaTime, 50) / 1000;
     const now = Date.now();
     this.processSpawnSlots(now);
+    this.processCorpseDespawns(now);
 
     // Players are not solid — walking into a creature must not shove it around.
     // Combat still uses `state.players` for aggro / chase / attacks.
@@ -675,6 +683,19 @@ export class WorldRoom extends Room implements WorldHost {
     }
   }
 
+  /** Drop timed-out corpses; living respawns never force this. */
+  private processCorpseDespawns(now: number): void {
+    const expired: string[] = [];
+    for (const [id, animal] of this.state.animals) {
+      if (animal.alive) continue;
+      if (animal.respawnAt <= 0 || now < animal.respawnAt) continue;
+      expired.push(id);
+    }
+    if (expired.length === 0) return;
+    for (const id of expired) this.removeAnimal(id);
+    this.refreshAllClientViews();
+  }
+
   private spawnAnimals(): void {
     for (const map of this.maps.values()) {
       for (const spawn of map.spawns.animals) {
@@ -686,7 +707,6 @@ export class WorldRoom extends Room implements WorldHost {
           homeX: spawn.x,
           homeY: spawn.y,
           livingId: null,
-          corpseId: null,
           respawnAt: 0,
         };
         this.spawnSlots.push(slot);
@@ -696,12 +716,8 @@ export class WorldRoom extends Room implements WorldHost {
   }
 
   private spawnLivingAnimal(slot: AnimalSpawnSlot, preferredId?: string): void {
-    if (slot.corpseId) {
-      this.removeAnimal(slot.corpseId);
-      slot.corpseId = null;
-    }
-
     const config = CREATURE_KINDS[slot.kind];
+    // Always a fresh id on respawn so an existing corpse can keep its own.
     const id = preferredId ?? `${slot.mapId}:${slot.kind}-n${++this.animalSeq}`;
     const animal = new AnimalState();
     animal.id = id;
@@ -723,6 +739,23 @@ export class WorldRoom extends Room implements WorldHost {
   private removeAnimal(id: string): void {
     this.state.animals.delete(id);
     this.animalAi.unregister(id);
+  }
+
+  private corpseHasLoot(animal: AnimalState): boolean {
+    for (let i = 0; i < animal.loot.length; i++) {
+      const slot = animal.loot.at(i);
+      if (slot?.itemId && slot.quantity > 0) return true;
+    }
+    return false;
+  }
+
+  /** After a loot take: empty husks despawn on the short timer. */
+  noteCorpseLooted(animal: AnimalState): void {
+    if (animal.alive || this.corpseHasLoot(animal)) return;
+    const sooner = Date.now() + EMPTY_CORPSE_DESPAWN_MS;
+    if (animal.respawnAt <= 0 || sooner < animal.respawnAt) {
+      animal.respawnAt = sooner;
+    }
   }
 
   private fillCorpseLoot(
@@ -1427,6 +1460,9 @@ export class WorldRoom extends Room implements WorldHost {
     animal.alive = false;
     this.fillCorpseLoot(animal, rollLootTable(config.loot));
     this.sendLootDropped(client, animal);
+    animal.respawnAt =
+      Date.now() +
+      (this.corpseHasLoot(animal) ? CORPSE_DESPAWN_MS : EMPTY_CORPSE_DESPAWN_MS);
 
     this.grantExperience(client, player, config.xp, {
       kind: animal.kind,
@@ -1439,11 +1475,8 @@ export class WorldRoom extends Room implements WorldHost {
 
     const slot = this.spawnSlots.find((s) => s.livingId === animal.id);
     if (slot) {
-      const respawnAt = Date.now() + config.respawnMs;
       slot.livingId = null;
-      slot.corpseId = animal.id;
-      slot.respawnAt = respawnAt;
-      animal.respawnAt = respawnAt;
+      slot.respawnAt = Date.now() + config.respawnMs;
     }
   }
 

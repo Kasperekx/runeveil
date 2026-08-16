@@ -48,6 +48,8 @@ export interface WorldHost {
     y: number,
     collectableAt: number,
   ): void;
+  /** Empty corpse → schedule the short despawn; no-op while loot remains. */
+  noteCorpseLooted(animal: AnimalState): void;
   broadcast(type: string, message?: unknown): void;
   equipmentSlot(player: PlayerState, slotId: string): EquipmentSlotState | null;
   stowEquipmentSlot(

@@ -10,6 +10,7 @@ import { CharacterHotkeys } from "../ui/panels/CharacterHotkeys";
 import type { CharacterPanel } from "../ui/panels/CharacterPanel";
 import type { DialogueWindow } from "../ui/panels/DialogueWindow";
 import type { LootWindow } from "../ui/panels/LootWindow";
+import type { MerchantWindow } from "../ui/panels/MerchantWindow";
 import { MICRO_ICONS, MicroMenu } from "../ui/panels/MicroMenu";
 import { ProfessionsHotkeys } from "../ui/panels/ProfessionsHotkeys";
 import type { ProfessionsPanel } from "../ui/panels/ProfessionsPanel";
@@ -40,6 +41,7 @@ export function bindGameHud(opts: {
   actionBar: ActionBar;
   gameChat: GameChat;
   dialogueWindow: DialogueWindow;
+  merchantWindow: MerchantWindow;
   lootWindow: LootWindow;
   settings: Settings;
   minimap: Minimap;
@@ -99,6 +101,7 @@ export function bindGameHud(opts: {
       opts.professionsPanel.isOpen ||
       opts.questLog.isOpen ||
       opts.dialogueWindow.isOpen ||
+      opts.merchantWindow.isOpen ||
       opts.lootWindow.isOpen;
     if (opts.getIsPlayerDead()) {
       event.preventDefault();

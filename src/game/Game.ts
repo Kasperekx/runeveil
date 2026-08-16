@@ -35,6 +35,7 @@ import { ActionBar } from "../ui/hud/actionBar/ActionBar";
 import { AttrPointsHint } from "../ui/hud/AttrPointsHint";
 import { CharacterPanel } from "../ui/panels/CharacterPanel";
 import { DialogueWindow } from "../ui/panels/DialogueWindow";
+import { MerchantWindow } from "../ui/panels/MerchantWindow";
 import { DeathScreen } from "../ui/screens/DeathScreen";
 import { GameChat } from "../ui/chat/GameChat";
 import { formatSystem } from "../ui/chat/chatLogFormat";
@@ -183,6 +184,7 @@ export class Game {
     };
     let inventoryPanel: InventoryPanel | null = null;
     const dialogueWindow = DialogueWindow.create();
+    const merchantWindow = MerchantWindow.create();
     const toast = GameToast.create();
     let isPlayerDead = false;
     const nearestHomeName = (): string => {
@@ -358,9 +360,9 @@ export class Game {
         portrait: cls.portrait,
         equipment: snap.equipment,
       });
-      dialogueWindow.refreshRepair();
+      merchantWindow.refreshRepair();
       syncUnspentAttrPoints(snap.unspentAttrPoints ?? 0);
-      if (dialogueWindow.isOpen) dialogueWindow.setGold(playerGold);
+      if (merchantWindow.isOpen) merchantWindow.setGold(playerGold);
     };
 
     boot.setStatus("Wiązanie z realm…");
@@ -412,7 +414,7 @@ export class Game {
       toast,
       itemCooldowns,
       professionsPanel,
-      dialogueWindow,
+      merchantWindow,
       deathScreen,
       applySheet,
       setDeathState,
@@ -450,6 +452,7 @@ export class Game {
         Boolean(systemMenu?.isOpen) ||
         isPlayerDead ||
         dialogueWindow.isOpen ||
+        merchantWindow.isOpen ||
         lootWindow.isOpen,
     );
     const upsertCampfireLight = (id: string, x: number, y: number): void => {
@@ -532,8 +535,10 @@ export class Game {
       camera,
       npcs,
       dialogueWindow,
+      merchantWindow,
       network,
       bag,
+      () => inventoryPanel,
       () => player.position,
       toast,
       () => playerGold,
@@ -564,7 +569,11 @@ export class Game {
         buildingEnterInteraction.isAt(x, y) ||
         miningInteraction.isAt(x, y),
     );
-    const dialogueHotkeys = new DialogueHotkeys(dialogueWindow, input);
+    const dialogueHotkeys = new DialogueHotkeys(
+      dialogueWindow,
+      merchantWindow,
+      input,
+    );
     const pickups = new NetworkPickupSystem(app, world, player, network);
     const remotePlayers = new NetworkPlayerSystem(app, world, network);
     await remotePlayers.init();
@@ -665,6 +674,7 @@ export class Game {
       actionBar,
       gameChat,
       dialogueWindow,
+      merchantWindow,
       lootWindow,
       settings,
       minimap,
@@ -692,6 +702,7 @@ export class Game {
         professionsPanel.isOpen ||
         questLog.isOpen ||
         dialogueWindow.isOpen ||
+        merchantWindow.isOpen ||
         lootWindow.isOpen ||
         hud.settingsPanel.isOpen ||
         Boolean(systemMenu?.isOpen) ||

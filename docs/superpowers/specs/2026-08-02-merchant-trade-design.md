@@ -4,7 +4,7 @@ Date: 2026-08-02
 
 ## Goal
 
-Production-ready vendor at `dark_merchant`: player buys from NPC shop and sells inventory items for gold. Server-authoritative; client UI in `DialogueWindow`.
+Production-ready vendor at `dark_merchant`: player buys from NPC shop and sells inventory items for gold. Server-authoritative; client UI in `MerchantWindow` (opened from gossip in `DialogueWindow`).
 
 ## Data
 

@@ -457,6 +457,7 @@ export class InventorySystem {
     clearItem(slot);
     player.isNew = false;
     this.host.persistPlayer(player);
+    this.host.noteCorpseLooted(animal);
   }
 
   handleLootAllCorpse(
@@ -492,6 +493,7 @@ export class InventorySystem {
     if (tookAny) {
       player.isNew = false;
       this.host.persistPlayer(player);
+      this.host.noteCorpseLooted(animal);
     }
     if (full) {
       client.send("notice", { kind: "inventory_full" });

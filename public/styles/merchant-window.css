@@ -1,0 +1,424 @@
+/**
+ * Merchant / repair work panel. Window chrome comes from `panel.css`.
+ * Sits left-of-center so the inventory bag stays usable on the right.
+ */
+
+.merchant-window {
+  --panel-enter-y: -12px;
+  --panel-enter-scale: 0.975;
+  --panel-body-max: calc(100vh - 100px);
+  --panel-lift: 0 24px 42px rgba(0, 0, 0, 0.55);
+
+  position: absolute;
+  top: clamp(12px, 8vh, 64px);
+  left: max(12px, calc(50% - 26rem));
+  z-index: 25;
+  width: min(34rem, calc(100vw - 24px));
+}
+
+.merchant-window .panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.merchant-window__tabs {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.merchant-window__tab {
+  flex: 1;
+  min-height: 32px;
+  padding: 6px 10px;
+  color: #b9aa7c;
+  background: #0b110e;
+  border: 1px solid #3a4a3e;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.merchant-window__tab[hidden] {
+  display: none;
+}
+
+.merchant-window__tab.is-active {
+  color: #0d1410;
+  background: linear-gradient(180deg, #e6c878 0%, #b8954a 100%);
+  border-color: #6e5428;
+}
+
+.merchant-window__tab:hover:not(.is-active) {
+  color: #fff0b6;
+  border-color: var(--brass-hi);
+}
+
+.merchant-window__list,
+.merchant-window__repair-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(52vh, 400px);
+  overflow-y: auto;
+  padding: 8px;
+  background: #060a08;
+  border: 1px solid #303a32;
+  scrollbar-width: thin;
+  scrollbar-color: var(--brass-lo) #080c0a;
+}
+
+/* Vendor grid: two readable tiles per row (icon + copy), not tiny icon stamps. */
+.merchant-window__list--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+
+.merchant-window__list[hidden],
+.merchant-window__repair[hidden] {
+  display: none !important;
+}
+
+.merchant-window__cell {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 10px 8px 8px;
+  color: #d8c8a4;
+  text-align: left;
+  background: linear-gradient(
+    180deg,
+    rgba(22, 33, 26, 0.95),
+    rgba(8, 12, 10, 0.98)
+  );
+  border: 1px solid #2f3a32;
+  box-shadow: inset 0 1px 0 rgba(230, 200, 120, 0.07);
+  cursor: pointer;
+}
+
+.merchant-window__cell:hover:not(:disabled) {
+  color: #f3e8c6;
+  border-color: var(--brass-hi);
+  background: linear-gradient(
+    90deg,
+    rgba(184, 149, 74, 0.12),
+    rgba(12, 18, 14, 0.98) 55%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(230, 200, 120, 0.16),
+    0 0 0 1px rgba(230, 200, 120, 0.2);
+}
+
+.merchant-window__cell:disabled {
+  cursor: not-allowed;
+}
+
+.merchant-window__cell--sold-out {
+  opacity: 0.48;
+  filter: grayscale(0.35);
+}
+
+.merchant-window__cell--poor:not(.merchant-window__cell--sold-out) {
+  border-color: #5a3530;
+}
+
+.merchant-window__cell--poor .merchant-window__cell-price {
+  color: #df7c6b;
+}
+
+.merchant-window__cell-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex: none;
+  background:
+    radial-gradient(
+      circle at 40% 30%,
+      rgba(106, 154, 124, 0.1),
+      transparent 55%
+    ),
+    #050706;
+  border: 1px solid #5c4a28;
+  box-shadow:
+    inset 1px 1px 0 #3f4f44,
+    inset -1px -1px 0 #000;
+}
+
+.merchant-window__cell-icon img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.merchant-window__cell-qty {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  z-index: 1;
+  color: #fff8e0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    -1px 0 #000,
+    0 1px #000,
+    1px 0 #000,
+    0 -1px #000;
+}
+
+.merchant-window__cell-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.merchant-window__cell-name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #f0e6c8;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.merchant-window__cell-price {
+  color: #f0d78a;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.merchant-window__cell-price--sell {
+  color: #8fbb7e;
+}
+
+.merchant-window__cell-status {
+  color: #8f8058;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.merchant-window__cell--sold-out .merchant-window__cell-status {
+  color: #df7c6b;
+}
+
+.merchant-window__cell--poor:not(.merchant-window__cell--sold-out)
+  .merchant-window__cell-status {
+  color: #df7c6b;
+}
+
+.merchant-window__repair-item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  color: #d8c8a4;
+  text-align: left;
+  background: rgba(8, 12, 10, 0.85);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.merchant-window__repair-item:hover:not(:disabled) {
+  color: #f0e6c8;
+  background: linear-gradient(90deg, rgba(184, 149, 74, 0.12), transparent);
+  border-color: #6e5428;
+}
+
+.merchant-window__repair-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.merchant-window__row-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  background: #050706;
+  border: 1px solid #4a4433;
+}
+
+.merchant-window__row-icon img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.merchant-window__repair-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.merchant-window__empty {
+  margin: 0;
+  padding: 18px 10px;
+  color: #817a65;
+  font-family: var(--font-body);
+  font-size: 12px;
+  text-align: center;
+}
+
+.merchant-window__repair {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.merchant-window__condition {
+  padding: 8px 10px;
+  background: #0c100e;
+  border: 1px solid #2d342e;
+}
+
+.merchant-window__condition-copy,
+.merchant-window__repair-values,
+.merchant-window__repair-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.merchant-window__condition-copy {
+  margin-bottom: 6px;
+  color: #bdb28e;
+  font: 700 10px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.merchant-window__condition-copy strong {
+  color: #efe0ae;
+  font-size: 12px;
+}
+
+.merchant-window__condition-track {
+  display: block;
+  height: 7px;
+  padding: 1px;
+  overflow: hidden;
+  background: #050706;
+  border: 1px solid #463d2e;
+}
+
+.merchant-window__condition-track--thin {
+  height: 5px;
+}
+
+.merchant-window__condition-track > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b94935 0%, #d39a45 48%, #78a763 100%);
+}
+
+.merchant-window__repair-heading strong {
+  overflow: hidden;
+  color: #eee1c5;
+  font: 700 11px var(--font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchant-window__repair-heading em {
+  color: #a98a60;
+  font: 700 8px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.merchant-window__repair-values {
+  color: #8f927e;
+  font: 9px var(--font-ui);
+}
+
+.merchant-window__repair-values b {
+  color: #d4c28e;
+}
+
+.merchant-window__repair-cost {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.merchant-window__repair-cost small {
+  color: #9d8d6b;
+  font: 8px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.merchant-window__repair-cost strong {
+  color: #efca6b;
+  font: 700 11px var(--font-ui);
+  white-space: nowrap;
+}
+
+.merchant-window__footer {
+  display: flex;
+}
+
+.merchant-window__repair-all {
+  flex: 1;
+  min-height: 36px;
+  padding: 8px 12px;
+  color: #0d1410;
+  background: linear-gradient(180deg, #e6c878 0%, #b8954a 100%);
+  border: 1px solid #6e5428;
+  font: 700 10px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.merchant-window__repair-all:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff0b6 0%, #d0ad5b 100%);
+}
+
+.merchant-window__repair-all:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .merchant-window {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .merchant-window__list--grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

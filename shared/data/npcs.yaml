@@ -6,7 +6,8 @@
 #
 # shop: optional vendor list
 #   item:  item id from items.yaml
-#   stock: remaining count; omit or -1 for infinite
+#   stock: omit (or -1) for infinite — default for MMO vendors
+#          finite counts only if you ever need a limited drop shop
 #
 # dialogue: optional client-only conversation choices
 #   label:  button text
@@ -43,25 +44,15 @@ npcs:
         action: close
     shop:
       - item: health_potion_v2
-        stock: 12
       - item: boar_meat
-        stock: 12
       - item: deer_meat
-        stock: 12
       - item: backpack
-        stock: 2
       - item: small_backpack
-        stock: 4
       - item: leather_helm
-        stock: 1
       - item: leather_chest
-        stock: 1
       - item: iron_shortsword
-        stock: 2
       - item: steel_longsword
-        stock: 2
       - item: copper_pickaxe
-        stock: 4
 
   dark_blacksmith:
     name: Kowal
