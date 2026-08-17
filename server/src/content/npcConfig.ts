@@ -16,6 +16,8 @@ export interface NpcConfig {
   greeting: string;
   shop: NpcShopOffer[];
   repairService: boolean;
+  /** Profession ids this NPC can teach. */
+  trainProfessions: string[];
 }
 
 interface NpcYamlEntry {
@@ -24,6 +26,7 @@ interface NpcYamlEntry {
   greeting: string;
   shop?: Array<{ item: string; stock?: number }>;
   repairService?: boolean;
+  trainProfessions?: string[];
 }
 
 interface NpcsYamlFile {
@@ -57,6 +60,9 @@ export const NPCS: Record<string, NpcConfig> = Object.fromEntries(
             : -1,
       })),
       repairService: entry.repairService === true,
+      trainProfessions: (entry.trainProfessions ?? [])
+        .map((professionId) => String(professionId).trim())
+        .filter(Boolean),
     },
   ]),
 );

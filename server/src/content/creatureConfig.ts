@@ -127,7 +127,7 @@ export const CREATURE_KINDS: Record<string, CreatureKindConfig> =
         hitRadius: entry.hitRadius,
         collisionRadius: entry.collisionRadius,
         maxHp: entry.maxHp,
-        respawnMs: entry.respawnMs,
+        respawnMs: Math.max(10_000, Math.floor(entry.respawnMs || 30_000)),
         xp: Math.max(0, Math.floor(entry.xp ?? 0)),
         loot: parseLoot(id, entry),
         attackDamage: entry.attackDamage ?? 8,

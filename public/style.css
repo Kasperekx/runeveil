@@ -5123,6 +5123,17 @@ body {
   font-size: 9px;
 }
 
+.professions-panel__profession.is-unlearned {
+  opacity: 0.62;
+}
+
+.professions-panel__profession.is-unlearned
+  .professions-panel__profession-copy
+  small {
+  color: #8a6a4a;
+  font-style: italic;
+}
+
 .professions-panel__profession.is-active
   .professions-panel__profession-copy
   small {

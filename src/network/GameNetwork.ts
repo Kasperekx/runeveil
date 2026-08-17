@@ -774,6 +774,18 @@ export class GameNetwork {
     });
   }
 
+  learnProfession(npcInstanceId: string, professionId: string): void {
+    if (!this.room) return;
+    this.cancelScheduledSave();
+    const { x, y } = this.player.position;
+    this.room.send("learnProfession", {
+      npcInstanceId,
+      professionId,
+      x,
+      y,
+    });
+  }
+
   sellToNpc(
     npcInstanceId: string,
     inventoryIndex: number,

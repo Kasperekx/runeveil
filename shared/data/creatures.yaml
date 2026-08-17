@@ -4,6 +4,8 @@
 # Art: sprites live under public/assets/creatures/<folder>/
 # Paths below are folder + filePrefix for CreatureSprites.
 # Player melee damage comes from attackPower (stats + gear), not this file.
+# respawnMs is the living-slot delay after death (corpse lifetime is separate).
+# Values are a floor; the server adds up to +25% jitter so packs do not pop together.
 #
 # Loot table:
 # - chance: percentage 0..100; omitted means guaranteed (legacy compatibility)
@@ -27,7 +29,7 @@ creatures:
     hitRadius: 40
     collisionRadius: 24
     maxHp: 60
-    respawnMs: 4000
+    respawnMs: 40000
     xp: 25
     loot:
       - item: boar_meat
@@ -71,7 +73,7 @@ creatures:
     hitRadius: 38
     collisionRadius: 22
     maxHp: 40
-    respawnMs: 4500
+    respawnMs: 25000
     xp: 15
     loot:
       - item: deer_meat
@@ -107,7 +109,7 @@ creatures:
     hitRadius: 38
     collisionRadius: 18
     maxHp: 75
-    respawnMs: 7000
+    respawnMs: 60000
     xp: 35
     loot:
       - item: health_potion_v2

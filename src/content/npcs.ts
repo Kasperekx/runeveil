@@ -9,7 +9,11 @@ export interface NpcShopOffer {
   stock: number;
 }
 
-export type NpcDialogueAction = "trade" | "repair" | "close";
+export type NpcDialogueAction =
+  | "trade"
+  | "repair"
+  | "close"
+  | "learnProfession";
 
 export interface NpcDialogueOption {
   id: string;
@@ -18,6 +22,8 @@ export interface NpcDialogueOption {
   text?: string;
   /** Special action; omit for text-only replies. */
   action?: NpcDialogueAction;
+  /** Required when action is learnProfession. */
+  profession?: string;
 }
 
 export interface NpcDefinition {
@@ -31,6 +37,8 @@ export interface NpcDefinition {
   dialogue: NpcDialogueOption[];
   shop: NpcShopOffer[];
   repairService: boolean;
+  /** Profession ids this NPC can teach (mirrors server trainProfessions). */
+  trainProfessions: string[];
 }
 
 interface NpcYamlDialogueEntry {
@@ -38,6 +46,7 @@ interface NpcYamlDialogueEntry {
   label: string;
   text?: string;
   action?: string;
+  profession?: string;
 }
 
 interface NpcYamlEntry {
@@ -49,6 +58,7 @@ interface NpcYamlEntry {
   dialogue?: NpcYamlDialogueEntry[];
   shop?: Array<{ item: string; stock?: number }>;
   repairService?: boolean;
+  trainProfessions?: string[];
 }
 
 interface NpcsYamlFile {
@@ -74,16 +84,21 @@ function parseDialogue(
     const action =
       row.action === "trade" ||
       row.action === "repair" ||
-      row.action === "close"
+      row.action === "close" ||
+      row.action === "learnProfession"
         ? row.action
         : undefined;
     const text = row.text?.trim();
+    const profession = row.profession?.trim();
     if (!text && !action) continue;
+    if (action === "learnProfession" && !profession) continue;
     out.push({
       id: row.id?.trim() || `opt-${index}`,
       label: row.label.trim(),
       text: text || undefined,
       action,
+      profession:
+        action === "learnProfession" ? profession : undefined,
     });
   }
   return out;
@@ -114,6 +129,9 @@ export async function loadNpcCatalog(): Promise<void> {
             : -1,
       })),
       repairService: entry.repairService === true,
+      trainProfessions: (entry.trainProfessions ?? [])
+        .map((professionId) => String(professionId).trim())
+        .filter(Boolean),
     };
   }
 

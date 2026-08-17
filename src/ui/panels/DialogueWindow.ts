@@ -3,12 +3,19 @@ import type { NpcDialogueOption, NpcShopOffer } from "../../content/npcs";
 import { makeDraggable, clearDragPosition } from "../makeDraggable";
 
 type DialogueOptionKind =
-  "talk" | "trade" | "repair" | "quest" | "close" | "back";
+  | "talk"
+  | "trade"
+  | "repair"
+  | "quest"
+  | "close"
+  | "back"
+  | "learn";
 
 const OPTION_BADGES: Partial<Record<DialogueOptionKind, string>> = {
   trade: "Handel",
   repair: "Usługa",
   quest: "Zadanie",
+  learn: "Nauka",
 };
 
 export interface NpcDialogueView {
@@ -35,6 +42,7 @@ export interface DialogueQuestAction {
 export interface DialogueServiceHandlers {
   onTrade: (view: NpcDialogueView) => void;
   onRepair: (view: NpcDialogueView) => void;
+  onLearnProfession: (view: NpcDialogueView, professionId: string) => void;
 }
 
 /**
@@ -179,7 +187,9 @@ export class DialogueWindow {
         option.action === "repair" ||
         option.action === "close"
           ? option.action
-          : "talk";
+          : option.action === "learnProfession"
+            ? "learn"
+            : "talk";
       this.optionsEl.appendChild(
         this.buildOptionButton(
           option.label,
@@ -231,6 +241,19 @@ export class DialogueWindow {
       const view = this.view;
       this.close();
       this.serviceHandlers?.onRepair(view);
+      return;
+    }
+    if (option.action === "learnProfession" && option.profession) {
+      const professionId = option.profession;
+      this.serviceHandlers?.onLearnProfession(this.view, professionId);
+      this.view.dialogue = this.view.dialogue.filter(
+        (row) =>
+          !(
+            row.action === "learnProfession" &&
+            row.profession === professionId
+          ),
+      );
+      this.renderRootOptions();
     }
   }
 

@@ -65,10 +65,15 @@ export interface WorldHost {
   ): { id: string; npcId: string; x: number; y: number } | null;
   withinNpcRange(player: PlayerState, npc: { x: number; y: number }): boolean;
   isNearNpcId(player: PlayerState, npcId: string): boolean;
+  hasProfession(player: PlayerState, professionId: string): boolean;
   professionState(
     player: PlayerState,
     professionId: string,
-  ): import("../schema/GameState.js").ProfessionState;
+  ): import("../schema/GameState.js").ProfessionState | null;
+  learnProfession(
+    player: PlayerState,
+    professionId: string,
+  ): import("../schema/GameState.js").ProfessionState | null;
   hasItemQuantity(
     player: PlayerState,
     itemId: string,

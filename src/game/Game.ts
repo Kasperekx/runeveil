@@ -543,6 +543,7 @@ export class Game {
       toast,
       () => playerGold,
       () => equippedItems,
+      () => professionsPanel.learnedProfessionIds(),
       (npcId) => {
         const actions = [] as Array<{ label: string; onClick: () => void }>;
         for (const quest of availableQuests()) {

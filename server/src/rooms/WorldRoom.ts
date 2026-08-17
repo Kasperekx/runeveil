@@ -55,7 +55,6 @@ import { BAG_SLOT_COUNT } from "../sim/bagConfig.js";
 import { getItemConfig, itemIdsMatch } from "../content/itemConfig.js";
 import {
   getProfessionConfig,
-  PROFESSIONS,
   professionXpForLevel,
 } from "../content/professionConfig.js";
 import { QUESTS } from "../content/questConfig.js";
@@ -200,6 +199,14 @@ interface AnimalSpawnSlot {
 const CORPSE_DESPAWN_MS = 120_000;
 /** Empty corpses clear sooner so the floor is not littered with husks. */
 const EMPTY_CORPSE_DESPAWN_MS = 20_000;
+/** Extra delay on top of config.respawnMs so neighbouring slots do not pop together. */
+const LIVING_RESPAWN_JITTER = 0.25;
+
+function nextLivingRespawnAt(respawnMs: number): number {
+  const base = Math.max(10_000, Math.floor(respawnMs));
+  const jitter = Math.floor(Math.random() * base * LIVING_RESPAWN_JITTER);
+  return Date.now() + base + jitter;
+}
 
 export class WorldRoom extends Room implements WorldHost {
   state = new GameState();
@@ -489,6 +496,12 @@ export class WorldRoom extends Room implements WorldHost {
     },
     craftRecipe: (client: Client, data: CraftRecipePayload) => {
       this.professions.handleCraft(client, data);
+    },
+    learnProfession: (
+      client: Client,
+      data: Parameters<ProfessionSystem["handleLearn"]>[1],
+    ) => {
+      this.professions.handleLearn(client, data);
     },
     startMine: (client: Client, data: MineNodePayload) => {
       this.mining.handleStart(client, data);
@@ -848,17 +861,17 @@ export class WorldRoom extends Room implements WorldHost {
       player.bags.push(bag);
     }
 
-    // Create missing professions at rank 1 so additions to professions.yaml
-    // become available automatically to existing characters.
-    for (const profession of Object.values(PROFESSIONS)) {
-      const stored = saved.professions[profession.id];
+    // Only professions the character has learned (row in DB) are restored.
+    for (const [professionId, stored] of Object.entries(saved.professions)) {
+      const profession = getProfessionConfig(professionId);
+      if (!profession || !stored) continue;
       const state = new ProfessionState();
       state.professionId = profession.id;
       state.level = Math.min(
         profession.maxLevel,
-        Math.max(1, Math.floor(stored?.level ?? 1)),
+        Math.max(1, Math.floor(stored.level ?? 1)),
       );
-      state.experience = Math.max(0, Math.floor(stored?.experience ?? 0));
+      state.experience = Math.max(0, Math.floor(stored.experience ?? 0));
       state.experienceToLevel = professionXpForLevel(profession, state.level);
       player.professions.push(state);
     }
@@ -1323,16 +1336,35 @@ export class WorldRoom extends Room implements WorldHost {
     }
   }
 
-  professionState(player: PlayerState, professionId: string): ProfessionState {
+  hasProfession(player: PlayerState, professionId: string): boolean {
+    return this.professionState(player, professionId) !== null;
+  }
+
+  /** Learned profession progress, or null if the character never trained it. */
+  professionState(
+    player: PlayerState,
+    professionId: string,
+  ): ProfessionState | null {
     for (const state of player.professions) {
       if (state.professionId === professionId) return state;
     }
+    return null;
+  }
+
+  /** Grant a profession at rank 1 if not already known. */
+  learnProfession(
+    player: PlayerState,
+    professionId: string,
+  ): ProfessionState | null {
+    const existing = this.professionState(player, professionId);
+    if (existing) return existing;
     const config = getProfessionConfig(professionId);
+    if (!config) return null;
     const state = new ProfessionState();
     state.professionId = professionId;
     state.level = 1;
     state.experience = 0;
-    state.experienceToLevel = config ? professionXpForLevel(config, 1) : 0;
+    state.experienceToLevel = professionXpForLevel(config, 1);
     player.professions.push(state);
     return state;
   }
@@ -1476,7 +1508,7 @@ export class WorldRoom extends Room implements WorldHost {
     const slot = this.spawnSlots.find((s) => s.livingId === animal.id);
     if (slot) {
       slot.livingId = null;
-      slot.respawnAt = Date.now() + config.respawnMs;
+      slot.respawnAt = nextLivingRespawnAt(config.respawnMs);
     }
   }
 

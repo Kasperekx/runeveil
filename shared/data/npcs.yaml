@@ -12,7 +12,10 @@
 # dialogue: optional client-only conversation choices
 #   label:  button text
 #   text:   show this reply (then „Wróć”)
-#   action: trade | repair | close  (instead of / after text)
+#   action: trade | repair | close | learnProfession
+#   profession: profession id (required when action is learnProfession)
+#
+# trainProfessions: profession ids this NPC can teach (server-authoritative)
 
 npcs:
   dark_merchant:
@@ -66,6 +69,8 @@ npcs:
       Żelazo nie kłamie. Powiedz, czego szukasz —
       ostrza, naprawy, czy tylko ciepła od kuźni.
     repairService: true
+    trainProfessions:
+      - mining
     dialogue:
       - id: story
         label: Opowiedz o kuźni
@@ -73,6 +78,10 @@ npcs:
           Postawiłem ten piec, gdy karawany jeszcze jeździły regularnie.
           Teraz zostaliśmy my, kamień pod stopami i bestie na polanie.
           Młot mam, węgiel mam. Klientów — jak Mgła pozwoli.
+      - id: learn_mining
+        label: Naucz mnie górnictwa
+        action: learnProfession
+        profession: mining
       - id: repair
         label: Napraw mój ekwipunek
         action: repair

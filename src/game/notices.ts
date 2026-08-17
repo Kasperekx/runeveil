@@ -19,6 +19,11 @@ export const NOTICE_COPY: Record<string, string> = {
   campfire_blocked: "Nie możesz tu postawić paleniska.",
   profession_level_too_low:
     "Twój poziom profesji jest za niski dla tej czynności.",
+  profession_not_learned:
+    "Najpierw naucz się tej profesji u odpowiedniego trenera.",
+  profession_already_learned: "Znasz już tę profesję.",
+  cannot_learn_profession: "Ten NPC nie może Cię tego nauczyć.",
+  profession_learned: "Nauczyłeś się nowej profesji.",
   missing_ingredients: "Brakuje składników do tego przepisu.",
   mining_pickaxe_required: "Potrzebujesz kilofa, aby wydobywać rudę.",
   mining_too_far: "Podejdź bliżej do żyły, aby kopać.",
@@ -42,6 +47,7 @@ export const CRAFT_REJECTION_NOTICES = new Set([
   "cooking_station_required",
   "forge_station_required",
   "profession_level_too_low",
+  "profession_not_learned",
   "missing_ingredients",
   "inventory_full",
   "mining_pickaxe_required",

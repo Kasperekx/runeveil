@@ -158,6 +158,20 @@
   border-left-color: #ad6d45;
 }
 
+.dialogue-window__option--learn {
+  color: #d8e0c4;
+  background:
+    linear-gradient(90deg, rgba(90, 120, 72, 0.18), transparent 55%),
+    rgba(12, 14, 11, 0.88);
+  border-color: rgba(90, 110, 70, 0.7);
+  border-left-color: #7a9a58;
+}
+
+.dialogue-window__option--learn .dialogue-window__option-badge {
+  color: #b8d090;
+  border-color: rgba(122, 154, 88, 0.55);
+}
+
 .dialogue-window__option--repair .dialogue-window__option-badge {
   color: #d4a878;
   border-color: rgba(173, 109, 69, 0.55);

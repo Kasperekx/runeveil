@@ -226,6 +226,17 @@ export class ProfessionsPanel {
     this.render();
   }
 
+  /** Profession ids the character has trained (server-authoritative list). */
+  learnedProfessionIds(): ReadonlySet<string> {
+    return new Set(this.professions.map((entry) => entry.professionId));
+  }
+
+  isProfessionLearned(professionId: string): boolean {
+    return this.professions.some(
+      (entry) => entry.professionId === professionId,
+    );
+  }
+
   /** Advances a queued craft only after the authoritative server accepts it. */
   handleCrafted(recipeId: string, quantity: number): void {
     const queue = this.craftQueue;
@@ -308,42 +319,59 @@ export class ProfessionsPanel {
       this.selectedProfessionId = definitions[0]?.id ?? "cooking";
     }
     const profession = getProfession(this.selectedProfessionId);
+    const learned = this.isProfessionLearned(profession.id);
     const state = this.state(profession.id);
-    const needed =
-      state.experienceToLevel || professionXpForLevel(profession, state.level);
-    const pct = needed ? Math.min(100, (state.experience / needed) * 100) : 100;
-    this.rankEl.textContent =
-      state.level >= profession.maxLevel
+    const needed = learned
+      ? state.experienceToLevel || professionXpForLevel(profession, state.level)
+      : 0;
+    const pct =
+      learned && needed
+        ? Math.min(100, (state.experience / needed) * 100)
+        : learned
+          ? 100
+          : 0;
+    this.rankEl.textContent = !learned
+      ? "Nieznana"
+      : state.level >= profession.maxLevel
         ? "Mistrz profesji"
         : `Ranga ${state.level}`;
     this.progressEl.style.width = `${pct}%`;
-    this.progressEl.title = needed
-      ? `${state.experience} / ${needed} PD`
-      : "Maksymalny poziom";
+    this.progressEl.title = !learned
+      ? "Naucz się u trenera"
+      : needed
+        ? `${state.experience} / ${needed} PD`
+        : "Maksymalny poziom";
     this.root.querySelector("[data-active-icon]")!.textContent =
       profession.icon;
     this.root.querySelector("[data-active-name]")!.textContent =
       profession.name;
     this.root.querySelector("[data-active-description]")!.textContent =
       profession.description;
-    this.root.querySelector("[data-xp-label]")!.textContent = needed
-      ? `${state.experience} / ${needed} PD do rangi ${state.level + 1}`
-      : `${profession.maxLevel} / ${profession.maxLevel} · maksimum`;
+    this.root.querySelector("[data-xp-label]")!.textContent = !learned
+      ? "Naucz się tej profesji u trenera"
+      : needed
+        ? `${state.experience} / ${needed} PD do rangi ${state.level + 1}`
+        : `${profession.maxLevel} / ${profession.maxLevel} · maksimum`;
     const station = this.root.querySelector<HTMLElement>("[data-station]")!;
     const usesCraftingStation = profession.recipes.length > 0;
     const stationReady =
+      learned &&
       usesCraftingStation &&
       profession.recipes.some((recipe) => this.hasStation(recipe.station));
     station.classList.toggle("is-available", stationReady);
     station.classList.toggle("is-world", !usesCraftingStation);
-    station.querySelector("[data-station-state]")!.textContent =
-      !usesCraftingStation
+    station.querySelector("[data-station-state]")!.textContent = !learned
+      ? "Wymaga nauki"
+      : !usesCraftingStation
         ? "Praca w terenie"
         : stationReady
           ? "Stanowisko aktywne"
           : "Wymagane stanowisko";
-    station.querySelector("[data-station-copy]")!.textContent =
-      usesCraftingStation
+    station.querySelector("[data-station-copy]")!.textContent = !learned
+      ? profession.id === "mining"
+        ? "Górnictwa nauczy Cię kowal przy kuźni."
+        : "Znajdź trenera tej profesji w świecie."
+      : usesCraftingStation
         ? profession.id === "mining"
           ? "Sztabki wytopisz tylko przy kuźni."
           : "Przepisy wykonasz przy palenisku."
@@ -352,7 +380,7 @@ export class ProfessionsPanel {
     const placeButton = this.root.querySelector<HTMLButtonElement>(
       "[data-place-campfire]",
     )!;
-    placeButton.hidden = profession.id !== "cooking";
+    placeButton.hidden = !learned || profession.id !== "cooking";
 
     const professionList = this.root.querySelector<HTMLElement>(
       "[data-profession-list]",
@@ -362,15 +390,17 @@ export class ProfessionsPanel {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "professions-panel__profession";
+        const definitionLearned = this.isProfessionLearned(definition.id);
         const definitionState = this.state(definition.id);
         const active = definition.id === profession.id;
         if (active) button.classList.add("is-active");
+        if (!definitionLearned) button.classList.add("is-unlearned");
         button.setAttribute("aria-pressed", active ? "true" : "false");
         button.innerHTML = `
           <span class="professions-panel__profession-icon" aria-hidden="true">${definition.icon}</span>
           <span class="professions-panel__profession-copy">
             <strong>${escapeHtml(definition.name)}</strong>
-            <small>Ranga ${definitionState.level}</small>
+            <small>${definitionLearned ? `Ranga ${definitionState.level}` : "Nieznana"}</small>
           </span>
           <span class="professions-panel__profession-chevron" aria-hidden="true">›</span>
         `;
@@ -382,6 +412,21 @@ export class ProfessionsPanel {
         return button;
       }),
     );
+
+    if (!learned) {
+      this.listEl.replaceChildren();
+      this.detailEl.innerHTML = `
+        <p class="professions-panel__locked">
+          Nie znasz jeszcze tej profesji. Porozmawiaj z trenerem w świecie
+          ${
+            profession.id === "mining"
+              ? "— kowal nauczy Cię górnictwa."
+              : ", aby ją poznać."
+          }
+        </p>
+      `;
+      return;
+    }
 
     if (
       !this.selectedRecipeId ||

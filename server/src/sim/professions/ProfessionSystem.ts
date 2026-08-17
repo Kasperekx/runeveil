@@ -5,6 +5,7 @@ import {
   getProfessionRecipe,
   professionXpForLevel,
 } from "../../content/professionConfig.js";
+import { getNpcConfig } from "../../content/npcConfig.js";
 import { addItemToPlayer, removeItemFromPlayer } from "../inventoryOps.js";
 import { emptyItemData } from "../itemization.js";
 import type { WorldHost } from "../WorldHost.js";
@@ -16,6 +17,50 @@ export class ProfessionSystem {
 
   clearSession(sessionId: string): void {
     this.craftReadyAt.delete(sessionId);
+  }
+
+  handleLearn(
+    client: Client,
+    data: {
+      npcInstanceId?: string;
+      professionId?: string;
+      x?: number;
+      y?: number;
+    },
+  ): void {
+    const player = this.host.livingPlayer(client);
+    if (!player || typeof data?.npcInstanceId !== "string") return;
+    if (typeof data.professionId !== "string") return;
+
+    this.host.applyClientPosition(player, data.x, data.y);
+
+    const placement = this.host.findNpc(player, data.npcInstanceId);
+    if (!placement) return;
+    if (!this.host.withinNpcRange(player, placement)) {
+      client.send("notice", { kind: "too_far" });
+      return;
+    }
+
+    const npc = getNpcConfig(placement.npcId);
+    if (!npc?.trainProfessions.includes(data.professionId)) {
+      client.send("notice", { kind: "cannot_learn_profession" });
+      return;
+    }
+
+    const profession = getProfessionConfig(data.professionId);
+    if (!profession) return;
+
+    if (this.host.hasProfession(player, data.professionId)) {
+      client.send("notice", { kind: "profession_already_learned" });
+      return;
+    }
+
+    const state = this.host.learnProfession(player, data.professionId);
+    if (!state) return;
+
+    player.isNew = false;
+    this.host.persistPlayer(player);
+    client.send("notice", { kind: "profession_learned" });
   }
 
   handleCraft(
@@ -53,6 +98,10 @@ export class ProfessionSystem {
       ),
     );
     const state = this.host.professionState(player, recipe.professionId);
+    if (!state) {
+      client.send("notice", { kind: "profession_not_learned" });
+      return;
+    }
     if (state.level < recipe.level) {
       client.send("notice", { kind: "profession_level_too_low" });
       return;

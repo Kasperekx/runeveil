@@ -67,6 +67,10 @@ export class MiningSystem {
     if (!node || !profession) return;
 
     const state = this.host.professionState(player, node.professionId);
+    if (!state) {
+      client.send("notice", { kind: "profession_not_learned" });
+      return;
+    }
     if (state.level < node.level) {
       client.send("notice", { kind: "profession_level_too_low" });
       return;
@@ -124,6 +128,10 @@ export class MiningSystem {
     if (!node || !profession) return;
 
     const state = this.host.professionState(player, node.professionId);
+    if (!state) {
+      client.send("notice", { kind: "profession_not_learned" });
+      return;
+    }
     if (state.level < node.level) {
       client.send("notice", { kind: "profession_level_too_low" });
       return;

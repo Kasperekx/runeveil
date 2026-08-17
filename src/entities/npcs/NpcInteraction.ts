@@ -39,6 +39,7 @@ export class NpcInteraction {
     private readonly getEquipment: () => Array<
       ItemInstance & { slotId: string }
     >,
+    private readonly getLearnedProfessionIds: () => ReadonlySet<string>,
     private readonly getQuestActions: (
       npcId: string,
     ) => DialogueQuestAction[] = () => [],
@@ -63,6 +64,9 @@ export class NpcInteraction {
     this.dialogue.bindServices({
       onTrade: (view) => this.openMerchant(view, "buy"),
       onRepair: (view) => this.openMerchant(view, "repair"),
+      onLearnProfession: (view, professionId) => {
+        this.network.learnProfession(view.npcInstanceId, professionId);
+      },
     });
     this.app.canvas.addEventListener("pointerdown", this.onPointerDown);
     this.app.canvas.addEventListener("pointermove", this.onPointerMove);
@@ -143,12 +147,18 @@ export class NpcInteraction {
 
     this.openNpcId = hit.id;
     const def = getNpc(hit.npcId);
+    const learned = this.getLearnedProfessionIds();
     const view: NpcDialogueView = {
       name: def.name,
       title: def.title,
       portrait: def.frames[0]!,
       greeting: def.greeting,
-      dialogue: def.dialogue,
+      dialogue: def.dialogue.filter(
+        (option) =>
+          option.action !== "learnProfession" ||
+          !option.profession ||
+          !learned.has(option.profession),
+      ),
       npcInstanceId: hit.id,
       shop: def.shop,
       gold: this.getGold(),
